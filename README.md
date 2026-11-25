@@ -77,7 +77,7 @@ npm run dev                       # http://localhost:5173
 Open three browser windows (or devices on your LAN):
 
 1. `/host`: create a room, choose a mode and games.
-2. `/display`: the display shows a 6-digit code and a QR code. In the host lobby, enter that code under **Display** (or scan the QR with the host's phone).
+2. `/display`: the display shows a 6-digit code and a QR code. In the host lobby, tap the **Display** button beside *Start*, then type the code or tap **Scan QR code** to scan it with the host's camera. It connects automatically.
 3. Once connected, the display shows the lobby with a join QR code. Scan it (or open `/play`) to join as a player.
 
 > **Testing with real phones on your Wi-Fi:** run `npm run dev` (it already listens on all interfaces), open the app at your machine's LAN IP, and set `VITE_PUBLIC_APP_URL=http://<your-ip>:5173` in `.env.development.local` so QR codes point there. The app connects to the emulators on the same host automatically.
@@ -88,11 +88,14 @@ Open three browser windows (or devices on your LAN):
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Vite dev server |
+| `npm run dev` | Vite dev server (against the emulators) |
 | `npm run build` | Type-check + production build to `dist/` |
 | `npm run typecheck` | Type-check the web app and Cloud Functions |
 | `npm run lint` | oxlint |
-| `npm run emulators` | Start Auth / Firestore / RTDB / Functions emulators |
+| `npm run emulators` | Build functions, then start the Auth / Firestore / RTDB / Functions emulators |
+| `npm run functions:watch` | Rebuild Cloud Functions on save (for the Functions emulator) |
+| `npm run deploy` | Build and deploy rules, functions and hosting to production |
+| `npm run deploy:hosting` | Build and deploy only the web app to production |
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
 | `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
@@ -104,29 +107,61 @@ To run the function integration tests against running emulators:
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 FIREBASE_DATABASE_EMULATOR_HOST=127.0.0.1:9000 npm run test:functions
 ```
 
-## Deploying to a real Firebase project
+## Deploying to production
 
-1. Create a Firebase project and enable **Anonymous** sign-in (Authentication → Sign-in method), **Cloud Firestore**, **Realtime Database**, and the **Blaze** plan (required for Cloud Functions and Cloud Scheduler).
-2. Register a **Web app** and copy its config into `.env.local` (see `.env.example`), setting `VITE_USE_FIREBASE_EMULATORS=false`.
-3. Point the CLI at your project: `npx firebase use --add` (replaces the `demo-partey` default in `.firebaserc`).
-4. Optionally tune `functions/.env` (`PAIRING_CODE_TTL_SECONDS`, default 180).
-5. Deploy:
+Production is the Firebase project **`partey-21c76`** (alias `prod` in `.firebaserc`). The `default` alias stays on `demo-partey` so a stray `firebase` command can never touch production; the deploy scripts pass `--project prod` explicitly.
+
+**Config used by a deploy** (local dev overrides in `.env.development.local` / `functions/.env.local` are ignored):
+
+| File | Used for |
+|---|---|
+| `.env` | Web app Firebase config, baked into `dist/` by `npm run build` |
+| `functions/.env` | `PAIRING_CODE_TTL_SECONDS` (default 180) and `RTDB_URL` (the RTDB instance is in `asia-southeast1`) |
+
+Everything runs in **`asia-southeast1` (Singapore)**: Firestore, the Realtime Database and all Cloud Functions. The functions region is set in `functions/src/config.ts` and must match `VITE_FIREBASE_FUNCTIONS_REGION` in `.env`.
+
+### Every release
+
+```bash
+npx firebase login                # once per machine
+npm run typecheck && npm run lint
+npm run deploy                    # build + rules + functions + hosting
+```
+
+Only the front end changed? `npm run deploy:hosting` is much faster. To ship a single piece:
+
+```bash
+npx firebase deploy --project prod --only firestore:rules,database   # security rules
+npx firebase deploy --project prod --only functions                  # Cloud Functions
+```
+
+If a deploy reports functions that exist in the cloud but not in the code (e.g. after a rename), it asks before deleting them; add `--force` to accept non-interactively.
+
+Live at **https://partey-21c76.web.app**.
+
+### One-time setup (already done for `partey-21c76`)
+
+1. Blaze plan (required for Cloud Functions and Cloud Scheduler); **Anonymous** sign-in enabled; Cloud Firestore and Realtime Database created in `asia-southeast1`.
+2. A registered Web app whose config is in `.env` with `VITE_USE_FIREBASE_EMULATORS=false` (see `.env.example`).
+3. Container image cleanup for Cloud Functions builds, so old images don't accrue storage costs:
 
    ```bash
-   npm run build
-   npx firebase deploy --only firestore,database,functions,hosting
+   npx firebase functions:artifacts:setpolicy --project prod --location asia-southeast1 --days 1
    ```
 
-6. **Enable Firestore TTL policies** so logically expired data is physically deleted (TTL is configured outside of `firebase.json`):
+4. Firestore TTL policies, so logically expired data is physically deleted (TTL is configured outside of `firebase.json`):
 
    ```bash
+   gcloud config set project partey-21c76
    gcloud firestore fields ttls update ttlAt     --collection-group=rooms           --enable-ttl
    gcloud firestore fields ttls update expiresAt --collection-group=displayPairings --enable-ttl
    gcloud firestore fields ttls update expiresAt --collection-group=pairingCodes    --enable-ttl
    gcloud firestore fields ttls update expireAt  --collection-group=rateLimits      --enable-ttl
    ```
 
-7. Consider enabling **App Check** for the callable functions before a public launch.
+5. Before a public launch, consider enabling **App Check** for the callable functions.
+
+**Deploying to a different project:** add it with `npx firebase use --add` (choose an alias such as `staging`), put its web config in `.env`, its RTDB URL in `functions/.env`, and replace `--project prod` in the commands above.
 
 ## Project structure
 
@@ -160,6 +195,9 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the data model, securit
 
 **Done and tested against the emulators**
 - Landing, host room creation, game mode selection, game library, host lobby/dashboard, display pairing and lobby, player join and waiting lobby.
+- Mobile-first layouts throughout, including the display (it works on a phone-sized screen up to 4K), with sticky bottom action bars.
+- Host lobby keeps the room code and display pairing in pop-up sheets (the **Code** and **Display** buttons beside *Start*); the display can be connected by typing its code or scanning its QR with the in-app camera scanner.
+- *Rejoin as host* is only offered for rooms that still exist and that you still own.
 - Server-authoritative room lifecycle, display pairing (display shows the code, host enters it; single-use, expiring, rate-limited), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
 - **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
 - **Playable games:** Speed Quiz (8 questions, speed bonus), Guess the Majority (6 prompts, match the crowd) and Reflex Battle (5 rounds, false-start detection). The other five games show as *Coming soon*.

@@ -7,7 +7,8 @@ export const pairingTtlSeconds = defineInt("PAIRING_CODE_TTL_SECONDS", {
   description: "How long a display pairing code stays valid, in seconds.",
 });
 
-export const REGION = "us-central1";
+/** Singapore: same region as Firestore and the Realtime Database, so function → database calls stay local. */
+export const REGION = "asia-southeast1";
 
 /** Realtime Database triggers must run in the database's own region. */
 export const DATABASE_REGION = "asia-southeast1";

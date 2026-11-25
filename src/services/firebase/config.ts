@@ -19,7 +19,7 @@ export const firebaseConfig = {
   databaseURL: env.VITE_FIREBASE_DATABASE_URL ?? (projectId ? `https://${projectId}-default-rtdb.firebaseio.com` : undefined),
 };
 
-export const functionsRegion = env.VITE_FIREBASE_FUNCTIONS_REGION ?? "us-central1";
+export const functionsRegion = env.VITE_FIREBASE_FUNCTIONS_REGION ?? "asia-southeast1";
 
 /** Emulator host: defaults to the page's hostname so phones on the LAN reach the dev machine. */
 export const emulatorHost = env.VITE_EMULATOR_HOST ?? (typeof window !== "undefined" ? window.location.hostname : "127.0.0.1");

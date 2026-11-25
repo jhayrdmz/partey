@@ -14,6 +14,8 @@
     "test:functions": "npm --prefix functions test",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && npm --prefix functions exec tsc -- -p tsconfig.json --noEmit",
     "test:rules": "node --test tests/rules/*.test.mjs",
+    "deploy": "npm run build && firebase deploy --project prod --only firestore,database,functions,hosting",
+    "deploy:hosting": "npm run build && firebase deploy --project prod --only hosting",
     "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/gameplay.mjs"
   },
   "dependencies": {
