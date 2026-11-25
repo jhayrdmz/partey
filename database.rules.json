@@ -1,0 +1,19 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      "$roomId": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid && $roomId.matches(/^[A-Za-z0-9_-]{1,128}$/)",
+          ".validate": "newData.hasChildren(['state', 'role', 'lastChanged'])",
+          "state": { ".validate": "newData.val() === 'online' || newData.val() === 'offline'" },
+          "role": { ".validate": "newData.val() === 'host' || newData.val() === 'player' || newData.val() === 'display'" },
+          "lastChanged": { ".validate": "newData.isNumber() && newData.val() <= now + 60000" },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

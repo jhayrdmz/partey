@@ -1,0 +1,30 @@
+# deps & builds
+node_modules
+dist
+dist-ssr
+functions/lib
+*.local
+.env
+.env.*
+!.env.example
+
+# firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+database-debug.log*
+ui-debug.log*
+pubsub-debug.log*
+emulator-data/
+
+# tests
+test-results/
+playwright-report/
+screenshots/
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log

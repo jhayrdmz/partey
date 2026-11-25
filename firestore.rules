@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// Partey security model
+// ---------------------
+// * ALL writes go through Cloud Functions (Admin SDK bypasses rules). Clients are read-only.
+// * Host   = rooms/{roomId}.hostId
+// * Player = rooms/{roomId}/players/{uid} with status online|offline
+// * Display = rooms/{roomId}/displaySessions/{uid} with revoked == false (granted by host approval)
+// * Expired rooms are inaccessible immediately, even before physical deletion.
+// * Displays only see public presentation data (room, players' public profile, displayState, history).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function roomPath(roomId) { return /databases/$(database)/documents/rooms/$(roomId); }
+    function room(roomId) { return get(roomPath(roomId)).data; }
+
+    function isLive(r) {
+      return r.status != 'expired' && (r.expiresAt == null || request.time < r.expiresAt);
+    }
+    function isHost(r) { return signedIn() && r.hostId == uid(); }
+    function isPlayer(roomId) {
+      let p = /databases/$(database)/documents/rooms/$(roomId)/players/$(uid());
+      return signedIn() && exists(p) && get(p).data.status in ['online', 'offline'];
+    }
+    function isDisplay(roomId) {
+      let d = /databases/$(database)/documents/rooms/$(roomId)/displaySessions/$(uid());
+      return signedIn() && exists(d) && get(d).data.revoked == false;
+    }
+    function isMember(roomId) {
+      let r = room(roomId);
+      return isLive(r) && (isHost(r) || isPlayer(roomId) || isDisplay(roomId));
+    }
+    function isLiveHost(roomId) {
+      let r = room(roomId);
+      return isLive(r) && isHost(r);
+    }
+
+    match /rooms/{roomId} {
+      allow get: if signedIn() && isLive(resource.data)
+        && (isHost(resource.data) || isPlayer(roomId) || isDisplay(roomId));
+      allow list, write: if false;
+
+      // Public player profiles (nickname, avatar, score, status).
+      match /players/{playerId} {
+        allow read: if isMember(roomId) || (signedIn() && playerId == uid() && isLive(room(roomId)));
+        allow write: if false;
+      }
+
+      // Public presentation state for the big screen.
+      match /displayState/{docId} {
+        allow read: if isMember(roomId);
+        allow write: if false;
+      }
+
+      // Completed game results.
+      match /history/{entryId} {
+        allow read: if isMember(roomId);
+        allow write: if false;
+      }
+
+      // Paired display sessions: host sees all; a display sees its own (to detect revocation).
+      match /displaySessions/{displayId} {
+        allow read: if isLiveHost(roomId) || (signedIn() && displayId == uid() && isLive(room(roomId)));
+        allow write: if false;
+      }
+
+      // Authoritative game state may contain answers: host only (never displays or players).
+      match /gameState/{docId} {
+        allow read: if isLiveHost(roomId);
+        allow write: if false;
+      }
+
+      // Private per-player data (secret words, roles, clues): only that player.
+      match /private/{playerId} {
+        allow read: if signedIn() && playerId == uid() && isPlayer(roomId) && isLive(room(roomId));
+        allow write: if false;
+      }
+
+      // Raw submissions are server-only until a reveal is published to displayState.
+      match /submissions/{submissionId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Pairing records: visible to the host who created them and the display that requested them.
+    match /displayPairings/{pairingId} {
+      allow read: if signedIn() && (resource.data.hostId == uid() || resource.data.requesterUid == uid());
+      allow write: if false;
+    }
+
+    // Server-only lookup tables.
+    match /roomCodes/{code} { allow read, write: if false; }
+    match /pairingCodes/{code} { allow read, write: if false; }
+    match /rateLimits/{id} { allow read, write: if false; }
+  }
+}
