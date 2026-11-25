@@ -36,7 +36,7 @@ export const views: GameViews = {
     if (!r) return null;
     return (
       <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center gap-4">
-        <h2 className="text-center text-5xl font-extrabold">Reaction times</h2>
+        <h2 className="text-center text-3xl font-extrabold sm:text-5xl">Reaction times</h2>
         {r.results.length === 0 && <p className="text-center text-3xl text-muted-foreground">Nobody tapped! 😴</p>}
         <ol className="space-y-3">
           {r.results.map((p, i) => (

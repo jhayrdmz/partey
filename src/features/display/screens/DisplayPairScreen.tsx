@@ -17,9 +17,9 @@ import { displayPairUrl } from "@/utils/urls";
 import { lastDisplayRoom, rememberDisplayRoom } from "../displaySession";
 
 const STEPS = [
-  { icon: Smartphone, text: "On the host's device, open the room lobby." },
-  { icon: KeyRound, text: "Tap “Connect a display” and enter the code shown here, or just scan the QR code." },
-  { icon: Sparkles, text: "This screen switches to the game automatically." },
+  { icon: Smartphone, text: "On the host's phone, open the room lobby and find the Display card." },
+  { icon: KeyRound, text: "Type the 6-digit code shown here, or scan the QR code with the host's phone and tap Connect." },
+  { icon: Sparkles, text: "This screen switches to the game automatically. No approval needed." },
 ];
 
 /** Refresh a little before the code expires, so the host never types a dead code. */
@@ -127,7 +127,7 @@ export function DisplayPairScreen() {
         <div className="space-y-1.5">
           <h2 className="text-2xl font-extrabold lg:text-3xl">Enter this code on the host's device</h2>
           <p className="text-muted-foreground lg:text-lg">
-            In the room lobby, tap <span className="font-bold text-foreground">Connect a display</span>.
+            Type it in the <span className="font-bold text-foreground">Display</span> card in the room lobby.
           </p>
         </div>
         <p
@@ -138,9 +138,9 @@ export function DisplayPairScreen() {
           {ticket.code.slice(0, 3)} {ticket.code.slice(3)}
         </p>
         <div className="flex w-full items-center gap-3 text-sm font-semibold text-muted-foreground" aria-hidden>
-          <span className="h-px flex-1 bg-border" /> or scan with the host's phone <span className="h-px flex-1 bg-border" />
+          <span className="h-px flex-1 bg-border" /> or scan this qr code <span className="h-px flex-1 bg-border" />
         </div>
-        <div className="rounded-2xl bg-white p-3 shadow-2xl shadow-sky/20">
+        <div className="bg-white p-3 shadow-2xl shadow-sky/20">
           <QRCodeSVG
             value={displayPairUrl(ticket.code)}
             size={176}

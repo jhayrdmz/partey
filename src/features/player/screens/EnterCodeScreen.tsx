@@ -24,7 +24,7 @@ export function EnterCodeScreen() {
           <h1 className="text-3xl font-extrabold">Join a game</h1>
           <p className="text-muted-foreground">Enter the room code shown on the big screen.</p>
         </div>
-        <CodeInput value={code} onChange={setCode} length={ROOM_CODE_LENGTH} mode="alpha" autoFocus label="Room code" onComplete={go} />
+        <CodeInput value={code} onChange={setCode} length={ROOM_CODE_LENGTH} mode="alpha" autoFocus label="Room code" boxClassName="rounded-md" onComplete={go} />
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <QrCode className="size-4" /> Or just scan the QR code with your camera.
         </p>

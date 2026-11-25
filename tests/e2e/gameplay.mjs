@@ -38,15 +38,20 @@ try {
   await host.getByRole("button", { name: /Continue with 3 games/ }).first().click();
   await host.getByText("Tournament lineup").waitFor();
   const roomId = host.url().split("/host/")[1];
-  const roomCode = (await host.getByLabel(/^Room code /).first().getAttribute("aria-label")).replace("Room code ", "").replace(/ /g, "");
+  // Room code lives in the "Code" pop-up (bottom bar, beside Start).
+  await host.getByRole("button", { name: "Show room code" }).click();
+  const roomCode = (await host.getByRole("dialog").getByLabel(/^Room code /).first().getAttribute("aria-label")).replace("Room code ", "").replace(/ /g, "");
+  await host.keyboard.press("Escape");
   log("tournament created", roomCode, "(unplayable games disabled)");
 
   const tv = await ctx({ viewport: { width: 1920, height: 1080 } });
   await tv.goto(`${BASE}/display`);
   await tv.getByLabel(/^Pairing code /).waitFor({ timeout: 15000 });
   const code = (await tv.getByLabel(/^Pairing code /).getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
+  await host.getByRole("button", { name: "Connect a display" }).click();
   await host.getByLabel("Code shown on the display").fill(code); // submits on the 6th digit
   await tv.waitForURL(new RegExp(`/display/${roomId}$`));
+  await host.keyboard.press("Escape");
 
   const names = ["Juan", "Maria", "Pedro"];
   const phones = [];

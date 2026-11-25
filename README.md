@@ -37,22 +37,38 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 
 Everything runs against the **Firebase Emulator Suite** using a `demo-*` project, so no real credentials are required.
 
-**Requirements:** Node 22+, Java 11+ (for the Firestore/RTDB emulators).
+**Requirements:** Node 22+, Java 21+ (for the Firestore/RTDB emulators).
 
 ```bash
 npm install
 npm --prefix functions install
-cp .env.example .env.local        # emulators are enabled by default
-npm run build:functions
 ```
 
-In one terminal:
+Local settings live in two gitignored files (only the emulators read them; `npm run build` and deploys keep using `.env`, i.e. production):
+
+```bash
+# .env.development.local  (read by `npm run dev` only)
+VITE_USE_FIREBASE_EMULATORS=true
+VITE_FIREBASE_PROJECT_ID=demo-partey
+VITE_FIREBASE_DATABASE_URL=https://demo-partey-default-rtdb.firebaseio.com
+
+# functions/.env.local  (read by the Functions emulator only; overrides functions/.env)
+RTDB_URL=
+```
+
+In one terminal (builds the functions first):
 
 ```bash
 npm run emulators                 # Auth, Firestore, RTDB, Functions (+ UI at http://127.0.0.1:4000)
 ```
 
-In another:
+Optionally, in another, rebuild functions on save so the emulator picks up changes:
+
+```bash
+npm run functions:watch
+```
+
+And the app:
 
 ```bash
 npm run dev                       # http://localhost:5173
@@ -64,7 +80,7 @@ Open three browser windows (or devices on your LAN):
 2. `/display`: the display shows a 6-digit code and a QR code. In the host lobby, enter that code under **Display** (or scan the QR with the host's phone).
 3. Once connected, the display shows the lobby with a join QR code. Scan it (or open `/play`) to join as a player.
 
-> **Testing with real phones on your Wi-Fi:** run `npm run dev` (it already listens on all interfaces), open the app at your machine's LAN IP, and set `VITE_PUBLIC_APP_URL=http://<your-ip>:5173` in `.env.local` so QR codes point there. The app connects to the emulators on the same host automatically.
+> **Testing with real phones on your Wi-Fi:** run `npm run dev` (it already listens on all interfaces), open the app at your machine's LAN IP, and set `VITE_PUBLIC_APP_URL=http://<your-ip>:5173` in `.env.development.local` so QR codes point there. The app connects to the emulators on the same host automatically.
 >
 > **Behind a corporate/agent HTTPS proxy?** `npm run emulators` preloads `scripts/emulator-loopback-direct.cjs`, which keeps emulator-to-emulator traffic on localhost (firebase-tools otherwise ignores `NO_PROXY`). It has no effect when no proxy is set.
 

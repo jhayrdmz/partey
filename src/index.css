@@ -74,8 +74,8 @@
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 12px);
 
-  --breakpoint-xs: 375px;
-  --breakpoint-3xl: 1440px;
+  --breakpoint-xs: 23.4375rem; /* 375px. rem like the built-ins, so media queries sort correctly */
+  --breakpoint-3xl: 90rem; /* 1440px. A px value here sorted before sm/lg and never applied */
 
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-ring: pulse-ring 2s ease-out infinite;

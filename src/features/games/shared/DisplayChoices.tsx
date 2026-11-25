@@ -18,7 +18,7 @@ export function DisplayChoices({
 }) {
   const total = reveal ? Math.max(1, reveal.counts.reduce((a, b) => a + b, 0)) : 1;
   return (
-    <div className={cn("grid gap-4 lg:gap-6", options.length > 2 ? "grid-cols-2" : "grid-cols-2")}>
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:gap-6">
       {options.map((option, i) => {
         const s = choiceStyle(i);
         const win = reveal?.highlight.includes(i);
@@ -30,9 +30,9 @@ export function DisplayChoices({
             animate={{ opacity: reveal && !win ? 0.45 : 1, scale: win ? 1.02 : 1 }}
             transition={{ delay: reveal ? 0 : i * 0.08 }}
             className={cn(
-              "relative flex min-h-24 items-center gap-5 overflow-hidden rounded-3xl px-6 py-5 text-white shadow-xl lg:min-h-32",
+              "relative flex min-h-20 items-center gap-2.5 overflow-hidden rounded-2xl px-3 py-3 text-white shadow-xl sm:min-h-24 sm:gap-5 sm:rounded-3xl sm:px-6 sm:py-5 lg:min-h-32",
               s.bg,
-              win && "ring-8 ring-white/90",
+              win && "ring-4 ring-white/90 sm:ring-8",
             )}
           >
             {reveal && (
@@ -44,16 +44,16 @@ export function DisplayChoices({
                 transition={{ duration: 0.8, ease: "easeOut" }}
               />
             )}
-            <span className="relative grid size-14 shrink-0 place-items-center rounded-2xl bg-black/25 text-3xl font-black lg:size-16 lg:text-4xl">
-              {win ? <Check className="size-9" strokeWidth={3.5} /> : s.letter}
+            <span className="relative grid size-10 shrink-0 place-items-center rounded-xl bg-black/25 text-2xl font-black sm:size-14 sm:rounded-2xl sm:text-3xl lg:size-16 lg:text-4xl">
+              {win ? <Check className="size-6 sm:size-9" strokeWidth={3.5} /> : s.letter}
             </span>
-            <span className="relative flex-1 text-2xl leading-tight font-extrabold lg:text-4xl">{option}</span>
+            <span className="relative min-w-0 flex-1 text-lg leading-tight font-extrabold break-words sm:text-2xl lg:text-4xl">{option}</span>
             {reveal && (
-              <span className="relative flex items-center gap-3">
+              <span className="relative flex shrink-0 items-center gap-3">
                 {reveal.picks?.[i]?.slice(0, 5).map((p) => (
-                  <AvatarBubble key={p.playerId} avatar={p.avatar} size="sm" className="-ml-4 first:ml-0" />
+                  <AvatarBubble key={p.playerId} avatar={p.avatar} size="sm" className="-ml-4 hidden first:ml-0 sm:inline-grid" />
                 ))}
-                <span className="text-3xl font-black tabular-nums lg:text-5xl">{count}</span>
+                <span className="text-2xl font-black tabular-nums sm:text-3xl lg:text-5xl">{count}</span>
               </span>
             )}
           </motion.div>

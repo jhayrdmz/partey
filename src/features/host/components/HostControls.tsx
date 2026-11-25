@@ -15,9 +15,12 @@ import { cn } from "@/utils/cn";
 /** Card chrome removed when the controls sit inside the mobile BottomBar (which has its own). */
 const IN_BAR_CARD = "gap-2 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none";
 
+/** Extra buttons placed beside the main action: "row" next to Start, "header" (small) beside a live game's name. */
+export type HostControlActions = (placement: "row" | "header") => React.ReactNode;
+
 /**
  * Context-aware game controls. All transitions are server-side callables; the
- * buttons only express intent. `inBar` renders a slimmer layout for the sticky mobile BottomBar.
+ * buttons only express intent. `inBar` renders a slimmer layout for the sticky BottomBar.
  */
 export function HostControls({
   room,
@@ -25,12 +28,14 @@ export function HostControls({
   live,
   compact = false,
   inBar = false,
+  actions,
 }: {
   room: RoomDoc;
   roomId: string;
   live?: PublicGameState | null;
   compact?: boolean;
   inBar?: boolean;
+  actions?: HostControlActions;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const isTournament = room.gameMode === "tournament";
@@ -66,19 +71,23 @@ export function HostControls({
             <p className="text-sm text-muted-foreground">The champion is on the big screen. This room closes in about 15 minutes.</p>
           </>
         )}
-        <Button asChild size="lg" variant="party" className="w-full">
-          <Link to="/host">Start a new room</Link>
-        </Button>
+        <div className="flex w-full gap-2">
+          {actions?.("row")}
+          <Button asChild size={actions ? "xl" : "lg"} variant="party" className="min-w-0 flex-1">
+            <Link to="/host">Start a new room</Link>
+          </Button>
+        </div>
       </Card>
     );
   }
 
   if (room.status === "playing" && game) {
-    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} inBar={inBar} />;
+    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} inBar={inBar} actions={actions} />;
   }
 
   // waiting
   const playedSome = isTournament && room.currentGameIndex > 0;
+  // Action on the first line, game name below, so it fits beside the quick actions on any phone.
   const label = !game
     ? "Pick a game"
     : isTournament
@@ -86,8 +95,9 @@ export function HostControls({
         ? "Start tournament"
         : `Start game ${room.currentGameIndex + 1} of ${room.lineup.length}`
       : room.lastPlayedGameId === game.meta.id
-        ? `Replay ${game.meta.name}`
-        : `Start ${game.meta.name}`;
+        ? "Replay"
+        : "Start";
+  const subLabel = game?.meta.name;
 
   return (
     <div className="space-y-2">
@@ -96,9 +106,16 @@ export function HostControls({
           {game.meta.name} needs at least {game.meta.minPlayers} player{game.meta.minPlayers === 1 ? "" : "s"} ({room.playerCount} joined).
         </p>
       )}
-      <Button size="xl" variant="party" className="w-full" onClick={start} disabled={Boolean(busy) || !game || notEnough}>
-        {icon("start", room.lastPlayedGameId === game?.meta.id && !isTournament ? RotateCcw : Play)} {label}
-      </Button>
+      <div className="flex gap-2">
+        {actions?.("row")}
+        <Button size="xl" variant="party" className="min-w-0 flex-1" onClick={start} disabled={Boolean(busy) || !game || notEnough}>
+          {icon("start", room.lastPlayedGameId === game?.meta.id && !isTournament ? RotateCcw : Play)}
+          <span className="flex min-w-0 flex-col items-start leading-tight">
+            <span className="max-w-full truncate">{label}</span>
+            {subLabel && <span className="max-w-full truncate text-sm font-semibold opacity-85">{subLabel}</span>}
+          </span>
+        </Button>
+      </div>
       {!isTournament && room.lastPlayedGameId && !compact && (
         <Button asChild variant="outline" className="w-full">
           <Link to={`/host/${roomId}/games`}>
@@ -127,6 +144,7 @@ function LiveGameControls({
   end,
   icon,
   inBar,
+  actions,
 }: {
   room: RoomDoc;
   roomId: string;
@@ -137,6 +155,7 @@ function LiveGameControls({
   end: () => Promise<void>;
   icon: (key: string, Icon: React.ElementType) => React.ReactNode;
   inBar: boolean;
+  actions?: HostControlActions;
 }) {
   // The host's device also nudges the server when a timer expires.
   useAutoTick(roomId, live);
@@ -151,10 +170,11 @@ function LiveGameControls({
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-guava opacity-75" />
           <span className="relative inline-flex size-3 rounded-full bg-guava" />
         </span>
-        <p className="font-extrabold">
+        <p className="min-w-0 flex-1 truncate font-extrabold">
           {gameName}
           {isTournament && <span className="font-semibold text-muted-foreground"> · Game {room.currentGameIndex + 1}/{room.lineup.length}</span>}
         </p>
+        {actions && <div className="flex shrink-0 gap-1.5">{actions("header")}</div>}
       </div>
       {live && (
         <div className="space-y-2 rounded-xl bg-secondary/40 p-3">

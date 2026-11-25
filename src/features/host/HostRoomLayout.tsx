@@ -10,7 +10,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { usePresence } from "@/hooks/usePresence";
 import { useRoom } from "@/hooks/useRoomData";
 import type { WithId } from "@/services/firebase";
-import { saveLastHostedRoom } from "./hostSession";
+import { forgetHostedRoom, saveLastHostedRoom } from "./hostSession";
 
 export interface HostContext {
   room: WithId<RoomDoc>;
@@ -46,6 +46,12 @@ export function HostRoomLayout() {
       navigate(`${base}/games`, { replace: true });
     }
   }, [data, isHost, location.pathname, navigate]);
+
+  // Room ended, expired or isn't ours: stop offering it as "Rejoin as host".
+  const unavailable = room.status === "error" || (room.status !== "loading" && Boolean(user) && (!data || !isHost));
+  useEffect(() => {
+    if (unavailable) forgetHostedRoom(roomId);
+  }, [unavailable, roomId]);
 
   if (authStatus === "error") return <ScreenState tone="error" title="Couldn't sign in" message={authError} />;
   if (!user || room.status === "loading") return <LoadingScreen label="Opening your room…" />;

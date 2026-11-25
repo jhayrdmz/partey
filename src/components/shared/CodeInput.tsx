@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 
 /**
@@ -15,6 +15,7 @@ export function CodeInput({
   invalid,
   label,
   className,
+  boxClassName,
   onComplete,
 }: {
   value: string;
@@ -26,10 +27,22 @@ export function CodeInput({
   invalid?: boolean;
   label: string;
   className?: string;
+  /** Extra classes for each box (e.g. a different corner radius). */
+  boxClassName?: string;
   onComplete?: (value: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
+
+  // Back up the autoFocus attribute, which some browsers skip when a route swaps in without a
+  // full page load. (iOS Safari still won't focus or open the keyboard without a tap.)
+  useEffect(() => {
+    if (!autoFocus) return;
+    const id = requestAnimationFrame(() => {
+      if (document.activeElement !== inputRef.current) inputRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [autoFocus]);
   const sanitize = (raw: string) =>
     (mode === "numeric" ? raw.replace(/\D/g, "") : raw.toUpperCase().replace(/[^A-Z]/g, "")).slice(0, length);
 
@@ -61,6 +74,7 @@ export function CodeInput({
                 active && focused && !disabled && "border-primary ring-4 ring-primary/25",
                 invalid && "border-destructive",
                 grouped && i === 3 && "ml-(--group)",
+                boxClassName,
               )}
             >
               {ch}

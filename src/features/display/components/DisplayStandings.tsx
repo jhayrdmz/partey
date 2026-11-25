@@ -9,9 +9,9 @@ import { cn } from "@/utils/cn";
 import type { StandingEntry as Standing } from "@shared/engine";
 
 const podiumStyle = [
-  { height: "h-56 lg:h-72", color: "from-mango to-[oklch(0.7_0.17_60)]", label: "1st" },
-  { height: "h-40 lg:h-52", color: "from-slate-300 to-slate-500", label: "2nd" },
-  { height: "h-28 lg:h-40", color: "from-[oklch(0.7_0.12_50)] to-[oklch(0.55_0.12_45)]", label: "3rd" },
+  { height: "h-36 sm:h-56 lg:h-72", color: "from-mango to-[oklch(0.7_0.17_60)]", label: "1st" },
+  { height: "h-28 sm:h-40 lg:h-52", color: "from-slate-300 to-slate-500", label: "2nd" },
+  { height: "h-20 sm:h-28 lg:h-40", color: "from-[oklch(0.7_0.12_50)] to-[oklch(0.55_0.12_45)]", label: "3rd" },
 ];
 
 /** Results / leaderboard / champion screens share one layout. */
@@ -27,19 +27,19 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
   const title = champion ? "Champion!" : state.currentScreen === "leaderboard" ? "Overall leaderboard" : `${game?.meta.name ?? "Game"} results`;
 
   return (
-    <div className="flex min-h-dvh flex-col gap-8 p-6 lg:p-12">
+    <div className="flex min-h-dvh flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-12">
       <header className="flex items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          {champion ? <Crown className="size-14 text-mango" /> : <Trophy className="size-12 text-sky" />}
-          <div>
-            <h1 className="text-4xl font-extrabold lg:text-6xl">{title}</h1>
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          {champion ? <Crown className="size-10 shrink-0 text-mango sm:size-14" /> : <Trophy className="size-9 shrink-0 text-sky sm:size-12" />}
+          <div className="min-w-0">
+            <h1 className="text-3xl font-extrabold sm:text-4xl lg:text-6xl">{title}</h1>
             {champion && top[0] && (
-              <p className="text-2xl font-bold text-mango lg:text-3xl">
+              <p className="text-lg font-bold text-mango sm:text-2xl lg:text-3xl">
                 Congratulations, {top[0].nickname}! 🎉
               </p>
             )}
             {state.currentScreen === "leaderboard" && state.gameNumber && state.totalGames && (
-              <p className="text-xl text-muted-foreground lg:text-2xl">
+              <p className="text-base text-muted-foreground sm:text-xl lg:text-2xl">
                 After game {state.gameNumber} of {state.totalGames}
               </p>
             )}
@@ -56,7 +56,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
       {standings.length === 0 ? (
         <div className="grid flex-1 place-items-center text-3xl font-bold text-muted-foreground">No scores yet.</div>
       ) : (
-        <div className={cn("grid flex-1 items-end gap-10", rest.length > 0 && "lg:grid-cols-[3fr_2fr]")}>
+        <div className={cn("grid flex-1 content-center items-end gap-6 sm:content-normal sm:gap-10", rest.length > 0 && "lg:grid-cols-[3fr_2fr]")}>
           <div className="flex items-end justify-center gap-3 lg:gap-6">
             {podium.map(({ s, place }) =>
               s ? (
@@ -67,13 +67,13 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   transition={{ delay: 0.3 + (2 - place) * 0.35, type: "spring", stiffness: 120 }}
                   className="flex w-1/3 max-w-60 flex-col items-center gap-3"
                 >
-                  {place === 0 && <Crown className="size-12 text-mango" />}
-                  <AvatarBubble avatar={s.avatar} size={place === 0 ? "xl" : "lg"} />
-                  <p className="max-w-full truncate text-xl font-extrabold lg:text-3xl">{s.nickname}</p>
+                  {place === 0 && <Crown className="size-9 text-mango sm:size-12" />}
+                  <AvatarBubble avatar={s.avatar} size={place === 0 ? "xl" : "lg"} className={place === 0 ? "max-sm:size-20 max-sm:text-4xl" : "max-sm:size-14 max-sm:text-3xl"} />
+                  <p className="max-w-full truncate text-base font-extrabold sm:text-xl lg:text-3xl">{s.nickname}</p>
                   <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl bg-gradient-to-b pt-4 text-black", podiumStyle[place].height, podiumStyle[place].color)}>
-                    <span className="text-3xl font-black lg:text-5xl">{podiumStyle[place].label}</span>
-                    <span className="text-xl font-extrabold tabular-nums lg:text-2xl">{s.score} pts</span>
-                    {s.delta !== undefined && <span className="mt-1 rounded-full bg-black/15 px-3 text-lg font-bold">+{s.delta}</span>}
+                    <span className="text-2xl font-black sm:text-3xl lg:text-5xl">{podiumStyle[place].label}</span>
+                    <span className="text-sm font-extrabold tabular-nums sm:text-xl lg:text-2xl">{s.score} pts</span>
+                    {s.delta !== undefined && <span className="mt-1 rounded-full bg-black/15 px-2 text-sm font-bold sm:px-3 sm:text-lg">+{s.delta}</span>}
                   </div>
                 </motion.div>
               ) : (
@@ -89,7 +89,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   initial={{ x: 40, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
                   transition={{ delay: 1.4 + i * 0.08 }}
-                  className="glass flex items-center gap-4 rounded-2xl border px-5 py-3 text-xl lg:text-2xl"
+                  className="glass flex items-center gap-3 rounded-2xl border px-4 py-2.5 text-base sm:gap-4 sm:px-5 sm:py-3 sm:text-xl lg:text-2xl"
                 >
                   <span className="w-8 font-extrabold text-muted-foreground">{i + 4}</span>
                   <AvatarBubble avatar={s.avatar} size="sm" />

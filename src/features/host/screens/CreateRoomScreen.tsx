@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, History, Loader2, PartyPopper } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -8,9 +8,10 @@ import { BottomBar } from "@/components/shared/BottomBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuthUser } from "@/hooks/useAuthUser";
 import { call, errorMessage } from "@/services/firebase";
 import { HostHeader } from "../components/HostHeader";
-import { loadLastHostedRoom, saveLastHostedRoom } from "../hostSession";
+import { saveLastHostedRoom, verifyLastHostedRoom, type LastHostedRoom } from "../hostSession";
 
 const SUGGESTIONS = ["Friday Game Night", "Barkada Showdown", "Noche Buena Games", "Office Partey"];
 
@@ -18,7 +19,17 @@ export function CreateRoomScreen() {
   const [roomName, setRoomName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
-  const lastRoom = loadLastHostedRoom();
+  const { user } = useAuthUser();
+  // Only offer "Rejoin as host" once the server confirms the room is still live.
+  const [lastRoom, setLastRoom] = useState<LastHostedRoom | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void verifyLastHostedRoom(user.uid).then((room) => !cancelled && setLastRoom(room));
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   const trimmed = roomName.trim();
   const valid = trimmed.length >= LIMITS.roomNameMin;
 

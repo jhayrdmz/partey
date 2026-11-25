@@ -23,3 +23,17 @@ export function displayPairUrl(code: string): string {
 export function displayUrlLabel(): string {
   return `${appBaseUrl().replace(/^https?:\/\//, "")}/display`;
 }
+
+/**
+ * The pairing code in a display's QR: a /host/pair/:code link (any origin, so LAN/dev URLs
+ * work too) or the bare 6 digits. Anything else (e.g. a player join QR) returns null.
+ */
+export function pairingCodeFromQr(text: string): string | null {
+  const value = text.trim();
+  if (/^\d{6}$/.test(value)) return value;
+  try {
+    return new URL(value).pathname.match(/\/host\/pair\/(\d{6})\/?$/)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}

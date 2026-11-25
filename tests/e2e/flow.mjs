@@ -70,7 +70,10 @@ try {
   await host.getByRole("button", { name: /Continue with 3 games/ }).first().click();
   await host.waitForURL(new RegExp(`/host/${roomId}$`));
   await host.getByText("Tournament lineup").waitFor();
-  const roomCode = (await host.getByLabel(/^Room code /).first().getAttribute("aria-label")).replace("Room code ", "").replace(/ /g, "");
+  // Room code lives in the "Code" pop-up (bottom bar, beside Start).
+  await host.getByRole("button", { name: "Show room code" }).click();
+  const roomCode = (await host.getByRole("dialog").getByLabel(/^Room code /).first().getAttribute("aria-label")).replace("Room code ", "").replace(/ /g, "");
+  await host.keyboard.press("Escape");
   log("lineup saved; room code", roomCode);
   await shot(host, "07-host-lobby-empty");
 
@@ -83,6 +86,8 @@ try {
   await shot(tv, "08-display-pair");
 
   // Wrong code is rejected without leaking anything (the input submits on the 6th digit).
+  // Display pairing lives in the "Display" pop-up (bottom bar, beside Start).
+  await host.getByRole("button", { name: "Connect a display" }).click();
   await host.getByLabel("Code shown on the display").fill("000000");
   await host.getByText(/invalid or expired/).waitFor();
   log("invalid pairing code rejected");
@@ -111,7 +116,9 @@ try {
   await tv2.waitForURL(new RegExp(`/display/${roomId}$`), { timeout: 15000 });
   log("second display paired via its QR link");
 
+  await host.getByRole("button", { name: "Connect a display" }).click();
   await host.getByText(/2 connected/).waitFor({ timeout: 15000 });
+  await host.keyboard.press("Escape");
   log("host sees displays connected (RTDB presence → Firestore)");
 
   // ── Players join ──────────────────────────────────────────────────────
