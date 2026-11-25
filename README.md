@@ -11,6 +11,26 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 
 **Stack:** React 19 · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui (Radix) · Lucide · Zustand · Motion · Firebase (Auth, Firestore, Realtime Database, Cloud Functions v2, Hosting) using the modular SDK.
 
+## Screenshots
+
+![Landing page: choose Host a Game or Game Display](docs/screenshots/landing.png)
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/host-create-room.png" alt="Host creating a room on a phone" width="280"><br>
+      <sub><b>Host</b>: create a room from your phone</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/player-join.png" alt="Player entering a room code on a phone" width="280"><br>
+      <sub><b>Player</b>: join with the room code (or scan the QR)</sub>
+    </td>
+  </tr>
+</table>
+
+![Display pairing screen on a TV: enter the 6-digit code from the host](docs/screenshots/display-pairing.png)
+<p align="center"><sub><b>Display</b>: pair a TV or monitor with a 6-digit code from the host</sub></p>
+
 ---
 
 ## Quick start (local, no Firebase account needed)

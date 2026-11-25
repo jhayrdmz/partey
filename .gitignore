@@ -20,7 +20,7 @@ emulator-data/
 # tests
 test-results/
 playwright-report/
-screenshots/
+/screenshots/
 
 # editor
 .vscode/*
