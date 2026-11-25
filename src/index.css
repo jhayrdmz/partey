@@ -2,6 +2,8 @@
 @import "@fontsource-variable/plus-jakarta-sans";
 
 @custom-variant dark (&:is(.dark *));
+/* Short screens (landscape phones, small laptops): compact chrome so game content keeps the room. */
+@custom-variant short (@media (max-height: 32rem));
 
 /*
  * Partey design tokens.

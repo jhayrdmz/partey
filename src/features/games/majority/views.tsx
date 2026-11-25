@@ -2,21 +2,17 @@ import type { ChoiceQuestion, MajorityReveal } from "@shared/engine";
 import type { GameViews } from "../engine/views";
 import { ChoiceButtons } from "../shared/ChoiceButtons";
 import { DisplayChoices } from "../shared/DisplayChoices";
+import { DisplayPrompt } from "../shared/DisplayPrompt";
 
 function Prompt({ q, hint }: { q: ChoiceQuestion; hint: string }) {
-  return (
-    <div className="space-y-3 text-center">
-      <p className="text-xl font-bold tracking-wide text-sky uppercase lg:text-2xl">{hint}</p>
-      <h2 className="mx-auto max-w-5xl text-4xl leading-tight font-extrabold lg:text-6xl">{q.prompt}</h2>
-    </div>
-  );
+  return <DisplayPrompt prompt={q.prompt} hint={hint} hintClassName="text-sky" />;
 }
 
 export const views: GameViews = {
   DisplayQuestion: ({ game }) => {
     const q = game.round_data as ChoiceQuestion;
     return (
-      <div className="flex flex-1 flex-col justify-center gap-10">
+      <div className="flex flex-1 flex-col justify-center gap-5 sm:gap-8 lg:gap-10">
         <Prompt q={q} hint="What will MOST people pick?" />
         <DisplayChoices options={q.options} />
       </div>
@@ -27,7 +23,7 @@ export const views: GameViews = {
     const r = game.reveal as MajorityReveal | null;
     if (!r) return null;
     return (
-      <div className="flex flex-1 flex-col justify-center gap-10">
+      <div className="flex flex-1 flex-col justify-center gap-5 sm:gap-8 lg:gap-10">
         <Prompt q={q} hint={r.majority.length === 0 ? "Nobody answered!" : r.majority.length > 1 ? "It's a tie!" : "The crowd has spoken"} />
         <DisplayChoices
           options={q.options}
