@@ -20,6 +20,8 @@ const router = createBrowserRouter([
         element: <RequireFirebase />,
         children: [
           { path: "/host", lazy: async () => ({ Component: (await import("@/features/host/screens/CreateRoomScreen")).CreateRoomScreen }) },
+          // Opened by scanning a display's QR code (static segment outranks /host/:roomId).
+          { path: "/host/pair/:code", lazy: async () => ({ Component: (await import("@/features/host/screens/HostPairScreen")).HostPairScreen }) },
           {
             path: "/host/:roomId",
             lazy: async () => ({ Component: (await import("@/features/host/HostRoomLayout")).HostRoomLayout }),

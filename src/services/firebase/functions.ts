@@ -13,9 +13,8 @@ interface CallableMap {
   joinRoom: [Api.JoinRoomRequest, Api.JoinRoomResponse];
   leaveRoom: [Api.LeaveRoomRequest, { ok: true }];
   kickPlayer: [Api.KickPlayerRequest, { ok: true }];
-  createDisplayPairing: [Api.CreatePairingRequest, Api.CreatePairingResponse];
-  requestDisplayPairing: [Api.RequestPairingRequest, Api.RequestPairingResponse];
-  resolveDisplayPairing: [Api.ResolvePairingRequest, Api.ResolvePairingResponse];
+  createDisplayCode: [Api.CreateDisplayCodeRequest, Api.CreateDisplayCodeResponse];
+  claimDisplayPairing: [Api.ClaimDisplayRequest, Api.ClaimDisplayResponse];
   revokeDisplay: [Api.RevokeDisplayRequest, { ok: true }];
   startGame: [Api.StartGameRequest, { ok: true }];
   endGame: [Api.EndGameRequest, { ok: true }];

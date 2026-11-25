@@ -2,7 +2,7 @@ import { useSoundStore } from "@/stores/soundStore";
 
 /**
  * Tiny Web Audio synth for UI sound effects — no audio assets to load.
- * Browsers only allow audio after a user gesture; the display unlocks it on "Connect".
+ * Browsers only allow audio after a user gesture; displays unlock it on their first tap or key press.
  */
 let ctx: AudioContext | null = null;
 
@@ -18,6 +18,20 @@ function audio(): AudioContext | null {
 
 export function unlockAudio() {
   void audio()?.resume();
+}
+
+/**
+ * Unlock audio on the first tap, click or key press anywhere (a TV remote's keys count).
+ * Displays have no "Connect" button any more, so they rely on this. Returns a cleanup.
+ */
+export function unlockAudioOnFirstGesture(): () => void {
+  const events = ["pointerdown", "keydown", "touchend"] as const;
+  const handler = () => {
+    unlockAudio();
+    if (audio()?.state === "running") events.forEach((e) => window.removeEventListener(e, handler, true));
+  };
+  events.forEach((e) => window.addEventListener(e, handler, { capture: true, passive: true }));
+  return () => events.forEach((e) => window.removeEventListener(e, handler, true));
 }
 
 function tone(freq: number, start: number, duration: number, type: OscillatorType = "sine", gain = 0.15) {

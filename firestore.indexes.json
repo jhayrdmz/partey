@@ -4,8 +4,7 @@
       "collectionGroup": "displayPairings",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "roomId", "order": "ASCENDING" },
-        { "fieldPath": "hostId", "order": "ASCENDING" },
+        { "fieldPath": "requesterUid", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
     },

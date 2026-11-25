@@ -43,10 +43,9 @@ try {
 
   const tv = await ctx({ viewport: { width: 1920, height: 1080 } });
   await tv.goto(`${BASE}/display`);
-  await host.getByRole("button", { name: "Connect a display" }).click();
-  const code = (await host.getByLabel(/^Pairing code /).getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
-  await tv.getByLabel("Display pairing code").fill(code);
-  await host.getByRole("button", { name: "Approve" }).click();
+  await tv.getByLabel(/^Pairing code /).waitFor({ timeout: 15000 });
+  const code = (await tv.getByLabel(/^Pairing code /).getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
+  await host.getByLabel("Code shown on the display").fill(code); // submits on the 6th digit
   await tv.waitForURL(new RegExp(`/display/${roomId}$`));
 
   const names = ["Juan", "Maria", "Pedro"];

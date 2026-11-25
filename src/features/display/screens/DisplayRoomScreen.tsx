@@ -11,7 +11,7 @@ import { useLiveDoc } from "@/hooks/useFirestore";
 import { usePresence } from "@/hooks/usePresence";
 import { useDisplayState, usePlayers, useRoom } from "@/hooks/useRoomData";
 import { fetchDoc, refs } from "@/services/firebase";
-import { playSound } from "@/utils/sound";
+import { playSound, unlockAudioOnFirstGesture } from "@/utils/sound";
 import { DisplayChrome } from "../components/DisplayChrome";
 import { DisplayGameStage } from "../components/DisplayGameStage";
 import { DisplayLobby } from "../components/DisplayLobby";
@@ -32,6 +32,8 @@ export function DisplayRoomScreen() {
   const display = useDisplayState(roomId, authorised);
   const players = usePlayers(roomId, authorised);
   const realtimeConnected = usePresence(roomId, user?.uid, "display", authorised);
+  // Nobody taps "Connect" on the display any more; unlock sound on the first interaction instead.
+  useEffect(() => unlockAudioOnFirstGesture(), []);
 
   // If room access is lost, re-read our session once to tell "revoked" from "room ended".
   const [revokedOnServer, setRevokedOnServer] = useState(false);

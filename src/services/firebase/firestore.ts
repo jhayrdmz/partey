@@ -28,13 +28,6 @@ export const refs = {
   displaySessions: (roomId: string) => collection(db(), "rooms", roomId, "displaySessions") as unknown as Query<DisplaySessionDoc>,
   private: (roomId: string, uid: string) => doc(db(), "rooms", roomId, "private", uid) as DocumentReference<PlayerPrivateDoc>,
   pairing: (pairingId: string) => doc(db(), "displayPairings", pairingId) as DocumentReference<DisplayPairingDoc>,
-  hostPairings: (roomId: string, hostId: string) =>
-    query(
-      collection(db(), "displayPairings"),
-      where("roomId", "==", roomId),
-      where("hostId", "==", hostId),
-      where("status", "in", ["open", "requested"]),
-    ) as Query<DisplayPairingDoc>,
   activePlayers: (roomId: string) =>
     query(collection(db(), "rooms", roomId, "players"), where("status", "in", ["online", "offline"])) as Query<PlayerDoc>,
 };

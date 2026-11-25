@@ -27,14 +27,13 @@ export interface LeaveRoomRequest { roomId: string }
 
 export interface KickPlayerRequest { roomId: string; playerId: string }
 
-export interface CreatePairingRequest { roomId: string }
-export interface CreatePairingResponse { pairingId: string; code: string; expiresAtMs: number }
+/** Display → server: get a pairing code to show on screen. */
+export interface CreateDisplayCodeRequest { label?: string }
+export interface CreateDisplayCodeResponse { pairingId: string; code: string; expiresAtMs: number }
 
-export interface RequestPairingRequest { code: string; label?: string }
-export interface RequestPairingResponse { pairingId: string }
-
-export interface ResolvePairingRequest { roomId: string; pairingId: string; approve: boolean }
-export interface ResolvePairingResponse { status: "approved" | "rejected" }
+/** Host → server: connect the display showing `code` to the host's room. */
+export interface ClaimDisplayRequest { roomId: string; code: string }
+export interface ClaimDisplayResponse { displayId: string; label: string }
 
 export interface RevokeDisplayRequest { roomId: string; displayId: string }
 
@@ -50,9 +49,8 @@ export type CallableName =
   | "joinRoom"
   | "leaveRoom"
   | "kickPlayer"
-  | "createDisplayPairing"
-  | "requestDisplayPairing"
-  | "resolveDisplayPairing"
+  | "createDisplayCode"
+  | "claimDisplayPairing"
   | "revokeDisplay"
   | "startGame"
   | "endGame"

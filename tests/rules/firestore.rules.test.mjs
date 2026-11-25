@@ -56,6 +56,8 @@ before(async () => {
   await ref.collection("submissions").doc("s1").set({ playerId: player.uid, answer: "x" });
   await admin.collection("roomCodes").doc("TEST").set({ roomId });
   await admin.collection("displayPairings").doc("p1").set({ roomId, hostId: host.uid, requesterUid: display.uid, status: "approved", expiresAt: future });
+  // A code still showing on a display: no room or host yet.
+  await admin.collection("displayPairings").doc("p-open").set({ code: "482913", roomId: null, hostId: null, requesterUid: display.uid, status: "open", expiresAt: future });
 
   const expired = admin.collection("rooms").doc();
   expiredRoomId = expired.id;
@@ -148,5 +150,10 @@ describe("lookup tables and pairing", () => {
       true,
     );
     assert.equal(await allowed(getDocs(collection(stranger.db, "displayPairings"))), false);
+  });
+  test("an unclaimed display code is visible only to the display showing it", async () => {
+    assert.equal(await allowed(getDoc(doc(display.db, "displayPairings", "p-open"))), true);
+    assert.equal(await allowed(getDoc(doc(host.db, "displayPairings", "p-open"))), false);
+    assert.equal(await allowed(getDoc(doc(stranger.db, "displayPairings", "p-open"))), false);
   });
 });

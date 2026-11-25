@@ -1,46 +1,56 @@
 import { useState } from "react";
-import { Check, Loader2, MonitorSmartphone, RefreshCw, Tv, Unplug, X } from "lucide-react";
+import { Loader2, Plus, Tv, Unplug } from "lucide-react";
 import { toast } from "sonner";
+import { PAIRING_CODE_LENGTH } from "@shared/constants";
 import type { DisplaySessionDoc } from "@shared/types";
+import { CodeInput } from "@/components/shared/CodeInput";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLiveQuery } from "@/hooks/useFirestore";
-import { useCountdown } from "@/hooks/useCountdown";
-import { useNow } from "@/hooks/useNow";
 import { call, errorMessage, refs } from "@/services/firebase";
-import { appBaseUrl } from "@/utils/urls";
+import { displayUrlLabel } from "@/utils/urls";
 
-function formatSeconds(s: number) {
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-/** Host-side display management: generate pairing code, approve requests, revoke displays. */
-export function DisplayPairingCard({ roomId, hostId }: { roomId: string; hostId: string }) {
+/** Host-side display management: enter the code shown on a display to connect it, revoke displays. */
+export function DisplayPairingCard({ roomId }: { roomId: string }) {
   const sessions = useLiveQuery(refs.displaySessions(roomId), `sessions:${roomId}`);
-  const pairings = useLiveQuery(refs.hostPairings(roomId, hostId), `pairings:${roomId}:${hostId}`);
   const [busy, setBusy] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const active = sessions.data.filter((s: DisplaySessionDoc) => !s.revoked);
-  const now = useNow();
-  const live = pairings.data.filter((p) => p.expiresAt.toMillis() > now);
-  const request = live.find((p) => p.status === "requested");
-  const open = live.find((p) => p.status === "open");
-  const remaining = useCountdown(open?.expiresAt.toMillis());
+  // First display: show the code entry right away. Afterwards it's one tap away.
+  const showEntry = active.length === 0 || adding;
 
-  async function run(key: string, fn: () => Promise<unknown>, success?: string) {
-    setBusy(key);
+  async function connect(value = code) {
+    if (value.length !== PAIRING_CODE_LENGTH || busy) return;
+    setBusy("connect");
+    setError(null);
     try {
-      await fn();
-      if (success) toast.success(success);
+      const res = await call("claimDisplayPairing", { roomId, code: value });
+      toast.success(`${res.label} connected!`);
+      setCode("");
+      setAdding(false);
+    } catch (err) {
+      setError(errorMessage(err));
+      setCode("");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revoke(displayId: string) {
+    setBusy(`revoke:${displayId}`);
+    try {
+      await call("revokeDisplay", { roomId, displayId });
+      toast.success("Display disconnected");
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
       setBusy(null);
     }
   }
-
-  const generate = () => run("generate", () => call("createDisplayPairing", { roomId }));
 
   return (
     <Card className="gap-3">
@@ -55,57 +65,54 @@ export function DisplayPairingCard({ roomId, hostId }: { roomId: string; hostId:
         />
       </div>
 
-      {request ? (
-        <div className="space-y-3 rounded-xl border-2 border-sky/60 bg-sky/10 p-4" role="alert">
-          <div className="flex items-center gap-3">
-            <MonitorSmartphone className="size-8 shrink-0 text-sky" />
-            <div className="min-w-0">
-              <p className="font-extrabold">Approve this display?</p>
-              <p className="truncate text-sm text-muted-foreground">{request.requesterLabel ?? "A display"} wants to show this room.</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              disabled={Boolean(busy)}
-              onClick={() => run("deny", () => call("resolveDisplayPairing", { roomId, pairingId: request.id, approve: false }), "Display denied")}
-            >
-              {busy === "deny" ? <Loader2 className="animate-spin" /> : <X />} Deny
-            </Button>
-            <Button
-              variant="accent"
-              disabled={Boolean(busy)}
-              onClick={() => run("approve", () => call("resolveDisplayPairing", { roomId, pairingId: request.id, approve: true }), "Display connected!")}
-            >
-              {busy === "approve" ? <Loader2 className="animate-spin" /> : <Check />} Approve
-            </Button>
-          </div>
-        </div>
-      ) : open && remaining ? (
-        <div className="space-y-3 rounded-xl bg-secondary/50 p-4 text-center">
+      {showEntry ? (
+        <form
+          className="space-y-3 rounded-xl bg-secondary/50 p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void connect();
+          }}
+        >
           <p className="text-sm text-muted-foreground">
-            On the TV, open <span className="font-bold text-foreground">{appBaseUrl().replace(/^https?:\/\//, "")}/display</span> and enter:
+            On the TV, open <span className="font-bold break-all text-foreground">{displayUrlLabel()}</span>, then enter the code it shows. Or scan its QR code
+            with this phone.
           </p>
-          <p className="font-mono text-4xl font-extrabold tracking-[0.2em] text-white tabular-nums sm:text-5xl" aria-label={`Pairing code ${open.code?.split("").join(" ")}`}>
-            {open.code?.slice(0, 3)} {open.code?.slice(3)}
-          </p>
-          <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
-            <span className="tabular-nums">Expires in {formatSeconds(remaining)}</span>
-            <Button size="sm" variant="ghost" onClick={generate} disabled={Boolean(busy)}>
-              {busy === "generate" ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} New code
+          <CodeInput
+            value={code}
+            onChange={(v) => {
+              setCode(v);
+              setError(null);
+            }}
+            length={PAIRING_CODE_LENGTH}
+            invalid={Boolean(error)}
+            disabled={busy === "connect"}
+            label="Code shown on the display"
+            onComplete={(v) => void connect(v)}
+          />
+          {error && (
+            <p className="text-center text-sm font-semibold text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            {active.length > 0 && (
+              <Button type="button" variant="ghost" onClick={() => { setAdding(false); setCode(""); setError(null); }} disabled={busy === "connect"}>
+                Cancel
+              </Button>
+            )}
+            <Button type="submit" variant="accent" className="flex-1" disabled={code.length !== PAIRING_CODE_LENGTH || Boolean(busy)}>
+              {busy === "connect" ? <Loader2 className="animate-spin" /> : <Tv />} Connect display
             </Button>
           </div>
-        </div>
+        </form>
       ) : (
-        <div className="space-y-3">
-          {active.length === 0 && (
-            <p className="text-sm text-muted-foreground">Show the game on a TV, monitor or tablet. It connects separately, so it keeps running even if this device sleeps.</p>
-          )}
-          <Button variant={active.length ? "outline" : "accent"} className="w-full" onClick={generate} disabled={Boolean(busy)}>
-            {busy === "generate" ? <Loader2 className="animate-spin" /> : <Tv />}
-            {active.length ? "Connect another display" : "Connect a display"}
-          </Button>
-        </div>
+        <Button variant="outline" className="w-full" onClick={() => setAdding(true)} disabled={Boolean(busy)}>
+          <Plus /> Connect another display
+        </Button>
+      )}
+
+      {active.length === 0 && (
+        <p className="text-xs text-muted-foreground">It connects separately, so the game keeps running on the TV even if this device sleeps.</p>
       )}
 
       {active.length > 0 && (
@@ -117,13 +124,7 @@ export function DisplayPairingCard({ roomId, hostId }: { roomId: string; hostId:
                 <p className="truncate text-sm font-bold">{s.label}</p>
                 <p className="text-xs text-muted-foreground">{s.connected ? "Showing the game" : "Offline"}</p>
               </div>
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Disconnect ${s.label}`}
-                disabled={Boolean(busy)}
-                onClick={() => run(`revoke:${s.id}`, () => call("revokeDisplay", { roomId, displayId: s.id }), "Display disconnected")}
-              >
+              <Button size="icon-sm" variant="ghost" aria-label={`Disconnect ${s.label}`} disabled={Boolean(busy)} onClick={() => void revoke(s.id)}>
                 {busy === `revoke:${s.id}` ? <Loader2 className="animate-spin" /> : <Unplug className="text-muted-foreground" />}
               </Button>
             </li>

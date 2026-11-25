@@ -74,40 +74,45 @@ try {
   log("lineup saved; room code", roomCode);
   await shot(host, "07-host-lobby-empty");
 
-  // ── Display pairing ───────────────────────────────────────────────────
+  // ── Display pairing (the display shows the code, the host enters it) ──
+  const codeFrom = async (page) => (await page.getByLabel(/^Pairing code /).getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
   const tv = await ctx({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   await tv.goto(`${BASE}/display`);
-  await tv.getByLabel("Display pairing code").waitFor();
+  await tv.getByLabel(/^Pairing code /).waitFor({ timeout: 15000 });
+  const pairingCode = await codeFrom(tv);
   await shot(tv, "08-display-pair");
 
-  // Wrong code is rejected without leaking anything.
-  await tv.getByLabel("Display pairing code").fill("000000");
-  await tv.getByText(/invalid or expired/).waitFor();
+  // Wrong code is rejected without leaking anything (the input submits on the 6th digit).
+  await host.getByLabel("Code shown on the display").fill("000000");
+  await host.getByText(/invalid or expired/).waitFor();
   log("invalid pairing code rejected");
 
-  await host.getByRole("button", { name: "Connect a display" }).click();
-  const codeEl = host.getByLabel(/^Pairing code /);
-  await codeEl.waitFor();
-  const pairingCode = (await codeEl.getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
-  await shot(host, "09-host-pairing-code");
-  await tv.getByLabel("Display pairing code").fill(pairingCode);
-  await tv.getByText("Waiting for the host…").waitFor();
-  await host.getByText("Approve this display?").waitFor();
-  await shot(host, "10-host-approve");
-  await host.getByRole("button", { name: "Approve" }).click();
+  await host.getByLabel("Code shown on the display").fill(pairingCode);
   await tv.waitForURL(new RegExp(`/display/${roomId}$`), { timeout: 15000 });
   await tv.getByText("Barkada Game Night").waitFor();
-  log("display paired & approved");
+  await shot(host, "09-host-display-connected");
+  log("display paired by the host entering its code");
 
-  // Pairing code is single-use: a second display cannot reuse it.
-  const tv2 = await ctx({ viewport: { width: 1280, height: 720 } });
-  await tv2.goto(`${BASE}/display`);
-  await tv2.getByLabel("Display pairing code").fill(pairingCode);
-  await tv2.getByText(/invalid or expired/).waitFor();
+  // Pairing code is single-use: entering it again fails.
+  await host.getByRole("button", { name: "Connect another display" }).click();
+  await host.getByLabel("Code shown on the display").fill(pairingCode);
+  await host.getByText(/invalid or expired/).waitFor();
+  await host.getByRole("button", { name: "Cancel" }).click();
   log("pairing code is single-use");
 
-  await host.getByText(/1 connected/).waitFor({ timeout: 15000 });
-  log("host sees display connected (RTDB presence → Firestore)");
+  // QR path: scanning a display's QR opens /host/pair/:code on the host's device.
+  const tv2 = await ctx({ viewport: { width: 1280, height: 720 } });
+  await tv2.goto(`${BASE}/display`);
+  await tv2.getByLabel(/^Pairing code /).waitFor({ timeout: 15000 });
+  await host.goto(`${BASE}/host/pair/${await codeFrom(tv2)}`);
+  await shot(host, "10-host-pair-confirm");
+  await host.getByRole("button", { name: "Connect", exact: true }).click();
+  await host.waitForURL(new RegExp(`/host/${roomId}$`));
+  await tv2.waitForURL(new RegExp(`/display/${roomId}$`), { timeout: 15000 });
+  log("second display paired via its QR link");
+
+  await host.getByText(/2 connected/).waitFor({ timeout: 15000 });
+  log("host sees displays connected (RTDB presence → Firestore)");
 
   // ── Players join ──────────────────────────────────────────────────────
   const phones = [

@@ -19,7 +19,7 @@ import { useHostContext } from "../HostRoomLayout";
 import { clearLastHostedRoom } from "../hostSession";
 
 export function HostLobbyScreen() {
-  const { room, user } = useHostContext();
+  const { room } = useHostContext();
   const players = usePlayers(room.id);
   const display = useDisplayState(room.id);
   const live = room.status === "playing" ? display.data?.game : null;
@@ -75,7 +75,7 @@ export function HostLobbyScreen() {
             <div className="hidden lg:block">
               <HostControls room={room} roomId={room.id} live={live} />
             </div>
-            <DisplayPairingCard roomId={room.id} hostId={user.uid} />
+            <DisplayPairingCard roomId={room.id} />
             <LineupCard room={room} roomId={room.id} />
           </div>
         </div>

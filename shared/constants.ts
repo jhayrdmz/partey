@@ -42,6 +42,8 @@ export const LIMITS = {
   /** Failed pairing attempts allowed per uid per window. */
   pairingAttemptsPerWindow: 10,
   pairingAttemptWindowMs: 10 * MINUTE_MS,
+  /** New display codes per display per window (codes auto-refresh every few minutes). */
+  displayCodesPerWindow: 30,
 } as const;
 
 /** Default tournament placement points: index 0 = first place. */

@@ -107,19 +107,21 @@ export interface PublicResults {
   gameStandings: StandingEntry[];
 }
 
-export type PairingStatus = "open" | "requested" | "approved" | "rejected";
+/** open: code showing on the display · approved: a host claimed it · cancelled: replaced by a newer code. */
+export type PairingStatus = "open" | "approved" | "cancelled";
 
 /**
- * displayPairings/{pairingId} — temporary, single-use pairing records.
- * Readable only by the room host and (after requesting) the requesting display.
+ * displayPairings/{pairingId}: temporary, single-use pairing records created by a display.
+ * Readable only by the requesting display and (once claimed) the room host.
  */
 export interface DisplayPairingDoc {
   code: string | null;
-  roomId: string;
-  hostId: string;
+  /** Set when a host claims the code. */
+  roomId: string | null;
+  hostId: string | null;
   status: PairingStatus;
-  requesterUid: string | null;
-  requesterLabel: string | null;
+  requesterUid: string;
+  requesterLabel: string;
   createdAt: TimestampLike;
   expiresAt: TimestampLike;
   resolvedAt: TimestampLike | null;

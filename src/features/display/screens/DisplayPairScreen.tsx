@@ -1,52 +1,88 @@
-import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, MonitorUp, RotateCcw, ShieldCheck, Smartphone, Tv } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle2, KeyRound, Loader2, RefreshCw, Smartphone, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import { QRCodeSVG } from "qrcode.react";
 import { Link, useNavigate } from "react-router";
-import { PAIRING_CODE_LENGTH } from "@shared/constants";
+import type { CreateDisplayCodeResponse } from "@shared/api";
 import { Backdrop } from "@/components/shared/Backdrop";
-import { CodeInput } from "@/components/shared/CodeInput";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuthUser } from "@/hooks/useAuthUser";
+import { useCountdown } from "@/hooks/useCountdown";
 import { useLiveDoc } from "@/hooks/useFirestore";
 import { call, errorMessage, refs } from "@/services/firebase";
 import { defaultDisplayLabel } from "@/utils/device";
-import { unlockAudio } from "@/utils/sound";
+import { unlockAudioOnFirstGesture } from "@/utils/sound";
+import { displayPairUrl } from "@/utils/urls";
 import { lastDisplayRoom, rememberDisplayRoom } from "../displaySession";
 
 const STEPS = [
-  { icon: Smartphone, text: "On the host's device, open the room lobby and tap “Connect a display”." },
-  { icon: MonitorUp, text: "Type the 6-digit pairing code here." },
-  { icon: ShieldCheck, text: "The host approves this screen — and you're live." },
+  { icon: Smartphone, text: "On the host's device, open the room lobby." },
+  { icon: KeyRound, text: "Tap “Connect a display” and enter the code shown here, or just scan the QR code." },
+  { icon: Sparkles, text: "This screen switches to the game automatically." },
 ];
 
+/** Refresh a little before the code expires, so the host never types a dead code. */
+const REFRESH_EARLY_MS = 3000;
+
+interface Ticket extends CreateDisplayCodeResponse {
+  /** Local time when the code should be replaced (clock-skew safe: based on the code's lifetime). */
+  refreshAtMs: number;
+}
+
+function formatSeconds(s: number) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/**
+ * The display asks the server for a short-lived code and shows it with a QR code.
+ * The host enters (or scans) it to connect this screen to their room.
+ */
 export function DisplayPairScreen() {
   const { user, status: authStatus, error: authError } = useAuthUser();
   const navigate = useNavigate();
-  const [code, setCode] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [ticket, setTicket] = useState<Ticket | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pairingId, setPairingId] = useState<string | null>(null);
-  const pairing = useLiveDoc(pairingId ? refs.pairing(pairingId) : null, pairingId ?? "off");
+  const [loading, setLoading] = useState(false);
+  const inFlight = useRef(false);
+  const pairing = useLiveDoc(ticket ? refs.pairing(ticket.pairingId) : null, ticket?.pairingId ?? "off");
   const previousRoom = lastDisplayRoom();
 
-  async function connect(value = code) {
-    if (value.length !== PAIRING_CODE_LENGTH || submitting || !user) return;
-    unlockAudio(); // the click is our user gesture for later sound effects
-    setSubmitting(true);
+  useEffect(() => unlockAudioOnFirstGesture(), []);
+
+  const requestCode = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setLoading(true);
     setError(null);
     try {
-      const res = await call("requestDisplayPairing", { code: value, label: defaultDisplayLabel() });
-      setPairingId(res.pairingId);
+      const res = await call("createDisplayCode", { label: defaultDisplayLabel() });
+      const now = Date.now();
+      // The server's expiry is in server time; use the code's lifetime instead so a wrong TV clock can't cause a refresh loop.
+      const lifetimeMs = Math.min(Math.max(res.expiresAtMs - now, 30_000), 30 * 60_000);
+      setTicket({ ...res, refreshAtMs: now + lifetimeMs - REFRESH_EARLY_MS });
     } catch (err) {
       setError(errorMessage(err));
-      setCode("");
     } finally {
-      setSubmitting(false);
+      inFlight.current = false;
+      setLoading(false);
     }
-  }
+  }, []);
 
+  // First code once signed in.
+  useEffect(() => {
+    if (user && !ticket && !error) void requestCode();
+  }, [user, ticket, error, requestCode]);
+
+  // Replace the code before it expires.
   const status = pairing.data?.status;
+  useEffect(() => {
+    if (!ticket || status === "approved") return;
+    const t = window.setTimeout(() => void requestCode(), Math.max(0, ticket.refreshAtMs - Date.now()));
+    return () => window.clearTimeout(t);
+  }, [ticket, status, requestCode]);
+
+  // Claimed by a host: open the room.
   const roomId = pairing.data?.roomId;
   useEffect(() => {
     if (status === "approved" && roomId) {
@@ -56,97 +92,76 @@ export function DisplayPairScreen() {
     }
   }, [status, roomId, navigate]);
 
-  // Waiting-for-approval expiry (the host has a limited window to approve).
-  const expiresAt = pairing.data?.expiresAt?.toMillis();
-  const [expired, setExpired] = useState(false);
-  useEffect(() => {
-    if (!expiresAt || status !== "requested") return;
-    const t = window.setTimeout(() => setExpired(true), Math.max(0, expiresAt - Date.now()));
-    return () => window.clearTimeout(t);
-  }, [expiresAt, status]);
-
-  const reset = () => {
-    setPairingId(null);
-    setExpired(false);
-    setCode("");
-    setError(null);
-  };
+  const remaining = useCountdown(ticket?.refreshAtMs);
 
   let panel: React.ReactNode;
-  if (pairingId && (status === "requested" || pairing.status === "loading") && !expired) {
+  if (status === "approved") {
     panel = (
-      <div className="flex flex-col items-center gap-6 text-center" role="status" aria-live="polite">
-        <div className="relative grid size-28 place-items-center">
-          <span className="absolute inset-0 animate-ping rounded-full bg-sky/30" />
-          <span className="relative grid size-24 place-items-center rounded-full bg-sky/20">
-            <Tv className="size-12 text-sky" />
-          </span>
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-3xl font-extrabold lg:text-4xl">Waiting for the host…</h2>
-          <p className="text-lg text-muted-foreground">Ask the host to tap <span className="font-bold text-foreground">Approve</span> on their device.</p>
-        </div>
-        <Button variant="ghost" onClick={reset}>
-          <RotateCcw className="size-4" /> Use a different code
-        </Button>
-      </div>
-    );
-  } else if (status === "approved") {
-    panel = (
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4 text-center">
+      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4 py-8 text-center">
         <CheckCircle2 className="size-24 text-success" />
         <h2 className="text-3xl font-extrabold lg:text-4xl">Connected!</h2>
         <p className="text-lg text-muted-foreground">Loading the game room…</p>
       </motion.div>
     );
-  } else if (pairingId && (status === "rejected" || expired || pairing.status === "error")) {
+  } else if (error || authStatus === "error") {
     panel = (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <h2 className="text-3xl font-extrabold">{status === "rejected" ? "The host declined" : "Request expired"}</h2>
-        <p className="text-lg text-muted-foreground">Ask the host for a new pairing code and try again.</p>
-        <Button size="lg" onClick={reset}>
-          <RotateCcw /> Try again
+      <div className="flex flex-col items-center gap-4 py-8 text-center" role="alert">
+        <h2 className="text-3xl font-extrabold">Couldn't get a code</h2>
+        <p className="text-lg text-muted-foreground">{error ?? authError}</p>
+        <Button size="lg" onClick={() => void requestCode()} disabled={loading || !user}>
+          {loading ? <Loader2 className="animate-spin" /> : <RefreshCw />} Try again
         </Button>
       </div>
     );
-  } else {
+  } else if (!ticket) {
     panel = (
-      <form
-        className="flex w-full flex-col items-center gap-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void connect();
-        }}
-      >
-        <div className="space-y-2 text-center">
-          <h2 className="text-3xl font-extrabold lg:text-4xl">Enter pairing code</h2>
-          <p className="text-lg text-muted-foreground">The host's device shows a 6-digit code.</p>
+      <div className="flex flex-col items-center gap-4 py-16 text-muted-foreground" role="status" aria-live="polite">
+        <Loader2 className="size-10 animate-spin text-sky" />
+        <span className="text-lg font-semibold">Getting a pairing code…</span>
+      </div>
+    );
+  } else {
+    const replaced = status === "cancelled";
+    panel = (
+      <div className="flex flex-col items-center gap-5 text-center lg:gap-6">
+        <div className="space-y-1.5">
+          <h2 className="text-2xl font-extrabold lg:text-3xl">Enter this code on the host's device</h2>
+          <p className="text-muted-foreground lg:text-lg">
+            In the room lobby, tap <span className="font-bold text-foreground">Connect a display</span>.
+          </p>
         </div>
-        <CodeInput
-          value={code}
-          onChange={(v) => {
-            setCode(v);
-            setError(null);
-          }}
-          length={PAIRING_CODE_LENGTH}
-          autoFocus
-          invalid={Boolean(error)}
-          disabled={submitting || authStatus !== "ready"}
-          label="Display pairing code"
-          onComplete={(v) => void connect(v)}
-        />
-        <p className="min-h-6 text-center font-semibold text-destructive" role="alert">
-          {error ?? (authStatus === "error" ? authError : null)}
+        <p
+          className="font-mono text-5xl font-extrabold whitespace-nowrap text-white tabular-nums tracking-[0.12em] sm:text-7xl lg:text-6xl xl:text-7xl"
+          aria-label={`Pairing code ${ticket.code.split("").join(" ")}`}
+          aria-live="polite"
+        >
+          {ticket.code.slice(0, 3)} {ticket.code.slice(3)}
         </p>
-        <Button type="submit" size="xl" variant="accent" className="w-full max-w-sm" disabled={code.length !== PAIRING_CODE_LENGTH || submitting || !user}>
-          {submitting ? <Loader2 className="animate-spin" /> : <Tv />} {submitting ? "Connecting…" : "Connect"}
-        </Button>
-        {previousRoom && (
-          <Link to={`/display/${previousRoom}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-sky underline-offset-4 hover:underline">
-            Reconnect to the last room
-          </Link>
+        <div className="flex w-full items-center gap-3 text-sm font-semibold text-muted-foreground" aria-hidden>
+          <span className="h-px flex-1 bg-border" /> or scan with the host's phone <span className="h-px flex-1 bg-border" />
+        </div>
+        <div className="rounded-2xl bg-white p-3 shadow-2xl shadow-sky/20">
+          <QRCodeSVG
+            value={displayPairUrl(ticket.code)}
+            size={176}
+            level="M"
+            bgColor="#ffffff"
+            fgColor="#0b0b24"
+            title="Scan with the host's phone to connect this display"
+            className="block size-36 sm:size-44"
+          />
+        </div>
+        {replaced ? (
+          <Button variant="outline" onClick={() => void requestCode()} disabled={loading}>
+            {loading ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />} This code was replaced. Get a new one
+          </Button>
+        ) : (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
+            <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} />
+            {loading ? "Getting a new code…" : `New code in ${formatSeconds(remaining ?? 0)}`}
+          </p>
         )}
-      </form>
+      </div>
     );
   }
 
@@ -171,6 +186,11 @@ export function DisplayPairScreen() {
               </li>
             ))}
           </ol>
+          {previousRoom && (
+            <Link to={`/display/${previousRoom}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-sky underline-offset-4 hover:underline">
+              Reconnect to the last room
+            </Link>
+          )}
         </section>
         <section className="glass min-w-0 rounded-3xl border p-4 sm:p-10">{panel}</section>
       </main>

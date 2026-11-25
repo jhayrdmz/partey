@@ -5,8 +5,8 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 | Role | Route | Device | What it does |
 |---|---|---|---|
 | Landing | `/` | any | Choose *Host a Game* or *Game Display* |
-| Host | `/host`, `/host/:roomId` (+ `/mode`, `/games`) | phone / tablet | Create room → pick mode → pick games → run the lobby and games |
-| Display | `/display`, `/display/:roomId` | TV / monitor / tablet | Pair with a 6-digit code, then present the lobby, QR code, intros and leaderboards |
+| Host | `/host`, `/host/:roomId` (+ `/mode`, `/games`), `/host/pair/:code` | phone / tablet | Create room → pick mode → pick games → run the lobby and games |
+| Display | `/display`, `/display/:roomId` | TV / monitor / tablet | Shows a 6-digit pairing code + QR for the host, then presents the lobby, join QR code, intros and leaderboards |
 | Player | `/play`, `/play/:roomCode` | phone | Join via QR / room code, pick nickname + avatar, play |
 
 **Stack:** React 19 · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui (Radix) · Lucide · Zustand · Motion · Firebase (Auth, Firestore, Realtime Database, Cloud Functions v2, Hosting) using the modular SDK.
@@ -28,8 +28,8 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
   </tr>
 </table>
 
-![Display pairing screen on a TV: enter the 6-digit code from the host](docs/screenshots/display-pairing.png)
-<p align="center"><sub><b>Display</b>: pair a TV or monitor with a 6-digit code from the host</sub></p>
+![Display pairing screen on a TV: a 6-digit code and a QR code for the host](docs/screenshots/display-pairing.png)
+<p align="center"><sub><b>Display</b>: the TV shows a code; the host enters it or scans the QR</sub></p>
 
 ---
 
@@ -61,8 +61,8 @@ npm run dev                       # http://localhost:5173
 Open three browser windows (or devices on your LAN):
 
 1. `/host`: create a room, choose a mode and games.
-2. `/display`: in the host lobby, tap **Connect a display**, type the code on the display, then **Approve** on the host.
-3. Scan the QR code on the display (or open `/play`) to join as a player.
+2. `/display`: the display shows a 6-digit code and a QR code. In the host lobby, enter that code under **Display** (or scan the QR with the host's phone).
+3. Once connected, the display shows the lobby with a join QR code. Scan it (or open `/play`) to join as a player.
 
 > **Testing with real phones on your Wi-Fi:** run `npm run dev` (it already listens on all interfaces), open the app at your machine's LAN IP, and set `VITE_PUBLIC_APP_URL=http://<your-ip>:5173` in `.env.local` so QR codes point there. The app connects to the emulators on the same host automatically.
 >
@@ -144,7 +144,7 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the data model, securit
 
 **Done and tested against the emulators**
 - Landing, host room creation, game mode selection, game library, host lobby/dashboard, display pairing and lobby, player join and waiting lobby.
-- Server-authoritative room lifecycle, display pairing (single-use, expiring, rate-limited, host-approved), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
+- Server-authoritative room lifecycle, display pairing (display shows the code, host enters it; single-use, expiring, rate-limited), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
 - **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
 - **Playable games:** Speed Quiz (8 questions, speed bonus), Guess the Majority (6 prompts, match the crowd) and Reflex Battle (5 rounds, false-start detection). The other five games show as *Coming soon*.
 

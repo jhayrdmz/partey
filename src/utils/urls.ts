@@ -13,3 +13,13 @@ export function joinUrl(roomCode: string): string {
 export function joinUrlLabel(): string {
   return `${appBaseUrl().replace(/^https?:\/\//, "")}/play`;
 }
+
+/** Opened by the host's phone when it scans the QR on a display: connects that display to the host's room. */
+export function displayPairUrl(code: string): string {
+  return `${appBaseUrl()}/host/pair/${code}`;
+}
+
+/** "partey.app/display" style short label for on-screen instructions. */
+export function displayUrlLabel(): string {
+  return `${appBaseUrl().replace(/^https?:\/\//, "")}/display`;
+}

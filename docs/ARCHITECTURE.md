@@ -34,9 +34,8 @@
 | `lookupRoom` | anyone | Resolves code → room; tells the caller if they already joined or were kicked |
 | `joinRoom` | player | **Idempotent per uid** (rejoin keeps score); unique nicknames; max 24 players |
 | `leaveRoom`, `kickPlayer` | player / host | Records are kept (`left` / `kicked`) for history; kicked players can't rejoin |
-| `createDisplayPairing` | host | 6-digit code, crypto-random, TTL `PAIRING_CODE_TTL_SECONDS` (default 180s); invalidates the room's previous open code |
-| `requestDisplayPairing` | display | **Consumes the code (single use)**; rate-limited per uid (10 / 10 min) |
-| `resolveDisplayPairing` | host | Approve → creates `displaySessions/{displayUid}`; idempotent |
+| `createDisplayCode` | display | 6-digit code, crypto-random, TTL `PAIRING_CODE_TTL_SECONDS` (default 180s), shown with a QR code; replaces the display's previous open code; the display auto-refreshes it |
+| `claimDisplayPairing` | host | Host enters (or scans) the code shown on the display. **Consumes the code (single use)**, creates `displaySessions/{displayUid}`; rate-limited per uid (10 / 10 min) |
 | `revokeDisplay` | host | Display loses access immediately |
 | `startGame`, `endGame` | host | Server-side lifecycle; idempotent against double taps; writes history + standings |
 | `submitAnswer` | player | One per player per round; validated by the game handler; closes the round early when all have answered |
@@ -48,19 +47,24 @@
 
 ## Display pairing
 
+The display shows the code; the host enters it. Typing (or scanning) the code that is physically on the screen is the host's approval, so there is no separate approve step.
+
 ```
-Host                          Server                               Display (TV)
- │ createDisplayPairing ─────▶ pairingCodes/123456 → pairing(open)
- │ shows "123 456" + countdown
- │                                                    ◀───── requestDisplayPairing("123456")
- │                             delete pairingCodes/123456 (single use)
- │                             pairing.status = requested, requesterUid = tv
- │ sees "Approve this display?"                       TV listens to pairing doc (rules: requesterUid == uid)
- │ resolveDisplayPairing ────▶ displaySessions/{tvUid} created, pairing approved
- │                                                    TV → /display/:roomId
+Display (TV)                       Server                               Host
+ │ createDisplayCode ─────────────▶ pairingCodes/482913 → pairing(open, requesterUid = tv)
+ │ shows "482 913" + QR + countdown
+ │ listens to its pairing doc (rules: requesterUid == uid)
+ │ (gets a fresh code before expiry)
+ │                                  ◀──────────── claimDisplayPairing(roomId, "482913")
+ │                                                 typed in the lobby, or via the QR →
+ │                                                 /host/pair/482913 (one confirming tap)
+ │                                  delete pairingCodes/482913 (single use)
+ │                                  displaySessions/{tvUid} created
+ │                                  pairing.status = approved, roomId, hostId
+ │ sees approved → /display/:roomId
 ```
 
-The public room code is never used to authenticate a display. The display's credential is its own Firebase Auth identity, bound to a `displaySessions` document that only the host's approval can create.
+The public room code is never used to authenticate a display. The display's credential is its own Firebase Auth identity, bound to a `displaySessions` document that only the room's host can create, by entering the code shown on that display. Host-side attempts are rate-limited, so codes can't be brute-forced to push a room onto someone else's screen.
 
 ## Presence and reconnection
 
