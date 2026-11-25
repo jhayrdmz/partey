@@ -1,2 +1,3 @@
 node_modules/
-lib/
+# Build output only (anchored, so src/lib/ is still committed)
+/lib/

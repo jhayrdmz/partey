@@ -2,14 +2,14 @@ import { onValueWritten } from "firebase-functions/v2/database";
 import { logger } from "firebase-functions";
 import { db, Timestamp, roomRef } from "./lib/admin";
 import { expiryFields, isRoomLive, type ServerRoom } from "./lib/rooms";
-import { REGION } from "./config";
+import { DATABASE_REGION } from "./config";
 
 /**
  * Mirrors Realtime Database presence (/presence/{roomId}/{uid}) into Firestore,
  * then recomputes the room's connection counts and expiry.
  * The role is derived from Firestore — never trusted from the client.
  */
-export const onPresenceWritten = onValueWritten({ ref: "/presence/{roomId}/{uid}", region: REGION }, async (event) => {
+export const onPresenceWritten = onValueWritten({ ref: "/presence/{roomId}/{uid}", region: DATABASE_REGION }, async (event) => {
   const { roomId, uid } = event.params;
   // Re-read the latest value so out-of-order deliveries settle on the current state.
   // event.data.after.ref is bound to the database instance that fired the event.

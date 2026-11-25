@@ -8,3 +8,6 @@ export const pairingTtlSeconds = defineInt("PAIRING_CODE_TTL_SECONDS", {
 });
 
 export const REGION = "us-central1";
+
+/** Realtime Database triggers must run in the database's own region. */
+export const DATABASE_REGION = "asia-southeast1";
