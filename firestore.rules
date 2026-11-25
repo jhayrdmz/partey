@@ -78,6 +78,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Host-only game options (e.g. a custom Impostor word): players and displays must never see them.
+      match /hostSecrets/{gameId} {
+        allow read: if isLiveHost(roomId);
+        allow write: if false;
+      }
+
       // Raw submissions are server-only until a reveal is published to displayState.
       match /submissions/{submissionId} {
         allow read, write: if false;

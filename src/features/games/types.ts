@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { PublicGameState } from "@shared/engine";
 import type { GameId, GameMeta } from "@shared/games";
 import type { GameViews } from "./engine/views";
 
@@ -20,8 +21,30 @@ export interface GameModule {
   interactions: InteractionKind[];
   /** Show the round countdown (Reflex hides it: it would reveal when GO fires). */
   showTimer?: boolean;
+  /** Show the "Top scores" strip on the display after each round (default true). */
+  showStandings?: boolean;
+  /**
+   * Customise the host's live controls for the current state: rename the main action, or swap the
+   * main/skip buttons for game actions (sent as controlGame { action: "game", name }).
+   */
+  hostControls?: (game: PublicGameState) => HostControlOverrides;
   /** Background music the display loops during this game (R2 URL; undefined = no music). */
   music?: string;
   /** Lazy-loaded presentation for display + phone. Absent = not playable yet. */
   loadViews?: () => Promise<GameViews>;
+}
+
+export interface HostGameAction {
+  /** Sent as controlGame { action: "game", name }. */
+  name: string;
+  label: string;
+}
+
+export interface HostControlOverrides {
+  /** Label for the main "next" action (default "Reveal now" / "Next round"…). */
+  nextLabel?: string;
+  /** Replace the main action with a game action. */
+  main?: HostGameAction;
+  /** Replace the Skip button with a game action. */
+  skip?: HostGameAction;
 }

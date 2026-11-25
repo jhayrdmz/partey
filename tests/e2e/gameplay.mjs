@@ -33,7 +33,7 @@ try {
   await host.getByRole("button", { name: /Tournament Mode/ }).click();
   await host.waitForURL(/games$/);
   // Unplayable games can't be added.
-  if (!(await host.getByRole("button", { name: "The Impostor (coming soon)" }).isDisabled())) throw new Error("Impostor should be disabled");
+  if (!(await host.getByRole("button", { name: "Draw & Guess (coming soon)" }).isDisabled())) throw new Error("Draw & Guess should be disabled");
   for (const g of ["Speed Quiz", "Guess the Majority", "Reflex Battle"]) await host.getByRole("button", { name: `Add ${g} to lineup` }).click();
   await host.getByRole("button", { name: /Continue with 3 games/ }).first().click();
   await host.getByText("Tournament lineup").waitFor();

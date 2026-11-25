@@ -23,5 +23,8 @@ export interface GameStateDoc {
   scores: Record<string, number>;
   /** Last reveal payload (kept so pause/resume can republish it). */
   lastReveal: unknown;
+  /** From OpenedRound: label instead of "Round x of y", and whether the host may skip. */
+  roundLabel?: string | null;
+  skippable?: boolean;
   startedAtMs: number;
 }

@@ -54,6 +54,7 @@ before(async () => {
   await ref.collection("gameState").doc("current").set({ phase: "intro", gameData: { answer: "secret" } });
   await ref.collection("private").doc(player.uid).set({ secretWord: "mango" });
   await ref.collection("submissions").doc("s1").set({ playerId: player.uid, answer: "x" });
+  await ref.collection("hostSecrets").doc("impostor").set({ word: "pizza" });
   await admin.collection("roomCodes").doc("TEST").set({ roomId });
   await admin.collection("displayPairings").doc("p1").set({ roomId, hostId: host.uid, requesterUid: display.uid, status: "approved", expiresAt: future });
   // A code still showing on a display: no room or host yet.
@@ -123,6 +124,13 @@ describe("separation of public, private and authoritative data", () => {
     assert.equal(await allowed(sub(player, "private", player.uid)), true);
     assert.equal(await allowed(sub(display, "private", player.uid)), false);
     assert.equal(await allowed(sub(host, "private", player.uid)), false);
+  });
+  test("host secrets (custom Impostor word) are readable by the host only", async () => {
+    assert.equal(await allowed(sub(host, "hostSecrets", "impostor")), true);
+    assert.equal(await allowed(sub(player, "hostSecrets", "impostor")), false);
+    assert.equal(await allowed(sub(display, "hostSecrets", "impostor")), false);
+    assert.equal(await allowed(sub(stranger, "hostSecrets", "impostor")), false);
+    assert.equal(await allowed(setDoc(doc(host.db, "rooms", roomId, "hostSecrets", "impostor"), { word: "x" })), false);
   });
   test("raw submissions are server-only", async () => {
     assert.equal(await allowed(sub(host, "submissions", "s1")), false);

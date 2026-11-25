@@ -2,7 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
 
@@ -89,4 +89,28 @@ export function speedQuizSettings(value: unknown): SpeedQuizSettings {
   if (!isWholeIn(maxPlayers, mp.min, mp.max)) fail("invalid-argument", `Max players must be between ${mp.min} and ${mp.max}.`);
   if (!isWholeIn(rounds, r.min, r.max)) fail("invalid-argument", `Questions must be between ${r.min} and ${r.max}.`);
   return { questionSeconds: questionSeconds as SpeedQuizSettings["questionSeconds"], maxPlayers, rounds };
+}
+
+/** The Impostor options from the lobby form. Every field is required. */
+export function impostorSettings(value: unknown): ImpostorSettings {
+  const data = asObject(value);
+  const { impostors, category, clueRounds, maxPlayers } = data;
+  const customWord = data.customWord ?? false;
+  const L = IMPOSTOR_LIMITS;
+  if (!isWholeIn(impostors, L.impostors.min, L.impostors.max)) fail("invalid-argument", `Impostors must be between ${L.impostors.min} and ${L.impostors.max}.`);
+  if (!(IMPOSTOR_CATEGORY_OPTIONS as readonly unknown[]).includes(category)) fail("invalid-argument", "Pick a category.");
+  if (!isWholeIn(clueRounds, L.clueRounds.min, L.clueRounds.max)) fail("invalid-argument", `Clue rounds must be between ${L.clueRounds.min} and ${L.clueRounds.max}.`);
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  if (typeof customWord !== "boolean") fail("invalid-argument", "Invalid word option.");
+  // The impostor's only hint is the category, so a custom word needs a real one.
+  if (customWord && category === "random") fail("invalid-argument", "Pick the category your word fits, so the impostor gets a fair hint.");
+  return { impostors, category: category as ImpostorSettings["category"], clueRounds, maxPlayers, customWord };
+}
+
+/** The host's own secret word for The Impostor: letters and numbers, single spaces, ' and - inside. */
+export function impostorCustomWord(data: Data): string {
+  const { min, max } = IMPOSTOR_LIMITS.customWord;
+  const word = text(data, "customWord", min, max, "Custom word");
+  if (!/^[\p{L}\p{N}]+(?:[ '’-][\p{L}\p{N}]+)*$/u.test(word)) fail("invalid-argument", "Use letters and numbers only (spaces, ' and - are fine between them).");
+  return word;
 }

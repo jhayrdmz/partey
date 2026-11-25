@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Crown, FastForward, Flag, Gamepad2, Loader2, Pause, Play, RotateCcw, Shuffle, SkipForward, Users } from "lucide-react";
+import { Crown, Eye, FastForward, Flag, Gamepad2, Loader2, Pause, Play, RotateCcw, Shuffle, SkipForward, Users } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import type { RoomDoc } from "@shared/types";
 import type { GameControlAction, PublicGameState } from "@shared/engine";
+import type { GameId } from "@shared/games";
 import { TimerBar } from "@/features/games/shared/TimerBar";
 import { useAutoTick } from "@/features/games/engine/useAutoTick";
 import { getGame } from "@/features/games/registry";
@@ -83,7 +84,7 @@ export function HostControls({
   }
 
   if (room.status === "playing" && game) {
-    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} inBar={inBar} actions={actions} />;
+    return <LiveGameControls room={room} roomId={roomId} gameId={game.meta.id} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} inBar={inBar} actions={actions} />;
   }
 
   // waiting
@@ -141,6 +142,7 @@ const PHASE_LABEL = { intro: "How to play", question: "Answering", reveal: "Resu
 function LiveGameControls({
   room,
   roomId,
+  gameId,
   gameName,
   live,
   busy,
@@ -152,6 +154,7 @@ function LiveGameControls({
 }: {
   room: RoomDoc;
   roomId: string;
+  gameId: GameId;
   gameName: string;
   live: PublicGameState | null | undefined;
   busy: string | null;
@@ -166,7 +169,12 @@ function LiveGameControls({
   const [confirmEnd, setConfirmEnd] = useState(false);
   const isTournament = room.gameMode === "tournament";
   const control = (action: GameControlAction) => run(action, () => call("controlGame", { roomId, action }));
-  const nextLabel = !live ? "Next" : live.phase === "intro" ? "Start round 1" : live.phase === "question" ? "Reveal now" : live.round >= live.totalRounds ? "Show results" : "Next round";
+  const gameAction = (name: string) => run(`game:${name}`, () => call("controlGame", { roomId, action: "game", name }));
+  // Games can rename the main action or swap in their own (e.g. The Impostor's Revote / Reveal).
+  const custom = live ? getGame(gameId).hostControls?.(live) : undefined;
+  const defaultNext = !live ? "Next" : live.phase === "intro" ? "Start round 1" : live.phase === "question" ? "Reveal now" : live.round >= live.totalRounds ? "Show results" : "Next round";
+  const nextLabel = custom?.main?.label ?? custom?.nextLabel ?? defaultNext;
+  const stepLabel = !live ? "" : live.phase === "intro" ? PHASE_LABEL.intro : live.roundLabel ?? `Round ${live.round}/${live.totalRounds} · ${PHASE_LABEL[live.phase]}`;
 
   return (
     <Card className={cn("gap-3", inBar && IN_BAR_CARD)}>
@@ -184,8 +192,8 @@ function LiveGameControls({
       {live && (
         <div className="space-y-2 rounded-xl bg-secondary/40 p-3">
           <div className="flex items-center justify-between text-sm font-bold">
-            <span>{live.phase === "intro" ? PHASE_LABEL.intro : `Round ${live.round}/${live.totalRounds} · ${PHASE_LABEL[live.phase]}`}</span>
-            {live.phase === "question" && (
+            <span className="min-w-0 truncate">{stepLabel}</span>
+            {live.phase === "question" && live.eligible > 1 && (
               <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
                 <Users className="size-4" /> {live.submitted}/{live.eligible} answered
               </span>
@@ -209,25 +217,31 @@ function LiveGameControls({
             {icon("pause", Pause)} Pause
           </Button>
         )}
-        <Button
-          variant="outline"
-          className={SMALL}
-          onClick={() => control("skip")}
-          disabled={Boolean(busy) || live?.phase !== "question" || live.paused}
-          aria-label="Skip round"
-          title="Skip this question without scoring"
-        >
-          {icon("skip", SkipForward)} Skip
-        </Button>
+        {custom?.skip ? (
+          <Button variant="outline" className={SMALL} onClick={() => gameAction(custom.skip!.name)} disabled={Boolean(busy) || !live || live.paused} aria-label={custom.skip.label}>
+            {icon(`game:${custom.skip.name}`, Eye)} <span className="max-w-full truncate px-0.5">{custom.skip.label}</span>
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            className={SMALL}
+            onClick={() => control("skip")}
+            disabled={Boolean(busy) || live?.phase !== "question" || live.paused || live.skippable === false}
+            aria-label="Skip round"
+            title="Skip this question without scoring"
+          >
+            {icon("skip", SkipForward)} Skip
+          </Button>
+        )}
         {/* Wraps to two lines rather than truncating; the icon drops on the narrowest phones. */}
         <Button
           size="xl"
           variant="party"
           className="min-w-0 flex-1 gap-2 px-3 text-base leading-tight whitespace-normal sm:text-lg"
-          onClick={() => control("next")}
+          onClick={() => (custom?.main ? gameAction(custom.main.name) : control("next"))}
           disabled={Boolean(busy) || !live || live.paused}
         >
-          <span className="hidden xs:contents">{icon("next", FastForward)}</span>
+          <span className="hidden xs:contents">{custom?.main ? icon(`game:${custom.main.name}`, RotateCcw) : icon("next", FastForward)}</span>
           <span className="text-center">{nextLabel}</span>
         </Button>
       </div>

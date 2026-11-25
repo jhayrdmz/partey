@@ -8,7 +8,7 @@ import { getLiveRoomTx, touchRoomTx, type ServerRoom } from "../lib/rooms";
 import { generateId } from "../lib/codes";
 import { getHandler } from "./registry";
 import type { GameStateDoc } from "./state";
-import type { EnginePlayer, EngineSubmission, GameHandler } from "./types";
+import type { EnginePlayer, EngineSubmission, GameHandler, ScoredRound } from "./types";
 
 /* ─── Refs ───────────────────────────────────────────────────────────── */
 
@@ -110,6 +110,8 @@ function publicState(ctx: GameCtx, gs: GameStateDoc, extra: { submitted: number;
     round_data: gs.phase === "intro" ? null : gs.roundPublic,
     reveal: gs.phase === "reveal" ? extra.reveal : null,
     standings: standingsFrom(gs.scores, ctx.players).slice(0, 10),
+    roundLabel: gs.phase === "intro" ? null : (gs.roundLabel ?? null),
+    skippable: gs.skippable !== false,
   };
 }
 
@@ -135,12 +137,12 @@ function writePrivate(tx: Transaction, roomId: string, uid: string, data: Partia
 /** Create a fresh game in the intro phase. Caller has validated the host and room state. */
 export async function initGame(
   tx: Transaction,
-  args: { roomId: string; room: ServerRoom; gameId: GameId; entryId: string; players: EnginePlayer[]; nowMs: number; roomPatch: Partial<ServerRoom> },
+  args: { roomId: string; room: ServerRoom; gameId: GameId; entryId: string; players: EnginePlayer[]; hostSecret?: unknown; nowMs: number; roomPatch: Partial<ServerRoom> },
 ) {
   const handler = getHandler(args.gameId);
   if (!handler) fail("failed-precondition", "This game is coming soon!");
   const used = new Set(args.room.usedContent ?? []);
-  const { setup, rounds, contentIds } = handler.setup(args.players, used, args.room.gameSettings?.[args.gameId as keyof NonNullable<ServerRoom["gameSettings"]>]);
+  const { setup, rounds, contentIds } = handler.setup(args.players, used, args.room.gameSettings?.[args.gameId as keyof NonNullable<ServerRoom["gameSettings"]>], args.hostSecret);
   const gs: GameStateDoc = {
     gameId: args.gameId,
     entryId: args.entryId,
@@ -167,7 +169,9 @@ export async function initGame(
   writeDisplay(tx, ctx, gs, { submitted: 0, reveal: null });
   for (const p of args.players) {
     writePrivate(tx, args.roomId, p.playerId, {
-      gameId: args.gameId, round: 0, phase: "intro", answer: null, answered: false, lastRound: null, gameScore: 0, rank: null, secret: null,
+      gameId: args.gameId, round: 0, phase: "intro", answer: null, answered: false, lastRound: null, gameScore: 0, rank: null,
+      // Roles / secret words: only this player can read their private doc.
+      secret: handler.privateInfo?.(setup, p.playerId) ?? null,
     });
   }
   const usedContent = [...new Set([...(args.room.usedContent ?? []), ...contentIds])].slice(-200);
@@ -188,8 +192,11 @@ function openRound(tx: Transaction, ctx: GameCtx, round: number, nowMs: number) 
     roundPublic: opened.public,
     roundSecret: opened.secret,
     roundOpenedAtMs: nowMs,
-    eligibleIds: ctx.players.map((p) => p.playerId),
+    // Only players still in the room can answer (someone who left mid-game drops out).
+    eligibleIds: (opened.eligibleIds ?? ctx.players.map((p) => p.playerId)).filter((id) => ctx.players.some((p) => p.playerId === id)),
     lastReveal: null,
+    roundLabel: opened.label ?? null,
+    skippable: opened.skippable !== false,
   };
   tx.set(gameStateRef(ctx.roomId), gs);
   writeDisplay(tx, ctx, gs, { submitted: 0, reveal: null });
@@ -200,30 +207,49 @@ function openRound(tx: Transaction, ctx: GameCtx, round: number, nowMs: number) 
 
 function closeRound(tx: Transaction, ctx: GameCtx, submissions: EngineSubmission[], nowMs: number, opts: { score: boolean }) {
   const { gs } = ctx;
-  const scored = opts.score
+  const scored: ScoredRound = opts.score
     ? ctx.handler.score({
         pub: gs.roundPublic,
         secret: gs.roundSecret,
+        setup: gs.setup,
         submissions,
         players: ctx.players.filter((p) => gs.eligibleIds.includes(p.playerId)),
+        allPlayers: ctx.players,
         openedAtMs: gs.roundOpenedAtMs ?? nowMs,
         durationMs: gs.phaseDurationMs,
       })
     : { points: {}, feedback: {}, reveal: null };
+  writeReveal(tx, ctx, gs, scored, submissions.length, nowMs, opts);
+}
+
+/** Show a reveal (new, or replacing the current one) and add its points. */
+function writeReveal(
+  tx: Transaction,
+  ctx: GameCtx,
+  gs: GameStateDoc,
+  scored: ScoredRound,
+  submittedCount: number,
+  nowMs: number,
+  opts: { score: boolean },
+) {
   const scores = { ...gs.scores };
   for (const [uid, pts] of Object.entries(scored.points)) scores[uid] = (scores[uid] ?? 0) + pts;
+  // 0 = untimed: stays up until the host moves on (e.g. a tied vote waiting for Revote / Reveal).
+  const revealMs = scored.revealMs ?? ctx.handler.revealMs;
   const next: GameStateDoc = {
     ...gs,
     phase: "reveal",
-    phaseEndsAtMs: nowMs + ctx.handler.revealMs,
-    phaseDurationMs: ctx.handler.revealMs,
+    phaseEndsAtMs: revealMs > 0 ? nowMs + revealMs : null,
+    phaseDurationMs: revealMs,
     paused: false,
     remainingMs: null,
     scores,
     lastReveal: scored.reveal,
+    ...(scored.setup !== undefined ? { setup: scored.setup } : {}),
+    ...(scored.totalRounds !== undefined ? { totalRounds: scored.totalRounds } : {}),
   };
   tx.set(gameStateRef(ctx.roomId), next);
-  writeDisplay(tx, ctx, next, { submitted: submissions.length, reveal: scored.reveal });
+  writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: scored.reveal });
   const r = ranks(standingsFrom(scores, ctx.players));
   for (const p of ctx.players) {
     const fb = scored.feedback[p.playerId];
@@ -305,8 +331,33 @@ export function advance(tx: Transaction, ctx: GameCtx, submissions: EngineSubmis
 /** Skip the current question without scoring. */
 export function skipRound(tx: Transaction, ctx: GameCtx, nowMs: number) {
   if (ctx.gs.phase !== "question") fail("failed-precondition", "You can only skip during a question.");
+  if (ctx.gs.skippable === false) fail("failed-precondition", "This round can't be skipped.");
   if (ctx.gs.round < ctx.gs.totalRounds) return openRound(tx, ctx, ctx.gs.round + 1, nowMs);
   return finalizeGame(tx, ctx, nowMs);
+}
+
+/** A game-specific host action (e.g. The Impostor's "revote" / "reveal" after a tied vote). */
+export function hostGameAction(tx: Transaction, ctx: GameCtx, name: string, submittedCount: number, nowMs: number) {
+  const { gs, handler } = ctx;
+  if (!handler.hostAction) fail("failed-precondition", "This game has no such action.");
+  if (gs.paused) fail("failed-precondition", "Resume the game first.");
+  const result = handler.hostAction(name, {
+    setup: gs.setup,
+    round: gs.round,
+    totalRounds: gs.totalRounds,
+    phase: gs.phase,
+    lastReveal: gs.lastReveal,
+    players: ctx.players,
+  });
+  const updated: GameStateDoc = {
+    ...gs,
+    ...(result.setup !== undefined ? { setup: result.setup } : {}),
+    ...(result.totalRounds !== undefined ? { totalRounds: result.totalRounds } : {}),
+  };
+  const next: GameCtx = { ...ctx, gs: updated };
+  if (result.scored) return writeReveal(tx, next, updated, result.scored, submittedCount, nowMs, { score: true });
+  if (result.advance) return openRound(tx, next, updated.round + 1, nowMs);
+  tx.set(gameStateRef(ctx.roomId), updated);
 }
 
 export function pauseGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
@@ -322,7 +373,7 @@ export function pauseGame(tx: Transaction, ctx: GameCtx, submittedCount: number,
 export function resumeGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
   const { gs } = ctx;
   if (!gs.paused) return;
-  if (gs.remainingMs === null && gs.phase === "question" && gs.phaseDurationMs === 0) {
+  if (gs.remainingMs === null && gs.phaseDurationMs === 0) {
     const next: GameStateDoc = { ...gs, paused: false };
     tx.set(gameStateRef(ctx.roomId), next);
     writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });

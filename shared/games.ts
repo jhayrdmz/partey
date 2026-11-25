@@ -52,11 +52,12 @@ export const GAMES: Record<GameId, GameMeta> = {
     tagline: "One of you is lying",
     description: "Everyone gets the secret word — except the impostor. Give clues, vote, and unmask the faker.",
     category: "social",
-    minPlayers: 4,
-    maxPlayers: 12,
+    minPlayers: 3,
+    // Host-adjustable in game options (default 12).
+    maxPlayers: 24,
     durationMin: 12,
     featured: false,
-    playable: false,
+    playable: true,
   },
   majority: {
     id: "majority",

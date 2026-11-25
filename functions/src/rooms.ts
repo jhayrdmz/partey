@@ -2,7 +2,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { DEFAULT_OTHER_PLACEMENT_POINTS, DEFAULT_PLACEMENT_POINTS, LIMITS } from "../../shared/constants";
 import type { CreateRoomResponse, LookupRoomResponse } from "../../shared/api";
 import type { LineupEntry } from "../../shared/types";
-import { db, ROOMS, ROOM_CODES, Timestamp, roomRef } from "./lib/admin";
+import { db, ROOMS, ROOM_CODES, Timestamp, hostSecretRef, roomRef } from "./lib/admin";
 import { generateId, generateRoomCode } from "./lib/codes";
 import { fail, requireUid } from "./lib/errors";
 import { assertHost, expiryFields, getLiveRoomTx, readLiveRoom, touchRoomTx, type ServerRoom } from "./lib/rooms";
@@ -115,20 +115,27 @@ export const setLineup = onCall(opts, async (req) => {
 });
 
 /**
- * Host changes a game's options (only Speed Quiz has any). Allowed between games; a running
+ * Host changes a game's options (Speed Quiz, The Impostor). Allowed between games; a running
  * game keeps the options it started with. Lowering the player limit never removes anyone.
  */
 export const setGameSettings = onCall(opts, async (req) => {
   const uid = requireUid(req);
   const data = v.asObject(req.data);
   const roomId = v.docId(data, "roomId");
-  if (data.gameId !== "speed-quiz") fail("invalid-argument", "This game has no options.");
-  const settings = v.speedQuizSettings(data.settings);
+  const gameId = data.gameId;
+  if (gameId !== "speed-quiz" && gameId !== "impostor") fail("invalid-argument", "This game has no options.");
+  const settings = gameId === "speed-quiz" ? v.speedQuizSettings(data.settings) : v.impostorSettings(data.settings);
+  // The Impostor's custom word stays off the room doc (players and displays can read that).
+  const customWord = "customWord" in settings && settings.customWord ? v.impostorCustomWord(data) : null;
   await db.runTransaction(async (tx) => {
     const room = await getLiveRoomTx(tx, roomId);
     assertHost(room, uid);
     if (room.status !== "waiting") fail("failed-precondition", "Change options between games.");
-    touchRoomTx(tx, roomId, room, { gameSettings: { ...room.gameSettings, "speed-quiz": settings } });
+    touchRoomTx(tx, roomId, room, { gameSettings: { ...room.gameSettings, [gameId]: settings } });
+    if (gameId === "impostor") {
+      if (customWord) tx.set(hostSecretRef(roomId, gameId), { word: customWord });
+      else tx.delete(hostSecretRef(roomId, gameId));
+    }
   });
   return { ok: true };
 });

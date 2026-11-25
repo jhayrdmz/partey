@@ -8,6 +8,8 @@ export interface DisplayViewProps {
 export interface PlayerQuestionProps {
   game: PublicGameState;
   me: PlayerPrivateDoc | null;
+  /** This player's uid (e.g. to tell whose turn it is). */
+  uid: string;
   submit: (answer: unknown) => void;
   submitting: boolean;
 }
@@ -19,4 +21,8 @@ export interface GameViews {
   PlayerQuestion: ComponentType<PlayerQuestionProps>;
   /** Optional custom "answer locked" view for the phone. */
   PlayerAnswered?: ComponentType<PlayerQuestionProps>;
+  /** Optional private card shown on the phone in every phase, including the intro (e.g. a secret role). */
+  PlayerSecret?: ComponentType<{ game: PublicGameState; me: PlayerPrivateDoc | null }>;
+  /** Optional replacement for the phone's round result screen. */
+  PlayerReveal?: ComponentType<{ game: PublicGameState; me: PlayerPrivateDoc; uid: string }>;
 }

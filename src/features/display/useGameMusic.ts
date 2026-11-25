@@ -4,6 +4,13 @@ const VOLUME = 0.35;
 const FADE_MS = 700;
 
 /**
+ * Events that grant the page "user activation", which browsers require before audio can play.
+ * Not pointerdown: for touch it doesn't count (only the release does), so tablets never started.
+ * Capture phase, so a handler that stops propagation can't swallow the unlock.
+ */
+const UNLOCK_EVENTS = ["pointerup", "touchend", "click", "keydown"] as const;
+
+/**
  * One shared <audio> per track for the whole page, so a track survives screen changes: the
  * lobby music keeps playing from the same spot when the pairing screen hands over to the room.
  */
@@ -57,7 +64,8 @@ export function useGameMusic(requestedSrc: string | undefined, playing: boolean)
       const start = performance.now();
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / FADE_MS);
-        audio.volume = from + (target - from) * t;
+        // Clamp: float rounding can land a hair outside [0, 1], which the browser rejects.
+        audio.volume = Math.min(1, Math.max(0, from + (target - from) * t));
         if (t < 1) fadeRef.current = requestAnimationFrame(step);
         else {
           fadeRef.current = null;
@@ -72,28 +80,35 @@ export function useGameMusic(requestedSrc: string | undefined, playing: boolean)
       return;
     }
 
+    let cancelled = false;
     let retry: (() => void) | null = null;
-    const start = () =>
-      audio.play().then(
-        () => fadeTo(VOLUME),
-        () => {
-          // Autoplay blocked: wait for the first interaction with the display.
-          retry = () => {
-            removeRetry();
-            void start();
-          };
-          window.addEventListener("pointerdown", retry, { once: true });
-          window.addEventListener("keydown", retry, { once: true });
-        },
-      );
     const removeRetry = () => {
       if (!retry) return;
-      window.removeEventListener("pointerdown", retry);
-      window.removeEventListener("keydown", retry);
+      UNLOCK_EVENTS.forEach((e) => window.removeEventListener(e, retry!, true));
       retry = null;
     };
+    const start = () =>
+      audio.play().then(
+        () => {
+          if (!cancelled) fadeTo(VOLUME);
+        },
+        (err: unknown) => {
+          // AbortError = interrupted by pause() (screen change / StrictMode remount), not blocked.
+          if (cancelled || (err instanceof DOMException && err.name === "AbortError") || retry) return;
+          // Autoplay blocked: start on the first interaction with the display. A gesture that
+          // doesn't grant activation (e.g. Escape) just fails again and re-arms this.
+          retry = () => {
+            removeRetry();
+            if (!cancelled) void start();
+          };
+          UNLOCK_EVENTS.forEach((e) => window.addEventListener(e, retry!, { capture: true, passive: true }));
+        },
+      );
     void start();
-    return removeRetry;
+    return () => {
+      cancelled = true;
+      removeRetry();
+    };
   }, [playing, src]);
 
   // Stop any fade on unmount.

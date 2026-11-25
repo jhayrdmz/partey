@@ -41,6 +41,10 @@ export interface PublicGameState {
   reveal: unknown;
   /** Live game scores (top entries). */
   standings: StandingEntry[];
+  /** Game-provided name for the current step (e.g. "Ana's turn"); replaces "Round x of y" when set. */
+  roundLabel?: string | null;
+  /** False when the host can't skip this round (e.g. The Impostor's vote). */
+  skippable?: boolean;
 }
 
 /** rooms/{roomId}/private/{uid} — what one player needs, readable only by them. */
@@ -96,6 +100,75 @@ export interface ReflexReveal {
   results: (PlayerPick & { reactionMs: number | null; falseStart: boolean; points: number })[];
 }
 
+/* ─── The Impostor ─────────────────────────────────────────────────────── */
+
+export const IMPOSTOR_CATEGORIES = ["food", "animals", "places", "objects", "movies"] as const;
+export type ImpostorCategory = (typeof IMPOSTOR_CATEGORIES)[number];
+
+export interface ImpostorClue extends PlayerPick {
+  /** Null when the turn ended without a typed clue (said aloud, skipped or timed out). */
+  clue: string | null;
+  clueRound: number;
+}
+
+/** Public round data. Never contains the secret word or anyone's role. */
+export type ImpostorRound =
+  | {
+      kind: "turn";
+      turnPlayer: PlayerPick;
+      /** 1-based position in the whole clue phase, and its length. */
+      turn: number;
+      turns: number;
+      clueRound: number;
+      clueRounds: number;
+      category: ImpostorCategory;
+      clues: ImpostorClue[];
+    }
+  | {
+      kind: "vote";
+      /** Who can be voted for (everyone, or the tied players on a revote). */
+      candidates: PlayerPick[];
+      revote: boolean;
+      category: ImpostorCategory;
+      clues: ImpostorClue[];
+    };
+
+export interface ImpostorOutcome {
+  winner: "crew" | "impostor";
+  /** Most-voted player (null when it was a tie the host didn't revote, or nobody voted). */
+  accused: PlayerPick | null;
+  impostors: PlayerPick[];
+  word: string;
+  category: ImpostorCategory;
+  /** The impostor won because the vote stayed tied. */
+  byTie: boolean;
+}
+
+export type ImpostorReveal =
+  | { kind: "clue"; player: PlayerPick; clue: string | null }
+  | {
+      kind: "votes";
+      tally: (PlayerPick & { votes: number })[];
+      /** Who voted for whom; shown only now that everyone has voted. */
+      ballots: { voterId: string; voterName: string; targetId: string }[];
+      /** Set when the top spot is shared: the host chooses Revote or Reveal. */
+      tied: PlayerPick[];
+      /** Set once the game is decided (no tie, or the host revealed after a tie). */
+      outcome: ImpostorOutcome | null;
+    };
+
+/** Private, per player (private/{uid}.secret). */
+export interface ImpostorSecret {
+  role: "crew" | "impostor";
+  /** The secret word; null for impostors. */
+  word: string | null;
+  category: ImpostorCategory;
+  /** Other impostors (when there is more than one). */
+  partners: PlayerPick[];
+}
+
+export type ImpostorAnswer = { clue: string } | { vote: string };
+
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
 export type ChoiceAnswer = { choice: number };
@@ -116,8 +189,10 @@ export interface TickGameRequest {
   phase: GamePhase;
 }
 
-export type GameControlAction = "pause" | "resume" | "skip" | "next";
+/** "game" runs a game-specific host action named by `name` (e.g. The Impostor's "revote"). */
+export type GameControlAction = "pause" | "resume" | "skip" | "next" | "game";
 export interface ControlGameRequest {
   roomId: string;
   action: GameControlAction;
+  name?: string;
 }

@@ -36,7 +36,8 @@ export async function call<K extends keyof CallableMap>(name: K, data: CallableM
 export function errorMessage(err: unknown, fallback = "Something went wrong. Please try again."): string {
   if (err instanceof FunctionsError) {
     if (err.code === "functions/internal" || err.code === "functions/unavailable") return "Can't reach the game server. Check your connection.";
-    return err.message || fallback;
+    // The SDK appends the HTTP status ("… [400]"); our server messages are meant to be shown as-is.
+    return err.message.replace(/\s*\[\d{3}\]$/, "") || fallback;
   }
   if (err instanceof Error && err.message) return err.message;
   return fallback;

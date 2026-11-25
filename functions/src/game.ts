@@ -1,6 +1,6 @@
 import { onCall } from "firebase-functions/v2/https";
 import { GAMES } from "../../shared/games";
-import { db, roomRef } from "./lib/admin";
+import { db, hostSecretRef, roomRef } from "./lib/admin";
 import { fail, requireUid } from "./lib/errors";
 import { assertHost, getLiveRoomTx } from "./lib/rooms";
 import * as v from "./lib/validate";
@@ -46,10 +46,22 @@ export const startGame = onCall(opts, async (req) => {
       fail("failed-precondition", `${game.name} needs at least ${game.minPlayers} player${game.minPlayers === 1 ? "" : "s"}.`);
     }
     const players = playersSnap.docs.map((d) => ({ playerId: d.id, nickname: d.get("nickname") as string, avatar: d.get("avatar") as string }));
+    // Host-only options (e.g. a custom Impostor word). Read before any write: transactions need reads first.
+    const hostSecret = (await tx.get(hostSecretRef(roomId, entry.gameId))).data();
 
     // A fresh tournament (or any freestyle game) starts everyone at zero.
     if (room.gameMode === "freestyle" || index === 0) {
       for (const p of playersSnap.docs) tx.update(p.ref, { score: 0 });
+    }
+
+    // A custom Impostor word is single-use: this game keeps it (in its setup), then the room goes
+    // back to random words and the stored word is deleted. All in this transaction, so a failed
+    // start leaves the word in place.
+    const roomPatch: Partial<typeof room> = { status: "playing", lineup, currentGameIndex: index, currentGameId: entry.gameId };
+    const imp = room.gameSettings?.impostor;
+    if (entry.gameId === "impostor" && imp?.customWord) {
+      roomPatch.gameSettings = { ...room.gameSettings, impostor: { ...imp, customWord: false } };
+      tx.delete(hostSecretRef(roomId, entry.gameId));
     }
 
     await initGame(tx, {
@@ -58,8 +70,9 @@ export const startGame = onCall(opts, async (req) => {
       gameId: entry.gameId,
       entryId: entry.entryId,
       players,
+      hostSecret,
       nowMs: Date.now(),
-      roomPatch: { status: "playing", lineup, currentGameIndex: index, currentGameId: entry.gameId },
+      roomPatch,
     });
   });
   return { ok: true };

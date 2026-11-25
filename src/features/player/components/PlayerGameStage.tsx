@@ -55,7 +55,15 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
 
   if (!game) return null;
   const roundKey = `${state.gameId}:${game.round}`;
-  if (game.phase === "intro") return <GetReady state={state} />;
+  const secret = views?.PlayerSecret ? <views.PlayerSecret game={game} me={me.data} /> : null;
+  if (game.phase === "intro") {
+    return (
+      <div className="flex flex-1 flex-col gap-4">
+        {secret}
+        <GetReady state={state} />
+      </div>
+    );
+  }
 
   const mine = me.data;
   const inRound = mine?.gameId === state.gameId && mine?.round === game.round;
@@ -69,6 +77,9 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
     try {
       await call("submitAnswer", { roomId, round: game.round, answer });
     } catch (err) {
+      // Rejected (e.g. "That's the secret word!"): unlock so the player can try again.
+      // The server is idempotent, so a retry can never count twice.
+      lockedRound.current = null;
       toast.error(errorMessage(err));
     } finally {
       setSubmitting(false);
@@ -78,11 +89,10 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-        <span>
-          Round {game.round}/{game.totalRounds}
-        </span>
+        <span className="truncate">{game.roundLabel ?? `Round ${game.round}/${game.totalRounds}`}</span>
         {mine && <span className="text-mango tabular-nums">{mine.gameScore} pts</span>}
       </div>
+      {secret}
       {game.phase === "question" && state.gameId && getGame(state.gameId).showTimer !== false && (
         <TimerBar endsAtMs={game.phaseEndsAtMs} durationMs={game.phaseDurationMs} paused={game.paused} remainingMs={game.remainingMs} />
       )}
@@ -100,16 +110,17 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
           <Waiting icon={Hourglass} title="You're in the next round" text="You joined mid-round. Hang tight!" />
         ) : answered ? (
           views.PlayerAnswered ? (
-            <views.PlayerAnswered game={game} me={mine} submit={submit} submitting={submitting} />
+            <views.PlayerAnswered game={game} me={mine} uid={uid} submit={submit} submitting={submitting} />
           ) : (
             <Waiting icon={Lock} title="Answer locked in!" text="Watch the big screen…" />
           )
         ) : (
-          <views.PlayerQuestion game={game} me={mine} submit={submit} submitting={submitting} />
+          <views.PlayerQuestion game={game} me={mine} uid={uid} submit={submit} submitting={submitting} />
         )
       )}
 
-      {game.phase === "reveal" && !game.paused && mine && <RoundResult me={mine} totalRounds={game.totalRounds} />}
+      {game.phase === "reveal" && !game.paused && mine &&
+        (views?.PlayerReveal ? <views.PlayerReveal game={game} me={mine} uid={uid} /> : <RoundResult me={mine} totalRounds={game.totalRounds} />)}
     </div>
   );
 }

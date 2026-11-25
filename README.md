@@ -99,7 +99,7 @@ Open three browser windows (or devices on your LAN):
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
 | `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
-| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow + full gameplay of all three games (emulators + dev server running) |
+| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, and a full game of The Impostor (emulators + dev server running) |
 
 To run the function integration tests against running emulators:
 
@@ -165,7 +165,7 @@ Live at **https://partey-21c76.web.app**.
 
 ## Media on Cloudflare R2
 
-Large media (music for Speed Quiz, Guess the Majority, Reflex Battle and the display's waiting screens) is served from the Cloudflare R2 bucket **`partey-storage`**, not bundled with the app. The app reads the bucket's public URL from `VITE_MEDIA_BASE_URL` in `.env`. Leave it unset to run without music. Object keys live in `src/utils/media.ts`.
+Large media (music for Speed Quiz, Guess the Majority, Reflex Battle, Impostor and the display's waiting screens) is served from the Cloudflare R2 bucket **`partey-storage`**, not bundled with the app. The app reads the bucket's public URL from `VITE_MEDIA_BASE_URL` in `.env`. Leave it unset to run without music. Object keys live in `src/utils/media.ts`.
 
 The bucket currently uses its public `r2.dev` URL, which Cloudflare rate-limits and intends for development. For production traffic, connect a custom domain (`npx wrangler r2 bucket domain add partey-storage --domain media.example.com --zone-id <zone>`) and update `VITE_MEDIA_BASE_URL`.
 
@@ -225,6 +225,6 @@ Background music: Otomusu (https://otomusu.com/). Royalty-free under the [Otomus
 - *Rejoin as host* is only offered for rooms that still exist and that you still own.
 - Server-authoritative room lifecycle, display pairing (display shows the code, host enters it; single-use, expiring, rate-limited), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
 - **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
-- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd) and Reflex Battle (5 rounds, false-start detection). The other five games show as *Coming soon*.
+- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd), Reflex Battle (5 rounds, false-start detection) and The Impostor (secret roles, one-word clue turns, voting with revotes on a tie; the host picks the category or types their own single-use secret word, 1–3 impostors, clue rounds and max players). The other four games show as *Coming soon*.
 
-**Next:** The Impostor, Draw & Guess, Word Scramble, Picture Reveal and Survey Showdown (text, voting, drawing and private-clue interactions); host-editable scoring; PWA; App Check.
+**Next:** Draw & Guess, Word Scramble, Picture Reveal and Survey Showdown (text, voting, drawing and private-clue interactions); host-editable scoring; PWA; App Check.

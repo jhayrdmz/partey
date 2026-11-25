@@ -39,6 +39,9 @@ export const ROOM_SUBCOLLECTIONS = [
   "gameState",
   "private",
   "submissions",
+  "hostSecrets",
 ] as const;
 
 export const roomRef = (roomId: string) => db.collection(ROOMS).doc(roomId);
+/** rooms/{id}/hostSecrets/{gameId}: game options only the host may see (e.g. a custom Impostor word). */
+export const hostSecretRef = (roomId: string, gameId: string) => roomRef(roomId).collection("hostSecrets").doc(gameId);

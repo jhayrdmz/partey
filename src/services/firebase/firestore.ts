@@ -11,6 +11,7 @@ import {
   type DocumentReference,
 } from "firebase/firestore";
 import type { PlayerPrivateDoc } from "@shared/engine";
+import type { ImpostorHostSecret } from "@shared/gameSettings";
 import type { DisplayPairingDoc, DisplaySessionDoc, DisplayStateDoc, PlayerDoc, RoomDoc } from "@shared/types";
 import { firebase } from "./app";
 
@@ -27,6 +28,8 @@ export const refs = {
     doc(db(), "rooms", roomId, "displaySessions", uid) as DocumentReference<DisplaySessionDoc>,
   displaySessions: (roomId: string) => collection(db(), "rooms", roomId, "displaySessions") as unknown as Query<DisplaySessionDoc>,
   private: (roomId: string, uid: string) => doc(db(), "rooms", roomId, "private", uid) as DocumentReference<PlayerPrivateDoc>,
+  /** Host-only options for a game (rules: only the room's host can read it). */
+  impostorSecret: (roomId: string) => doc(db(), "rooms", roomId, "hostSecrets", "impostor") as DocumentReference<ImpostorHostSecret>,
   pairing: (pairingId: string) => doc(db(), "displayPairings", pairingId) as DocumentReference<DisplayPairingDoc>,
   activePlayers: (roomId: string) =>
     query(collection(db(), "rooms", roomId, "players"), where("status", "in", ["online", "offline"])) as Query<PlayerDoc>,

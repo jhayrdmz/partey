@@ -19,6 +19,7 @@
    | `rooms/{id}/private/{uid}` | that player only | secret words, roles, clues |
    | `rooms/{id}/submissions/*` | nobody (server only) | raw answers until a reveal is published |
    | `rooms/{id}/displaySessions/{uid}` | host; the display itself | paired display sessions |
+   | `rooms/{id}/hostSecrets/{gameId}` | host only | host-only game options (The Impostor's custom word) |
    | `displayPairings/{id}` | host who created it; display that requested it | pairing handshake |
    | `roomCodes/*`, `pairingCodes/*`, `rateLimits/*` | nobody | server lookup tables |
 
@@ -31,7 +32,7 @@
 |---|---|---|
 | `createRoom` | anyone | Generates a unique 4-letter code (no I/O/L/0/1) via `roomCodes/{code}` in a transaction |
 | `setGameMode`, `setLineup` | host | Validated against the shared game catalog; freestyle allows one game |
-| `setGameSettings` | host | Speed Quiz options, saved on the room as `gameSettings["speed-quiz"]`: time per question (10s, 15s, 30s or no limit), 8–20 questions, max players 1–100. Only between games; a running game keeps the options it started with |
+| `setGameSettings` | host | Game options saved on the room as `gameSettings[gameId]`. Speed Quiz: time per question (10s, 15s, 30s or no limit), 8–20 questions, max players 1–100. The Impostor: category, 1–3 impostors (kept a minority at start), 1–3 clue rounds, max players 3–24, and an optional custom word (2–30 characters; needs a real category). The room only stores `customWord: true`; the word goes to the host-only `hostSecrets/impostor` doc and is read by `startGame`. It's single-use: that start deletes it and turns `customWord` back off, in the same transaction. Only between games; a running game keeps the options it started with |
 | `lookupRoom` | anyone | Resolves code → room; tells the caller if they already joined or were kicked |
 | `joinRoom` | player | **Idempotent per uid** (rejoin keeps score); unique nicknames; capacity follows the selected game (Speed Quiz: the host's max players, otherwise 24). Lowering it never removes anyone |
 | `leaveRoom`, `kickPlayer` | player / host | Records are kept (`left` / `kicked`) for history; kicked players can't rejoin |
@@ -115,19 +116,47 @@ startGame ─▶ intro ──(timer | host "next")──▶ question ──(time
 2. **Client:** add `views.tsx` in `src/features/games/<id>/` exporting `DisplayQuestion`, `DisplayReveal`, `PlayerQuestion` (and optionally `PlayerAnswered`), then set `loadViews` in the module's `index.ts`. Views are lazy-loaded per game.
 3. Set `playable: true` in `shared/games.ts`.
 
+**Optional extension points** (used by The Impostor; the other games ignore them):
+
+| Hook | Where | What it does |
+|---|---|---|
+| `OpenedRound.eligibleIds` | server | Only these players may answer the round (one clue-giver per turn). Filtered to players still in the room. |
+| `OpenedRound.label` / `skippable` | server | Step name shown instead of "Round x of y" (`PublicGameState.roundLabel`); `false` stops the host skipping a round that decides the game. |
+| `ScoredRound.setup` / `totalRounds` / `revealMs` | server | Carry state between rounds (clues so far), add rounds (a revote), and size the reveal (`0` = until the host moves on). |
+| `privateInfo(setup, uid)` | server | Per-player secret written to `private/{uid}.secret` at game start (role, secret word). Only that player can read it. |
+| `hostAction(name, …)` / `blockAdvance` | server | Game-specific host buttons (`controlGame { action: "game", name }`) and a guard on "Next" (a tied vote must be settled). |
+| `validate(answer, pub, { playerId, setup })` | server | Per-player checks (no self-votes; the crew can't type the secret word). |
+| `PlayerSecret`, `PlayerReveal` | client views | A private card on the phone in every phase; a custom phone result screen. |
+| `hostControls(game)`, `showStandings` | client module | Rename or replace the host's main/skip buttons; hide the "Top scores" strip. |
+
+### The Impostor
+
+```
+intro (peek at your role) ─▶ turn × players × clue rounds ─▶ vote ─┬─ clear winner ─▶ outcome ─▶ finalize
+   (role in private/{uid})     one eligible player each;           ├─ tie ─▶ host Revote ─▶ vote (tied players only) …
+                               clue shown 3.5 s after each          └─ tie ─▶ host Reveal ─▶ outcome (impostor wins)
+```
+
+- **Secrecy:** the word and roles live in `gameState.setup` (server-only) and each player's `private/{uid}.secret`. Public round data only has the category, whose turn it is, the clues given and the ballot; the word appears publicly only in the final outcome.
+- **Clues:** the turn player says a word aloud and types it (one word, ≤ 24 characters). The crew can't submit the secret word; an impostor can (rejecting it would confirm their guess). The host's "Next turn" ends a turn without a typed clue ("said aloud"), and Skip passes a disconnected player. Turns time out after 30 s.
+- **Voting:** everyone votes at once (60 s, can't be skipped), never for themselves. Ballots are revealed only after the round closes. The most-voted player is accused: an impostor means the crew wins, anyone else means the impostor wins. A shared top spot waits for the host: **Revote** (tied players only) or **Reveal** (the impostor wins).
+
 | Game | Rounds | Scoring |
 |---|---|---|
-| Speed Quiz | 8 × 15 s | correct = 500 + up to 500 speed bonus (linear in time left) |
+| Speed Quiz | 8–20 × 10/15/30 s or untimed (host options) | correct = 500 + up to 500 speed bonus (linear in time left) |
 | Guess the Majority | 6 × 20 s | 500 for picking a most-popular option (ties all count) |
 | Reflex Battle | 5 × (2–6 s wait + 3 s) | 500 / 350 / 250 for the fastest three, then 150; a tap before GO is a false start and scores 0 |
+| The Impostor | one 30 s turn per player per clue round, then a 60 s vote (+ revotes) | crew catches the impostor: 500 each; impostor survives: 1000 each; any crew member who voted for an impostor: +250 |
 
 Reflex timing uses the server's receive time, so network latency counts against everyone. GO is published at round start so screens can flip in sync, which means a scripted client could tap at the exact moment. That's acceptable for a party game, and the design notes record it.
 
 ## Tests
 
 - `functions/src/expiry.test.ts`: expiry policy (pure).
-- `functions/src/games/games.test.ts`: scoring for all three games, content integrity, tie-aware placement points, and Firestore-safe payloads.
+- `functions/src/games/games.test.ts`: scoring for Speed Quiz, Guess the Majority and Reflex Battle, content integrity, tie-aware placement points, and Firestore-safe payloads.
+- `functions/src/games/impostor.test.ts`: roles and minority rule, turn order (never an impostor first), the word never in public data, clue validation, vote outcomes, tie → revote / reveal, Firestore-safe payloads.
 - `functions/src/maintenance.test.ts`: sweep against the emulators (cascade delete, code release, player grace).
 - `tests/rules/firestore.rules.test.mjs`: 14 rule checks covering role separation, expired rooms, private and authoritative data, pairing visibility and write denial.
-- `tests/e2e/gameplay.mjs`: real play of all three games (answers, live counts, early close, pause/resume, skip, false start, timer auto-advance, placement points, champion).
+- `tests/e2e/impostor.mjs`: options, private role cards, four clue turns (typed, said aloud, secret word rejected then retried), the word kept off the display, a tie → revote → outcome, per-phone win/lose, replay → tie → reveal.
+- `tests/e2e/gameplay.mjs`: real play of Speed Quiz, Guess the Majority and Reflex Battle (answers, live counts, early close, pause/resume, skip, false start, timer auto-advance, placement points, champion).
 - `tests/e2e/flow.mjs`: full multi-device flow (host tablet, 1080p TV, phones at 320/375/390px), including invalid and reused pairing codes, duplicate nicknames, kick, reconnects, a full tournament and a freestyle setup.

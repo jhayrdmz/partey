@@ -7,7 +7,7 @@ import { assertHost } from "../lib/rooms";
 import * as v from "../lib/validate";
 import { REGION } from "../config";
 import {
-  advance, countSubmissions, gameStateRef, loadGameCtx, loadSubmissions, pauseGame, resumeGame, skipRound, submissionRef, type GameCtx,
+  advance, countSubmissions, gameStateRef, hostGameAction, loadGameCtx, loadSubmissions, pauseGame, resumeGame, skipRound, submissionRef, type GameCtx,
 } from "./lifecycle";
 
 const opts = { region: REGION, cors: true } as const;
@@ -60,12 +60,13 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
     const { gs } = ctx!;
     if (gs.phase !== "question" || gs.round !== roundNo) fail("failed-precondition", "This round is over.");
     if (gs.paused) fail("failed-precondition", "The game is paused.");
-    if (!gs.eligibleIds.includes(uid) || !isActivePlayer(ctx!, uid)) fail("permission-denied", "You'll join from the next round.");
+    if (!isActivePlayer(ctx!, uid)) fail("permission-denied", "You'll join from the next round.");
+    if (!gs.eligibleIds.includes(uid)) fail("permission-denied", gs.roundLabel ? "It's not your turn." : "You'll join from the next round.");
     if (gs.phaseEndsAtMs !== null && receivedAtMs > gs.phaseEndsAtMs + LATE_GRACE_MS) fail("deadline-exceeded", "Time's up!");
 
     const ref = submissionRef(roomId, gs.entryId, gs.round, uid);
     if ((await tx.get(ref)).exists) return { accepted: false, entryId: gs.entryId, eligible: gs.eligibleIds.length };
-    const answer = ctx!.handler.validate(data.answer, gs.roundPublic);
+    const answer = ctx!.handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup });
 
     tx.create(ref, { entryId: gs.entryId, round: gs.round, playerId: uid, answer, submittedAtMs: receivedAtMs });
     tx.set(roomRef(roomId).collection("private").doc(uid), { answered: true, answer }, { merge: true });
@@ -114,7 +115,9 @@ export const controlGame = onCall(opts, async (req) => {
   const data = v.asObject(req.data);
   const roomId = v.docId(data, "roomId");
   const action = data.action as GameControlAction;
-  if (!["pause", "resume", "skip", "next"].includes(action)) fail("invalid-argument", "Unknown action.");
+  if (!["pause", "resume", "skip", "next", "game"].includes(action)) fail("invalid-argument", "Unknown action.");
+  const name = action === "game" ? data.name : undefined;
+  if (action === "game" && (typeof name !== "string" || !/^[a-z-]{1,32}$/.test(name))) fail("invalid-argument", "Unknown action.");
 
   await db.runTransaction(async (tx) => {
     const ctx = (await loadGameCtx(tx, roomId, { requireActive: true }))!;
@@ -129,9 +132,14 @@ export const controlGame = onCall(opts, async (req) => {
       case "skip":
         if (ctx.gs.paused) fail("failed-precondition", "Resume the game first.");
         return skipRound(tx, ctx, now);
-      case "next":
+      case "next": {
         if (ctx.gs.paused) fail("failed-precondition", "Resume the game first.");
+        const blocked = ctx.handler.blockAdvance?.({ setup: ctx.gs.setup, phase: ctx.gs.phase, lastReveal: ctx.gs.lastReveal });
+        if (blocked) fail("failed-precondition", blocked);
         return advance(tx, ctx, subs, now);
+      }
+      case "game":
+        return hostGameAction(tx, ctx, name as string, subs.length, now);
     }
   });
   return { ok: true };

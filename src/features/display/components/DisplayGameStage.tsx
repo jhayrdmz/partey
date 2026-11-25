@@ -19,7 +19,7 @@ function RoundHeader({ state, game }: { state: DisplayStateDoc; game: PublicGame
         <div className="min-w-0">
           <p className="truncate text-xl font-extrabold sm:text-2xl short:text-lg">{meta?.meta.name}</p>
           <p className="text-base font-semibold text-muted-foreground sm:text-xl short:text-sm">
-            Round {game.round} of {game.totalRounds}
+            {game.roundLabel ?? `Round ${game.round} of ${game.totalRounds}`}
             {state.gameNumber && state.totalGames ? ` · Game ${state.gameNumber}/${state.totalGames}` : ""}
           </p>
         </div>
@@ -27,9 +27,12 @@ function RoundHeader({ state, game }: { state: DisplayStateDoc; game: PublicGame
       {game.phase === "question" && (
         <>
           {meta?.showTimer === false ? <div className="hidden flex-1 sm:block" /> : <TimerBar endsAtMs={game.phaseEndsAtMs} durationMs={game.phaseDurationMs} paused={game.paused} remainingMs={game.remainingMs} size="lg" className="order-last basis-full sm:order-none sm:min-w-80 sm:flex-1 sm:basis-auto" />}
-          <span className="ml-auto flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-lg font-extrabold tabular-nums sm:ml-0 sm:px-5 sm:py-3 sm:text-2xl short:py-1.5 short:text-lg">
-            <Users className="size-5 sm:size-7 short:size-5" /> {game.submitted}/{game.eligible}
-          </span>
+          {/* A one-person turn (e.g. The Impostor's clue) has no meaningful "answered" count. */}
+          {game.eligible > 1 && (
+            <span className="ml-auto flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-lg font-extrabold tabular-nums sm:ml-0 sm:px-5 sm:py-3 sm:text-2xl short:py-1.5 short:text-lg">
+              <Users className="size-5 sm:size-7 short:size-5" /> {game.submitted}/{game.eligible}
+            </span>
+          )}
         </>
       )}
     </header>
@@ -87,7 +90,7 @@ export function DisplayGameStage({ state }: { state: DisplayStateDoc }) {
         </motion.div>
       </AnimatePresence>
       <AnimatePresence>
-        {game.phase === "reveal" && (
+        {game.phase === "reveal" && (!state.gameId || getGame(state.gameId).showStandings !== false) && (
           // Grows up from the bottom edge; the content above shrinks to make room as it does.
           <motion.div
             key="standings"
