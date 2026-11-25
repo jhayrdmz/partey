@@ -115,7 +115,7 @@ Production is the Firebase project **`partey-21c76`** (alias `prod` in `.firebas
 
 | File | Used for |
 |---|---|
-| `.env` | Web app Firebase config, baked into `dist/` by `npm run build` |
+| `.env` | Web app Firebase config and `VITE_MEDIA_BASE_URL` (R2 media), baked into `dist/` by `npm run build` |
 | `functions/.env` | `PAIRING_CODE_TTL_SECONDS` (default 180) and `RTDB_URL` (the RTDB instance is in `asia-southeast1`) |
 
 Everything runs in **`asia-southeast1` (Singapore)**: Firestore, the Realtime Database and all Cloud Functions. The functions region is set in `functions/src/config.ts` and must match `VITE_FIREBASE_FUNCTIONS_REGION` in `.env`.
@@ -163,6 +163,22 @@ Live at **https://partey-21c76.web.app**.
 
 **Deploying to a different project:** add it with `npx firebase use --add` (choose an alias such as `staging`), put its web config in `.env`, its RTDB URL in `functions/.env`, and replace `--project prod` in the commands above.
 
+## Media on Cloudflare R2
+
+Large media (music for Speed Quiz, Guess the Majority, Reflex Battle and the display's waiting screens) is served from the Cloudflare R2 bucket **`partey-storage`**, not bundled with the app. The app reads the bucket's public URL from `VITE_MEDIA_BASE_URL` in `.env`. Leave it unset to run without music. Object keys live in `src/utils/media.ts`.
+
+The bucket currently uses its public `r2.dev` URL, which Cloudflare rate-limits and intends for development. For production traffic, connect a custom domain (`npx wrangler r2 bucket domain add partey-storage --domain media.example.com --zone-id <zone>`) and update `VITE_MEDIA_BASE_URL`.
+
+Upload or replace a track (requires `npx wrangler login`):
+
+```bash
+npx wrangler r2 object put partey-storage/music/speed-quiz/disco-funk-fever.mp3 \
+  --file ./disco-funk-fever.mp3 --content-type audio/mpeg \
+  --cache-control "public, max-age=31536000, immutable" --remote
+```
+
+Files are cached for a year, so upload a changed track under a new key rather than overwriting the old one.
+
 ## Project structure
 
 ```
@@ -190,6 +206,15 @@ tests/
 ```
 
 See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the data model, security model, pairing flow, presence and expiration design.
+
+## Credits
+
+Background music: Otomusu (https://otomusu.com/). Royalty-free under the [Otomusu terms](https://otomusu.com/5-2/); don't redistribute the audio files on their own.
+
+- Speed Quiz: 「ディスコ・ファンク・フィーバー」 (Disco Funk Fever)
+- Guess the Majority: 「丘の上の吹奏楽団」 (Brass Band on the Hill)
+- Reflex Battle: 「宇宙ネコのスロットマシン」 (Space Cat's Slot Machine)
+- Display while waiting for the host (pairing, lobby, between games): 「サンタの街はお祭り」 (Santa's Town Festival)
 
 ## Status
 

@@ -1,5 +1,6 @@
 import { ArrowRight, Crown, MonitorPlay, Smartphone, Tv, Users } from "lucide-react";
 import { motion } from "motion/react";
+import { LIMITS } from "@shared/constants";
 import { Link } from "react-router";
 import { Backdrop } from "@/components/shared/Backdrop";
 import { Logo } from "@/components/shared/Logo";
@@ -69,7 +70,7 @@ export function LandingScreen() {
             Party games on the big screen, played on your phone. Gather the barkada, pick your games, and battle for the crown.
           </p>
           <ul className="mt-5 flex flex-wrap gap-2 text-sm font-semibold text-muted-foreground">
-            <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Users className="size-4 text-mango" /> Up to 24 players</li>
+            <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Users className="size-4 text-mango" /> Up to {LIMITS.maxPlayersHardCap} players</li>
             <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Smartphone className="size-4 text-calamansi" /> No app or account</li>
             <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Crown className="size-4 text-guava" /> {GAME_LIST.length} games</li>
           </ul>

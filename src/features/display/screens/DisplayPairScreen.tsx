@@ -14,7 +14,10 @@ import { call, errorMessage, refs } from "@/services/firebase";
 import { defaultDisplayLabel } from "@/utils/device";
 import { unlockAudioOnFirstGesture } from "@/utils/sound";
 import { displayPairUrl } from "@/utils/urls";
+import { MEDIA, mediaUrl } from "@/utils/media";
+import { useSoundStore } from "@/stores/soundStore";
 import { lastDisplayRoom, rememberDisplayRoom } from "../displaySession";
+import { useGameMusic } from "../useGameMusic";
 
 const STEPS = [
   { icon: Smartphone, text: "On the host's phone, open the room lobby and tap Display, next to Start." },
@@ -49,6 +52,9 @@ export function DisplayPairScreen() {
   const previousRoom = lastDisplayRoom();
 
   useEffect(() => unlockAudioOnFirstGesture(), []);
+  // Waiting-for-host music; the same track carries on into the room lobby once paired.
+  const muted = useSoundStore((s) => s.muted);
+  useGameMusic(mediaUrl(MEDIA.lobbyMusic), !muted);
 
   const requestCode = useCallback(async () => {
     if (inFlight.current) return;

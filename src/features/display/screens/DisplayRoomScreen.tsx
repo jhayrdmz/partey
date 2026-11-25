@@ -17,6 +17,10 @@ import { DisplayGameStage } from "../components/DisplayGameStage";
 import { DisplayLobby } from "../components/DisplayLobby";
 import { DisplayStandings } from "../components/DisplayStandings";
 import { forgetDisplayRoom } from "../displaySession";
+import { useGameMusic } from "../useGameMusic";
+import { getGame } from "@/features/games/registry";
+import { useSoundStore } from "@/stores/soundStore";
+import { MEDIA, mediaUrl } from "@/utils/media";
 
 /**
  * The big screen. Connects to Firebase on its own (independent of the host's
@@ -58,6 +62,15 @@ export function DisplayRoomScreen() {
     if (screen === "game" && phase === "question") playSound("pop");
     if (screen === "champion" || screen === "results" || screen === "leaderboard") playSound("win");
   }, [screen, phase, roundNo]);
+
+  // Music: the game's own track while it's on screen (intro → questions → reveals); the lobby
+  // track while waiting for the host (lobby, results, leaderboard); silence on the champion screen.
+  const muted = useSoundStore((s) => s.muted);
+  const inGame = room.data?.status === "playing" && screen === "game";
+  const liveGameId = inGame ? display.data?.gameId : null;
+  const waitingForHost = !inGame && screen !== "champion" && room.data?.status !== "finished";
+  const music = liveGameId ? getGame(liveGameId).music : waitingForHost ? mediaUrl(MEDIA.lobbyMusic) : undefined;
+  useGameMusic(music, Boolean(music) && authorised && !muted && !(inGame && display.data?.game?.paused));
 
   useEffect(() => {
     if (session.data?.revoked || revokedOnServer) forgetDisplayRoom();

@@ -50,7 +50,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
           </div>
         </div>
         {!champion && (
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden flex-col items-end gap-1.5 md:flex">
             <span className="text-lg font-semibold text-muted-foreground">Join with</span>
             <RoomCode code={roomCode} size="sm" />
           </div>

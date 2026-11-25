@@ -20,6 +20,8 @@ export interface GameModule {
   interactions: InteractionKind[];
   /** Show the round countdown (Reflex hides it: it would reveal when GO fires). */
   showTimer?: boolean;
+  /** Background music the display loops during this game (R2 URL; undefined = no music). */
+  music?: string;
   /** Lazy-loaded presentation for display + phone. Absent = not playable yet. */
   loadViews?: () => Promise<GameViews>;
 }

@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_USE_FIREBASE_EMULATORS?: string;
   readonly VITE_EMULATOR_HOST?: string;
   readonly VITE_PUBLIC_APP_URL?: string;
+  /** Public base URL of the Cloudflare R2 media bucket (game music). */
+  readonly VITE_MEDIA_BASE_URL?: string;
 }
 
 interface ImportMeta {

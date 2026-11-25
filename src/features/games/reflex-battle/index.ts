@@ -1,6 +1,7 @@
 import { Timer } from "lucide-react";
 import { GAMES } from "@shared/games";
 import type { GameModule } from "../types";
+import { MEDIA, mediaUrl } from "@/utils/media";
 
 export const module: GameModule = {
   id: "reflex-battle",
@@ -9,6 +10,8 @@ export const module: GameModule = {
   art: { from: "#dc2626", to: "#f59e0b", emoji: "🏁" },
   interactions: ["reaction"],
   showTimer: false,
+  // "Space Cat's Slot Machine" by Otomusu (https://otomusu.com/), royalty-free; credit is optional. Hosted on R2.
+  music: mediaUrl(MEDIA.reflexBattleMusic),
   loadViews: () => import("./views").then((m) => m.views),
   howToPlay: ["Watch the big screen and wait for GO.", "Tap your phone the instant it appears.", "Tap too early and you are out for the round."],
 };
