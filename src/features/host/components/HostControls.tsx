@@ -10,12 +10,28 @@ import { getGame } from "@/features/games/registry";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { call, errorMessage } from "@/services/firebase";
+import { cn } from "@/utils/cn";
+
+/** Card chrome removed when the controls sit inside the mobile BottomBar (which has its own). */
+const IN_BAR_CARD = "gap-2 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none";
 
 /**
  * Context-aware game controls. All transitions are server-side callables; the
- * buttons only express intent.
+ * buttons only express intent. `inBar` renders a slimmer layout for the sticky mobile BottomBar.
  */
-export function HostControls({ room, roomId, live, compact = false }: { room: RoomDoc; roomId: string; live?: PublicGameState | null; compact?: boolean }) {
+export function HostControls({
+  room,
+  roomId,
+  live,
+  compact = false,
+  inBar = false,
+}: {
+  room: RoomDoc;
+  roomId: string;
+  live?: PublicGameState | null;
+  compact?: boolean;
+  inBar?: boolean;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const isTournament = room.gameMode === "tournament";
   const entry = room.lineup[isTournament ? room.currentGameIndex : 0];
@@ -38,10 +54,18 @@ export function HostControls({ room, roomId, live, compact = false }: { room: Ro
 
   if (room.status === "finished") {
     return (
-      <Card className="items-center gap-3 text-center">
-        <Crown className="size-10 text-mango" />
-        <p className="text-xl font-extrabold">Tournament complete!</p>
-        <p className="text-sm text-muted-foreground">The champion is on the big screen. This room closes in about 15 minutes.</p>
+      <Card className={cn("items-center gap-3 text-center", inBar && IN_BAR_CARD)}>
+        {inBar ? (
+          <p className="flex items-center gap-2 font-extrabold">
+            <Crown className="size-5 text-mango" /> Tournament complete!
+          </p>
+        ) : (
+          <>
+            <Crown className="size-10 text-mango" />
+            <p className="text-xl font-extrabold">Tournament complete!</p>
+            <p className="text-sm text-muted-foreground">The champion is on the big screen. This room closes in about 15 minutes.</p>
+          </>
+        )}
         <Button asChild size="lg" variant="party" className="w-full">
           <Link to="/host">Start a new room</Link>
         </Button>
@@ -50,7 +74,7 @@ export function HostControls({ room, roomId, live, compact = false }: { room: Ro
   }
 
   if (room.status === "playing" && game) {
-    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} />;
+    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} inBar={inBar} />;
   }
 
   // waiting
@@ -102,6 +126,7 @@ function LiveGameControls({
   run,
   end,
   icon,
+  inBar,
 }: {
   room: RoomDoc;
   roomId: string;
@@ -111,6 +136,7 @@ function LiveGameControls({
   run: (key: string, fn: () => Promise<unknown>) => Promise<void>;
   end: () => Promise<void>;
   icon: (key: string, Icon: React.ElementType) => React.ReactNode;
+  inBar: boolean;
 }) {
   // The host's device also nudges the server when a timer expires.
   useAutoTick(roomId, live);
@@ -119,7 +145,7 @@ function LiveGameControls({
   const nextLabel = !live ? "Next" : live.phase === "intro" ? "Start round 1" : live.phase === "question" ? "Reveal now" : live.round >= live.totalRounds ? "Show results" : "Next round";
 
   return (
-    <Card className="gap-3">
+    <Card className={cn("gap-3", inBar && IN_BAR_CARD)}>
       <div className="flex items-center gap-3">
         <span className="relative flex size-3">
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-guava opacity-75" />

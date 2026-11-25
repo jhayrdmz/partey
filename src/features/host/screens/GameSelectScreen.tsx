@@ -15,6 +15,7 @@ import { CategoryFilter } from "../components/CategoryFilter";
 import { GameCard } from "../components/GameCard";
 import { HostHeader } from "../components/HostHeader";
 import { LineupEditor } from "../components/LineupEditor";
+import { cn } from "@/utils/cn";
 import { useHostContext } from "../HostRoomLayout";
 
 export function GameSelectScreen() {
@@ -104,7 +105,13 @@ export function GameSelectScreen() {
           }
         />
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_25rem] lg:items-start xl:grid-cols-[1fr_27rem]">
+        {/* Only tournaments have the lineup sidebar; freestyle gives the library the full width. */}
+        <div
+          className={cn(
+            "mt-6 grid grid-cols-1 gap-6",
+            mode === "tournament" && "lg:grid-cols-[1fr_25rem] lg:items-start xl:grid-cols-[1fr_27rem]",
+          )}
+        >
           <section aria-label="Game library" className="min-w-0 space-y-4">
             <CategoryFilter category={category} onCategory={setCategory} search={search} onSearch={setSearch} />
             {games.length === 0 ? (
@@ -116,7 +123,13 @@ export function GameSelectScreen() {
                 action={<Button variant="outline" onClick={() => { setSearch(""); setCategory("all"); }}>Show all games</Button>}
               />
             ) : (
-              <div className="grid grid-cols-1 gap-4 xs:grid-cols-2 sm:gap-5 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+              <div
+                className={cn(
+                  // Phones: one card per row so art and details stay readable.
+                  "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:grid-cols-3",
+                  mode === "tournament" ? "lg:grid-cols-2 xl:grid-cols-3" : "xl:grid-cols-4",
+                )}
+              >
                 {games.map((g) => (
                   <GameCard key={g.id} game={g} mode={mode} count={counts.get(g.id) ?? 0} playerCount={room.playerCount} onSelect={() => select(g.id)} />
                 ))}
@@ -140,7 +153,8 @@ export function GameSelectScreen() {
           )}
         </div>
 
-        <BottomBar className={mode === "tournament" ? "lg:hidden" : "sm:mt-8 sm:mb-10"}>
+        {/* Freestyle: sticky at every width so "Play …" is always in reach, however long the library. */}
+        <BottomBar always={mode === "freestyle"} className={mode === "tournament" ? "lg:hidden" : "sm:mt-8"}>
           <div className="flex gap-2">
             {mode === "tournament" && (
               <Button size="xl" variant="secondary" className="px-4" onClick={() => setSheetOpen(true)} aria-label="Review lineup">

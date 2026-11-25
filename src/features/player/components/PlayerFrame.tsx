@@ -18,7 +18,8 @@ export function PlayerFrame({
 }) {
   return (
     <Backdrop>
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-3 safe-bottom">
+      {/* On phones a BottomBar sits flush with the screen edge and pads the safe area itself. */}
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pt-3 safe-bottom max-sm:has-data-bottom-bar:pb-0">
         <header className="flex min-h-12 items-center justify-between gap-3">
           <Logo size="sm" />
           <div className="flex items-center gap-2">
@@ -32,7 +33,7 @@ export function PlayerFrame({
             {right}
           </div>
         </header>
-        <main className="flex flex-1 flex-col py-4">{children}</main>
+        <main className="flex flex-1 flex-col py-4 max-sm:has-data-bottom-bar:pb-0">{children}</main>
       </div>
     </Backdrop>
   );

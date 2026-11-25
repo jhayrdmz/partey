@@ -81,7 +81,7 @@ export function HostLobbyScreen() {
         </div>
 
         <BottomBar className="lg:hidden">
-          <HostControls room={room} roomId={room.id} live={live} />
+          <HostControls room={room} roomId={room.id} live={live} inBar />
         </BottomBar>
       </main>
 

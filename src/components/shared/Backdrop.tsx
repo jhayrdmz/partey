@@ -12,7 +12,9 @@ const confetti = [
 /** Full-viewport party stage background with drifting confetti. */
 export function Backdrop({ className, children, confettiOn = true }: { className?: string; children: React.ReactNode; confettiOn?: boolean }) {
   return (
-    <div className={cn("stage-bg relative min-h-dvh overflow-x-hidden", className)}>
+    // overflow-x-clip, not -hidden: "hidden" turns this into a scroll container, which
+    // silently breaks every position: sticky descendant (e.g. BottomBar).
+    <div className={cn("stage-bg relative min-h-dvh overflow-x-clip", className)}>
       {confettiOn && (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           {confetti.map((c, i) => (
