@@ -112,8 +112,8 @@ describe("separation of public, private and authoritative data", () => {
     assert.equal(await allowed(sub(stranger, "displayState", "current")), false);
     assert.equal(await allowed(setDoc(doc(host.db, "rooms", roomId, "displayState", "current"), { currentScreen: "champion" })), false);
   });
-  test("authoritative game state (answers) is host-only", async () => {
-    assert.equal(await allowed(sub(host, "gameState", "current")), true);
+  test("authoritative game state (answers) is server-only", async () => {
+    assert.equal(await allowed(sub(host, "gameState", "current")), false);
     assert.equal(await allowed(sub(player, "gameState", "current")), false);
     assert.equal(await allowed(sub(display, "gameState", "current")), false);
   });

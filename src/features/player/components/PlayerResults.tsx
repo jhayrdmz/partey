@@ -3,15 +3,10 @@ import type { DisplayStateDoc } from "@shared/types";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { cn } from "@/utils/cn";
 
-interface Standing {
-  playerId: string;
-  nickname: string;
-  avatar: string;
-  score: number;
-}
+import type { StandingEntry as Standing } from "@shared/engine";
 
 export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; playerId: string }) {
-  const standings = ((state.publicResults as { standings?: Standing[] } | null)?.standings ?? []) as Standing[];
+  const standings: Standing[] = state.publicResults?.standings ?? [];
   const rank = standings.findIndex((s) => s.playerId === playerId);
   const me = standings[rank];
   const champion = state.currentScreen === "champion";
@@ -22,8 +17,9 @@ export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; pla
         <h1 className="text-3xl font-extrabold">{champion ? "Final results" : state.currentScreen === "leaderboard" ? "Leaderboard" : "Game over"}</h1>
         {me && (
           <p className="text-lg">
-            You placed <span className="font-extrabold text-mango">#{rank + 1}</span> with{" "}
+            You're <span className="font-extrabold text-mango">#{rank + 1}</span> with{" "}
             <span className="font-extrabold">{me.score} pts</span>
+            {me.delta !== undefined && <span className="text-calamansi"> (+{me.delta})</span>}
           </p>
         )}
       </div>
@@ -36,6 +32,7 @@ export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; pla
             <span className="w-6 text-center font-extrabold text-muted-foreground">{i + 1}</span>
             <AvatarBubble avatar={s.avatar} size="sm" />
             <span className="flex-1 truncate font-bold">{s.nickname}</span>
+            {s.delta !== undefined && <span className="text-sm font-bold text-calamansi tabular-nums">+{s.delta}</span>}
             <span className="font-extrabold tabular-nums">{s.score}</span>
           </li>
         ))}

@@ -1,5 +1,6 @@
 import { httpsCallable, FunctionsError } from "firebase/functions";
 import type * as Api from "@shared/api";
+import type * as Engine from "@shared/engine";
 import { firebase } from "./app";
 import { ensureSignedIn } from "./auth";
 
@@ -19,6 +20,9 @@ interface CallableMap {
   startGame: [Api.StartGameRequest, { ok: true }];
   endGame: [Api.EndGameRequest, { ok: true }];
   closeRoom: [Api.CloseRoomRequest, { ok: true }];
+  submitAnswer: [Engine.SubmitAnswerRequest, Engine.SubmitAnswerResponse];
+  tickGame: [Engine.TickGameRequest, { advanced: boolean }];
+  controlGame: [Engine.ControlGameRequest, { ok: true }];
 }
 
 export async function call<K extends keyof CallableMap>(name: K, data: CallableMap[K][0]): Promise<CallableMap[K][1]> {

@@ -12,7 +12,7 @@ import { usePresence } from "@/hooks/usePresence";
 import { useDisplayState, useRoom } from "@/hooks/useRoomData";
 import { call, errorCode, errorMessage, refs } from "@/services/firebase";
 import { playSound } from "@/utils/sound";
-import { GetReady } from "../components/GetReady";
+import { PlayerGameStage } from "../components/PlayerGameStage";
 import { JoinForm } from "../components/JoinForm";
 import { PlayerFrame } from "../components/PlayerFrame";
 import { PlayerResults } from "../components/PlayerResults";
@@ -160,7 +160,7 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
       <PlayerFrame
         nickname={me.data.nickname}
         avatar={me.data.avatar}
-        score={room.data.gameMode === "tournament" ? me.data.score : undefined}
+        score={room.data.gameMode === "tournament" && room.data.status !== "playing" ? me.data.score : undefined}
         right={
           room.data.status === "waiting" && (
             <Button size="icon-sm" variant="ghost" aria-label="Leave room" onClick={leave} disabled={leaving}>
@@ -169,8 +169,8 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
           )
         }
       >
-        {room.data.status === "playing" && display.data && (screen === "game-intro" || screen === "game") ? (
-          <GetReady state={display.data} />
+        {room.data.status === "playing" && display.data && screen === "game" ? (
+          <PlayerGameStage roomId={roomId} uid={uid} state={display.data} />
         ) : showResults ? (
           <PlayerResults state={display.data!} playerId={uid} />
         ) : (

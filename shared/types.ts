@@ -5,6 +5,7 @@
  * SDK imports; the client and the server each map them to their SDK's Timestamp.
  */
 import type { GameId } from "./games";
+import type { PublicGameState, StandingEntry } from "./engine";
 
 export interface TimestampLike {
   toMillis(): number;
@@ -38,6 +39,10 @@ export interface RoomDoc {
   /** Index into lineup of the current/next game. */
   currentGameIndex: number;
   currentGameId: GameId | null;
+  /** Tournament placement points (index 0 = 1st place). */
+  scoring: { placementPoints: number[]; otherPoints: number };
+  /** Content ids already used in this room (avoid repeat questions). */
+  usedContent: string[];
   /** Game most recently completed (freestyle: enables Replay / Another game). */
   lastPlayedGameId: GameId | null;
   playerCount: number;
@@ -79,7 +84,7 @@ export interface DisplaySessionDoc {
   lastSeenAt: TimestampLike | null;
 }
 
-export type DisplayScreen = "lobby" | "game-intro" | "game" | "results" | "leaderboard" | "champion";
+export type DisplayScreen = "lobby" | "game" | "results" | "leaderboard" | "champion";
 
 /** rooms/{roomId}/displayState/current — PUBLIC presentation data only. */
 export interface DisplayStateDoc {
@@ -88,11 +93,18 @@ export interface DisplayStateDoc {
   /** 1-based position within a tournament lineup. */
   gameNumber: number | null;
   totalGames: number | null;
-  currentQuestion: string | null;
-  timerEndsAt: TimestampLike | null;
-  paused: boolean;
-  publicResults: unknown | null;
+  /** Live game (screen "game" / "game-intro"); null otherwise. */
+  game: PublicGameState | null;
+  /** Results/leaderboard/champion screens. */
+  publicResults: PublicResults | null;
   updatedAt: TimestampLike;
+}
+
+export interface PublicResults {
+  /** Overall standings (tournament: cumulative points; freestyle: this game). */
+  standings: StandingEntry[];
+  /** This game's standings by game points. */
+  gameStandings: StandingEntry[];
 }
 
 export type PairingStatus = "open" | "requested" | "approved" | "rejected";

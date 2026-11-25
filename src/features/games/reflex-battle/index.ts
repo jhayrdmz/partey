@@ -8,5 +8,7 @@ export const module: GameModule = {
   icon: Timer,
   art: { from: "#dc2626", to: "#f59e0b", emoji: "🏁" },
   interactions: ["reaction"],
+  showTimer: false,
+  loadViews: () => import("./views").then((m) => m.views),
   howToPlay: ["Watch the big screen and wait for GO.", "Tap your phone the instant it appears.", "Tap too early and you are out for the round."],
 };

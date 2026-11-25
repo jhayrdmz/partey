@@ -21,18 +21,21 @@ export function GameCard({
   onSelect: () => void;
 }) {
   const selected = count > 0;
+  const playable = game.meta.playable;
   const tooFew = playerCount > 0 && playerCount < game.meta.minPlayers;
   return (
     <motion.button
       layout
       type="button"
-      onClick={onSelect}
+      onClick={playable ? onSelect : undefined}
+      disabled={!playable}
       aria-pressed={mode === "freestyle" ? selected : undefined}
-      aria-label={mode === "tournament" ? `Add ${game.meta.name} to lineup` : `Select ${game.meta.name}`}
+      aria-label={!playable ? `${game.meta.name} (coming soon)` : mode === "tournament" ? `Add ${game.meta.name} to lineup` : `Select ${game.meta.name}`}
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-card/80 text-left transition-colors outline-none",
         "focus-visible:ring-4 focus-visible:ring-ring/50 active:scale-[0.98]",
         selected ? "border-primary shadow-xl shadow-primary/25" : "border-border hover:border-primary/50",
+        !playable && "cursor-not-allowed opacity-60 hover:border-border",
       )}
     >
       <GameArt game={game} className="aspect-[16/9] w-full rounded-none" />
@@ -42,7 +45,9 @@ export function GameCard({
           selected ? "bg-primary text-white" : "bg-background/70 text-white backdrop-blur",
         )}
       >
-        {mode === "tournament" ? (
+        {!playable ? (
+          <span className="px-1 text-xs font-bold">Soon</span>
+        ) : mode === "tournament" ? (
           selected ? <span className="leading-none">×{count}</span> : <Plus className="size-5" />
         ) : selected ? (
           <Check className="size-5" />
@@ -50,6 +55,7 @@ export function GameCard({
           <span className="size-5 rounded-full border-2 border-white/70" />
         )}
       </span>
+      {!playable && <Badge className="absolute top-3 left-3 bg-background/80 text-foreground">Coming soon</Badge>}
       {game.meta.featured && (
         <Badge className="absolute top-3 left-3 bg-mango text-black">Featured</Badge>
       )}

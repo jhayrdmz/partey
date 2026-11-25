@@ -58,9 +58,9 @@ Open three browser windows (or devices on your LAN):
 | `npm run lint` | oxlint |
 | `npm run emulators` | Start Auth / Firestore / RTDB / Functions emulators |
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
-| `npm run test:functions` | Unit tests (expiry policy) + emulator integration tests (expiry sweep) |
+| `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
-| `npm run test:e2e` | Multi-device Playwright flow: host + TV + 4 phones (emulators + dev server running) |
+| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow + full gameplay of all three games (emulators + dev server running) |
 
 To run the function integration tests against running emulators:
 
@@ -123,10 +123,9 @@ See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** for the data model, securit
 ## Status
 
 **Done and tested against the emulators**
-- Landing, host room creation, game mode selection, game library (search, category filters, multi-select with repeats, reorder, remove), host lobby/dashboard, display pairing and lobby, player join and waiting lobby.
-- Server-authoritative room lifecycle: create, set mode, set lineup, join/rejoin, leave, kick, display pairing (generate → request → approve/deny, single-use, expiring, rate-limited), display revoke, start/end game, tournament progression to champion, freestyle replay/switch, end session.
-- RTDB presence with `onDisconnect()` mirrored to Firestore; reconnection for hosts, players and displays.
-- Room expiration policy, scheduled sweep with explicit subcollection cleanup, and TTL fields.
-- Security rules for Firestore and RTDB, with tests.
+- Landing, host room creation, game mode selection, game library, host lobby/dashboard, display pairing and lobby, player join and waiting lobby.
+- Server-authoritative room lifecycle, display pairing (single-use, expiring, rate-limited, host-approved), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
+- **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
+- **Playable games:** Speed Quiz (8 questions, speed bonus), Guess the Majority (6 prompts, match the crowd) and Reflex Battle (5 rounds, false-start detection). The other five games show as *Coming soon*.
 
-**Next (per the roadmap):** the round engine (timers, questions, submissions, answer validation, scoring) and the first three mini-games: Speed Quiz, Guess the Majority and Reflex Battle. A game can already be started and ended: everyone sees its intro and how-to-play, and the leaderboard and champion flow work. Points stay at 0 until the round engine lands. After that comes PWA support and more sound/animation polish.
+**Next:** The Impostor, Draw & Guess, Word Scramble, Picture Reveal and Survey Showdown (text, voting, drawing and private-clue interactions); host-editable scoring; PWA; App Check.

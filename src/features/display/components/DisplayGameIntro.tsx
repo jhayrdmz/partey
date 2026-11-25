@@ -2,8 +2,11 @@ import { motion } from "motion/react";
 import type { DisplayStateDoc } from "@shared/types";
 import { GameArt } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
+import { useServerCountdown } from "@/hooks/useServerClock";
 
 export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
+  const g = state.game;
+  const left = useServerCountdown(g?.phaseEndsAtMs, { paused: g?.paused, pausedRemainingMs: g?.remainingMs });
   if (!state.gameId) return null;
   const game = getGame(state.gameId);
   return (
@@ -35,7 +38,14 @@ export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
             </motion.li>
           ))}
         </ol>
-        <p className="text-xl font-bold text-muted-foreground">Check your phones — get ready!</p>
+        <div className="flex items-center gap-4">
+          <p className="text-xl font-bold text-muted-foreground">Check your phones — get ready!</p>
+          {left !== null && (
+            <span className="grid size-16 place-items-center rounded-full bg-primary text-3xl font-black tabular-nums">
+              {g?.paused ? "II" : Math.ceil(left / 1000)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

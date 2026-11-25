@@ -10,6 +10,7 @@ import {
   type Query,
   type DocumentReference,
 } from "firebase/firestore";
+import type { PlayerPrivateDoc } from "@shared/engine";
 import type { DisplayPairingDoc, DisplaySessionDoc, DisplayStateDoc, PlayerDoc, RoomDoc } from "@shared/types";
 import { firebase } from "./app";
 
@@ -25,6 +26,7 @@ export const refs = {
   displaySession: (roomId: string, uid: string) =>
     doc(db(), "rooms", roomId, "displaySessions", uid) as DocumentReference<DisplaySessionDoc>,
   displaySessions: (roomId: string) => collection(db(), "rooms", roomId, "displaySessions") as unknown as Query<DisplaySessionDoc>,
+  private: (roomId: string, uid: string) => doc(db(), "rooms", roomId, "private", uid) as DocumentReference<PlayerPrivateDoc>,
   pairing: (pairingId: string) => doc(db(), "displayPairings", pairingId) as DocumentReference<DisplayPairingDoc>,
   hostPairings: (roomId: string, hostId: string) =>
     query(

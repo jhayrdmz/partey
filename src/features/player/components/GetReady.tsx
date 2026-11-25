@@ -2,8 +2,11 @@ import { motion } from "motion/react";
 import type { DisplayStateDoc } from "@shared/types";
 import { GameArt } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
+import { useServerCountdown } from "@/hooks/useServerClock";
 
 export function GetReady({ state }: { state: DisplayStateDoc }) {
+  const g = state.game;
+  const left = useServerCountdown(g?.phaseEndsAtMs, { paused: g?.paused, pausedRemainingMs: g?.remainingMs });
   if (!state.gameId) return null;
   const game = getGame(state.gameId);
   return (
@@ -34,7 +37,9 @@ export function GetReady({ state }: { state: DisplayStateDoc }) {
           </motion.li>
         ))}
       </ol>
-      <p className="mt-auto text-center font-bold text-mango">Get ready — the game is about to begin!</p>
+      <p className="mt-auto text-center font-bold text-mango">
+        {left !== null ? (g?.paused ? "Paused — hang tight" : `Starting in ${Math.ceil(left / 1000)}…`) : "Get ready — the game is about to begin!"}
+      </p>
     </div>
   );
 }

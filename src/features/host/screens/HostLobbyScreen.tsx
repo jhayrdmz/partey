@@ -7,7 +7,7 @@ import { BottomBar } from "@/components/shared/BottomBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { usePlayers } from "@/hooks/useRoomData";
+import { useDisplayState, usePlayers } from "@/hooks/useRoomData";
 import { call, errorMessage } from "@/services/firebase";
 import { HostHeader } from "../components/HostHeader";
 import { HostControls } from "../components/HostControls";
@@ -21,6 +21,8 @@ import { clearLastHostedRoom } from "../hostSession";
 export function HostLobbyScreen() {
   const { room, user } = useHostContext();
   const players = usePlayers(room.id);
+  const display = useDisplayState(room.id);
+  const live = room.status === "playing" ? display.data?.game : null;
   const navigate = useNavigate();
   const [confirmClose, setConfirmClose] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -71,7 +73,7 @@ export function HostLobbyScreen() {
           <div className="order-1 min-w-0 space-y-4 sm:space-y-5 lg:order-2">
             <RoomCodeCard roomCode={room.roomCode} roomName={room.roomName} />
             <div className="hidden lg:block">
-              <HostControls room={room} roomId={room.id} />
+              <HostControls room={room} roomId={room.id} live={live} />
             </div>
             <DisplayPairingCard roomId={room.id} hostId={user.uid} />
             <LineupCard room={room} roomId={room.id} />
@@ -79,7 +81,7 @@ export function HostLobbyScreen() {
         </div>
 
         <BottomBar className="lg:hidden">
-          <HostControls room={room} roomId={room.id} />
+          <HostControls room={room} roomId={room.id} live={live} />
         </BottomBar>
       </main>
 

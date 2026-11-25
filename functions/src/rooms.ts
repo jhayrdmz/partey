@@ -1,5 +1,5 @@
 import { onCall } from "firebase-functions/v2/https";
-import { LIMITS } from "../../shared/constants";
+import { DEFAULT_OTHER_PLACEMENT_POINTS, DEFAULT_PLACEMENT_POINTS, LIMITS } from "../../shared/constants";
 import type { CreateRoomResponse, LookupRoomResponse } from "../../shared/api";
 import type { LineupEntry } from "../../shared/types";
 import { db, ROOMS, ROOM_CODES, Timestamp, roomRef } from "./lib/admin";
@@ -41,6 +41,8 @@ export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> 
         currentGameIndex: 0,
         currentGameId: null,
         lastPlayedGameId: null,
+        scoring: { placementPoints: [...DEFAULT_PLACEMENT_POINTS], otherPoints: DEFAULT_OTHER_PLACEMENT_POINTS },
+        usedContent: [],
         playerCount: 0,
         connectedPlayerCount: 0,
         hostConnected: true,
@@ -62,9 +64,7 @@ export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> 
         gameId: null,
         gameNumber: null,
         totalGames: null,
-        currentQuestion: null,
-        timerEndsAt: null,
-        paused: false,
+        game: null,
         publicResults: null,
         updatedAt: now,
       });
@@ -109,7 +109,7 @@ export const setLineup = onCall(opts, async (req) => {
     const lineup: LineupEntry[] = gameIds.map((gameId) => ({ entryId: generateId(8), gameId }));
     touchRoomTx(tx, roomId, room, { lineup, currentGameId: lineup[0]?.gameId ?? null });
     // A new pick means the big screen goes back to the lobby (with join instructions).
-    tx.set(roomRef(roomId).collection("displayState").doc("current"), { currentScreen: "lobby", gameId: null, publicResults: null, updatedAt: Timestamp.now() }, { merge: true });
+    tx.set(roomRef(roomId).collection("displayState").doc("current"), { currentScreen: "lobby", gameId: null, game: null, publicResults: null, updatedAt: Timestamp.now() }, { merge: true });
   });
   return { ok: true };
 });

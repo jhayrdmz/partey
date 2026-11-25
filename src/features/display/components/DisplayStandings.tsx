@@ -6,12 +6,7 @@ import { RoomCode } from "@/components/shared/RoomCode";
 import { getGame } from "@/features/games/registry";
 import { cn } from "@/utils/cn";
 
-interface Standing {
-  playerId: string;
-  nickname: string;
-  avatar: string;
-  score: number;
-}
+import type { StandingEntry as Standing } from "@shared/engine";
 
 const podiumStyle = [
   { height: "h-56 lg:h-72", color: "from-mango to-[oklch(0.7_0.17_60)]", label: "1st" },
@@ -21,7 +16,7 @@ const podiumStyle = [
 
 /** Results / leaderboard / champion screens share one layout. */
 export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; roomCode: string }) {
-  const standings = ((state.publicResults as { standings?: Standing[] } | null)?.standings ?? []) as Standing[];
+  const standings: Standing[] = state.publicResults?.standings ?? [];
   const champion = state.currentScreen === "champion";
   const game = state.gameId ? getGame(state.gameId) : null;
   const top = standings.slice(0, 3);
@@ -78,6 +73,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl bg-gradient-to-b pt-4 text-black", podiumStyle[place].height, podiumStyle[place].color)}>
                     <span className="text-3xl font-black lg:text-5xl">{podiumStyle[place].label}</span>
                     <span className="text-xl font-extrabold tabular-nums lg:text-2xl">{s.score} pts</span>
+                    {s.delta !== undefined && <span className="mt-1 rounded-full bg-black/15 px-3 text-lg font-bold">+{s.delta}</span>}
                   </div>
                 </motion.div>
               ) : (
@@ -98,6 +94,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   <span className="w-8 font-extrabold text-muted-foreground">{i + 4}</span>
                   <AvatarBubble avatar={s.avatar} size="sm" />
                   <span className="flex-1 truncate font-bold">{s.nickname}</span>
+                  {s.delta !== undefined && <span className="text-lg font-bold text-calamansi tabular-nums">+{s.delta}</span>}
                   <span className="font-extrabold tabular-nums">{s.score}</span>
                 </motion.li>
               ))}

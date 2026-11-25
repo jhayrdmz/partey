@@ -8,5 +8,6 @@ export const module: GameModule = {
   icon: Users,
   art: { from: "#0891b2", to: "#4f46e5", emoji: "👥" },
   interactions: ["vote"],
+  loadViews: () => import("./views").then((m) => m.views),
   howToPlay: ["A question with a few options appears.", "Pick the answer you think MOST players will choose.", "Match the majority to score."],
 };

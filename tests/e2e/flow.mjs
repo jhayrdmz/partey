@@ -174,11 +174,11 @@ try {
   // ── Start game ───────────────────────────────────────────────────────
   await host.getByRole("button", { name: "Start tournament" }).first().click();
   await tv.getByRole("heading", { level: 1, name: "Speed Quiz" }).waitFor();
-  await players[0].getByText("Get ready").waitFor();
+  await players[0].getByText(/Starting in/).waitFor();
   await tv.waitForTimeout(1200);
   await shot(tv, "16-display-game-intro");
   await shot(players[0], "17-player-get-ready");
-  await host.getByText(/Now playing: Speed Quiz/).first().waitFor();
+  await host.getByText("How to play").first().waitFor();
   await shot(host, "18-host-playing");
   log("game started on all devices");
 

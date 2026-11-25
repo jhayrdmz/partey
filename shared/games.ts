@@ -28,6 +28,8 @@ export interface GameMeta {
   durationMin: number;
   /** Highlighted in the library (first wave of mini-games). */
   featured: boolean;
+  /** A game engine handler exists, so the game can be started. */
+  playable: boolean;
 }
 
 export const GAMES: Record<GameId, GameMeta> = {
@@ -41,6 +43,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 8,
     featured: true,
+    playable: true,
   },
   impostor: {
     id: "impostor",
@@ -52,6 +55,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 12,
     durationMin: 12,
     featured: false,
+    playable: false,
   },
   majority: {
     id: "majority",
@@ -63,6 +67,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 8,
     featured: true,
+    playable: true,
   },
   drawing: {
     id: "drawing",
@@ -74,6 +79,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 12,
     durationMin: 15,
     featured: false,
+    playable: false,
   },
   "word-scramble": {
     id: "word-scramble",
@@ -85,6 +91,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 6,
     featured: false,
+    playable: false,
   },
   "picture-reveal": {
     id: "picture-reveal",
@@ -96,6 +103,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 8,
     featured: false,
+    playable: false,
   },
   "reflex-battle": {
     id: "reflex-battle",
@@ -107,6 +115,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 5,
     featured: true,
+    playable: true,
   },
   "survey-showdown": {
     id: "survey-showdown",
@@ -118,6 +127,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 24,
     durationMin: 10,
     featured: false,
+    playable: false,
   },
 };
 

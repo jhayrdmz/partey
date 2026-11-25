@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Crown, Flag, Gamepad2, Loader2, Play, RotateCcw, Shuffle } from "lucide-react";
+import { Crown, FastForward, Flag, Gamepad2, Loader2, Pause, Play, RotateCcw, Shuffle, SkipForward, Users } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import type { RoomDoc } from "@shared/types";
+import type { GameControlAction, PublicGameState } from "@shared/engine";
+import { TimerBar } from "@/features/games/shared/TimerBar";
+import { useAutoTick } from "@/features/games/engine/useAutoTick";
 import { getGame } from "@/features/games/registry";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,7 +15,7 @@ import { call, errorMessage } from "@/services/firebase";
  * Context-aware game controls. All transitions are server-side callables; the
  * buttons only express intent.
  */
-export function HostControls({ room, roomId, compact = false }: { room: RoomDoc; roomId: string; compact?: boolean }) {
+export function HostControls({ room, roomId, live, compact = false }: { room: RoomDoc; roomId: string; live?: PublicGameState | null; compact?: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const isTournament = room.gameMode === "tournament";
   const entry = room.lineup[isTournament ? room.currentGameIndex : 0];
@@ -47,24 +50,7 @@ export function HostControls({ room, roomId, compact = false }: { room: RoomDoc;
   }
 
   if (room.status === "playing" && game) {
-    return (
-      <Card className="gap-3">
-        <div className="flex items-center gap-3">
-          <span className="relative flex size-3">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-guava opacity-75" />
-            <span className="relative inline-flex size-3 rounded-full bg-guava" />
-          </span>
-          <p className="font-extrabold">
-            Now playing: {game.meta.name}
-            {isTournament && <span className="font-semibold text-muted-foreground"> · Game {room.currentGameIndex + 1} of {room.lineup.length}</span>}
-          </p>
-        </div>
-        <p className="text-sm text-muted-foreground">Players see the instructions on their phones. Round controls (pause, skip) arrive with each game's engine.</p>
-        <Button size="lg" variant="destructive" onClick={end} disabled={Boolean(busy)}>
-          {icon("end", Flag)} End game
-        </Button>
-      </Card>
-    );
+    return <LiveGameControls room={room} roomId={roomId} gameName={game.meta.name} live={live} busy={busy} run={run} end={end} icon={icon} />;
   }
 
   // waiting
@@ -102,5 +88,83 @@ export function HostControls({ room, roomId, compact = false }: { room: RoomDoc;
         </p>
       )}
     </div>
+  );
+}
+
+const PHASE_LABEL = { intro: "How to play", question: "Answering", reveal: "Results" } as const;
+
+function LiveGameControls({
+  room,
+  roomId,
+  gameName,
+  live,
+  busy,
+  run,
+  end,
+  icon,
+}: {
+  room: RoomDoc;
+  roomId: string;
+  gameName: string;
+  live: PublicGameState | null | undefined;
+  busy: string | null;
+  run: (key: string, fn: () => Promise<unknown>) => Promise<void>;
+  end: () => Promise<void>;
+  icon: (key: string, Icon: React.ElementType) => React.ReactNode;
+}) {
+  // The host's device also nudges the server when a timer expires.
+  useAutoTick(roomId, live);
+  const isTournament = room.gameMode === "tournament";
+  const control = (action: GameControlAction) => run(action, () => call("controlGame", { roomId, action }));
+  const nextLabel = !live ? "Next" : live.phase === "intro" ? "Start round 1" : live.phase === "question" ? "Reveal now" : live.round >= live.totalRounds ? "Show results" : "Next round";
+
+  return (
+    <Card className="gap-3">
+      <div className="flex items-center gap-3">
+        <span className="relative flex size-3">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-guava opacity-75" />
+          <span className="relative inline-flex size-3 rounded-full bg-guava" />
+        </span>
+        <p className="font-extrabold">
+          {gameName}
+          {isTournament && <span className="font-semibold text-muted-foreground"> · Game {room.currentGameIndex + 1}/{room.lineup.length}</span>}
+        </p>
+      </div>
+      {live && (
+        <div className="space-y-2 rounded-xl bg-secondary/40 p-3">
+          <div className="flex items-center justify-between text-sm font-bold">
+            <span>{live.phase === "intro" ? PHASE_LABEL.intro : `Round ${live.round}/${live.totalRounds} · ${PHASE_LABEL[live.phase]}`}</span>
+            {live.phase === "question" && (
+              <span className="flex items-center gap-1 tabular-nums text-muted-foreground">
+                <Users className="size-4" /> {live.submitted}/{live.eligible} answered
+              </span>
+            )}
+          </div>
+          <TimerBar endsAtMs={live.phaseEndsAtMs} durationMs={live.phaseDurationMs} paused={live.paused} remainingMs={live.remainingMs} />
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {live?.paused ? (
+          <Button variant="accent" onClick={() => control("resume")} disabled={Boolean(busy)}>
+            {icon("resume", Play)} Resume
+          </Button>
+        ) : (
+          <Button variant="secondary" onClick={() => control("pause")} disabled={Boolean(busy) || !live}>
+            {icon("pause", Pause)} Pause
+          </Button>
+        )}
+        <Button variant="secondary" onClick={() => control("next")} disabled={Boolean(busy) || !live || live.paused}>
+          {icon("next", FastForward)} {nextLabel}
+        </Button>
+        {live?.phase === "question" && (
+          <Button variant="outline" onClick={() => control("skip")} disabled={Boolean(busy) || live.paused}>
+            {icon("skip", SkipForward)} Skip round
+          </Button>
+        )}
+        <Button variant="destructive" onClick={end} disabled={Boolean(busy)} className={live?.phase === "question" ? "" : "col-span-2"}>
+          {icon("end", Flag)} End game
+        </Button>
+      </div>
+    </Card>
   );
 }

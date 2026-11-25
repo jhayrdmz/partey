@@ -15,7 +15,7 @@
    | `rooms/{id}/players/{uid}` | members (+ self) | nickname, avatar, score, status |
    | `rooms/{id}/displayState/current` | members | **public** presentation: screen, game, timer, revealed results |
    | `rooms/{id}/history/{entry}` | members | completed game standings |
-   | `rooms/{id}/gameState/current` | host only | **authoritative** state incl. answers |
+   | `rooms/{id}/gameState/current` | nobody (server only) | **authoritative** state incl. answers |
    | `rooms/{id}/private/{uid}` | that player only | secret words, roles, clues |
    | `rooms/{id}/submissions/*` | nobody (server only) | raw answers until a reveal is published |
    | `rooms/{id}/displaySessions/{uid}` | host; the display itself | paired display sessions |
@@ -39,6 +39,9 @@
 | `resolveDisplayPairing` | host | Approve → creates `displaySessions/{displayUid}`; idempotent |
 | `revokeDisplay` | host | Display loses access immediately |
 | `startGame`, `endGame` | host | Server-side lifecycle; idempotent against double taps; writes history + standings |
+| `submitAnswer` | player | One per player per round; validated by the game handler; closes the round early when all have answered |
+| `tickGame` | host, players | Advances a phase only once the server clock passes its deadline |
+| `controlGame` | host | `pause`, `resume`, `skip` (unscored), `next` (advance now) |
 | `closeRoom` | host | Expires the room and cleans it up immediately |
 | `onPresenceWritten` | RTDB trigger | Mirrors presence → Firestore, recomputes counts and expiry |
 | `processExpirations` | every 5 min | Expires rooms, ages out players past the grace period, deletes stale pairing records |
@@ -83,13 +86,43 @@ The policy lives in `shared/expiry.ts` as a pure, unit-tested function:
 - `processExpirations` tombstones expired rooms (`status: expired`, `ttlAt`). It also explicitly deletes every subcollection with `recursiveDelete` (TTL does not cascade), frees the room code, deletes pairings, and removes RTDB presence.
 - Firestore TTL policies on `rooms.ttlAt`, `displayPairings.expiresAt`, `pairingCodes.expiresAt` and `rateLimits.expireAt` handle eventual physical deletion. See the README for the `gcloud` commands.
 
-## Game modules
+## Game engine
 
-Each game lives in `src/features/games/<id>/` and exports a `GameModule` with metadata, artwork, how-to-play steps and interaction kinds. Catalog metadata (players, category) is in `shared/games.ts`, so the server validates lineups against the same source. Role shells mount games by id and do not import game internals. When the round engine lands, each module will add its own Host, Player and Display views, plus a server-side handler that reads and writes `gameState`, `private` and `submissions`.
+Rounds are driven by the server. Clients never decide outcomes, only send intent.
+
+```
+startGame ─▶ intro ──(timer | host "next")──▶ question ──(timer | all answered | host)──▶ reveal ──▶ question … ──▶ finalize
+                                                  │  host "skip": next round, unscored
+                                     pause/resume at any phase (deadlines and Reflex's GO shift)
+```
+
+- **Authoritative state:** `gameState/current` is server-only. It holds the chosen content, the current round's public payload *and* its secret (correct answer), the deadline, eligible players and game scores.
+- **Public state:** `displayState/current.game` holds the phase, round, server-clock deadline, live answer count, the round payload *without* answers, the reveal (only after the round closes) and the top standings.
+- **Private state:** `private/{uid}` holds whether the player answered, their last round result (+points, correct, detail), game score and rank.
+- **Clocks:** every device syncs to the server via RTDB `.info/serverTimeOffset`. When a deadline passes, the host and players call `tickGame({round, phase})`. The server advances only if *its* clock agrees (±300 ms), and only if the round and phase still match, so duplicate and early calls are harmless.
+- **Submissions:** `submitAnswer` validates the phase, round, eligibility, pause state and deadline (+750 ms in-flight grace), then asks the game handler to normalize the answer. It stores `submissions/{entry}_{round}_{uid}` with `create()`, so each player can answer only once. The server receive time is the timing source. A blind `increment` updates the live count without transaction contention. Once everyone has answered, the round closes early.
+- **Scoring:** game points accumulate per round. At the end (last reveal or host "End game"), players are ranked by game points with ties sharing a rank. Tournament mode adds the room's placement points (default 100 / 60 / 30, others 10) to each player's cumulative score. Freestyle sets each player's score to their game points. Each game's standings and placement points are saved in `history`.
+- **Content:** questions are server-side (`functions/src/games/*Content.ts`). `room.usedContent` stops questions from repeating within a room.
+
+### Adding a game
+
+1. **Server:** implement `GameHandler` (`functions/src/engine/types.ts`): `setup`, `openRound` (public + secret payloads, duration), `validate`, `score`, and optionally `shiftTimes`. Register it in `engine/registry.ts`. Handlers are pure, so they're easy to unit test (`games.test.ts` also checks payloads are Firestore-safe).
+2. **Client:** add `views.tsx` in `src/features/games/<id>/` exporting `DisplayQuestion`, `DisplayReveal`, `PlayerQuestion` (and optionally `PlayerAnswered`), then set `loadViews` in the module's `index.ts`. Views are lazy-loaded per game.
+3. Set `playable: true` in `shared/games.ts`.
+
+| Game | Rounds | Scoring |
+|---|---|---|
+| Speed Quiz | 8 × 15 s | correct = 500 + up to 500 speed bonus (linear in time left) |
+| Guess the Majority | 6 × 20 s | 500 for picking a most-popular option (ties all count) |
+| Reflex Battle | 5 × (2–6 s wait + 3 s) | 500 / 350 / 250 for the fastest three, then 150; a tap before GO is a false start and scores 0 |
+
+Reflex timing uses the server's receive time, so network latency counts against everyone. GO is published at round start so screens can flip in sync, which means a scripted client could tap at the exact moment. That's acceptable for a party game, and the design notes record it.
 
 ## Tests
 
 - `functions/src/expiry.test.ts`: expiry policy (pure).
+- `functions/src/games/games.test.ts`: scoring for all three games, content integrity, tie-aware placement points, and Firestore-safe payloads.
 - `functions/src/maintenance.test.ts`: sweep against the emulators (cascade delete, code release, player grace).
 - `tests/rules/firestore.rules.test.mjs`: 14 rule checks covering role separation, expired rooms, private and authoritative data, pairing visibility and write denial.
+- `tests/e2e/gameplay.mjs`: real play of all three games (answers, live counts, early close, pause/resume, skip, false start, timer auto-advance, placement points, champion).
 - `tests/e2e/flow.mjs`: full multi-device flow (host tablet, 1080p TV, phones at 320/375/390px), including invalid and reused pairing codes, duplicate nicknames, kick, reconnects, a full tournament and a freestyle setup.

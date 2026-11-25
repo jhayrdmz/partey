@@ -13,7 +13,7 @@ import { useDisplayState, usePlayers, useRoom } from "@/hooks/useRoomData";
 import { fetchDoc, refs } from "@/services/firebase";
 import { playSound } from "@/utils/sound";
 import { DisplayChrome } from "../components/DisplayChrome";
-import { DisplayGameIntro } from "../components/DisplayGameIntro";
+import { DisplayGameStage } from "../components/DisplayGameStage";
 import { DisplayLobby } from "../components/DisplayLobby";
 import { DisplayStandings } from "../components/DisplayStandings";
 import { forgetDisplayRoom } from "../displaySession";
@@ -49,10 +49,13 @@ export function DisplayRoomScreen() {
     prevCount.current = players.data.length;
   }, [players.data.length, players.status]);
   const screen = display.data?.currentScreen;
+  const phase = display.data?.game?.phase;
+  const roundNo = display.data?.game?.round;
   useEffect(() => {
-    if (screen === "game-intro") playSound("start");
-    if (screen === "champion" || screen === "results") playSound("win");
-  }, [screen]);
+    if (screen === "game" && phase === "intro") playSound("start");
+    if (screen === "game" && phase === "question") playSound("pop");
+    if (screen === "champion" || screen === "results" || screen === "leaderboard") playSound("win");
+  }, [screen, phase, roundNo]);
 
   useEffect(() => {
     if (session.data?.revoked || revokedOnServer) forgetDisplayRoom();
@@ -81,7 +84,8 @@ export function DisplayRoomScreen() {
   if (room.status === "loading" || !room.data || display.status === "loading") return <LoadingScreen label="Loading the room…" />;
 
   const state = display.data;
-  const current = room.data.status === "waiting" && state?.currentScreen === "game-intro" ? "lobby" : (state?.currentScreen ?? "lobby");
+  // A stale "game" screen (e.g. game ended while offline) falls back to the lobby.
+  const current = room.data.status !== "playing" && state?.currentScreen === "game" ? "lobby" : (state?.currentScreen ?? "lobby");
 
   return (
     <Backdrop>
@@ -95,8 +99,8 @@ export function DisplayRoomScreen() {
           exit={{ opacity: 0, scale: 1.02 }}
           transition={{ duration: 0.35 }}
         >
-          {current === "game-intro" || current === "game" ? (
-            <DisplayGameIntro state={state!} />
+          {current === "game" && state ? (
+            <DisplayGameStage state={state} />
           ) : (current === "results" || current === "leaderboard" || current === "champion") && state ? (
             <DisplayStandings state={state} roomCode={room.data.roomCode} />
           ) : (
