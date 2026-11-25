@@ -3,6 +3,7 @@ import type { DisplayStateDoc } from "@shared/types";
 import { GameArt } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import { useServerCountdown } from "@/hooks/useServerClock";
+import { FitToScreen } from "./FitToScreen";
 
 export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
   const g = state.game;
@@ -10,8 +11,18 @@ export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
   if (!state.gameId) return null;
   const game = getGame(state.gameId);
   return (
-    <div className="grid min-h-dvh content-center items-center gap-5 p-4 sm:gap-10 sm:p-6 lg:grid-cols-2 lg:content-normal lg:p-16">
-      <motion.div initial={{ scale: 0.7, rotate: -6, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 120, damping: 12 }}>
+    // One screen tall; FitToScreen scales the content down if it doesn't fit (no scrolling on a TV).
+    <div className="flex h-dvh flex-col overflow-hidden p-4 sm:p-6 lg:p-16 short:p-3">
+      <FitToScreen>
+      <div className="grid flex-1 content-center items-center gap-5 sm:gap-10 lg:grid-cols-2">
+      {/* Full-width art keeps its aspect ratio, so cap its width by the screen height or it
+          alone can be taller than a landscape phone. */}
+      <motion.div
+        initial={{ scale: 0.7, rotate: -6, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 12 }}
+        className="mx-auto w-full max-w-[calc(30dvh*16/9)] sm:max-w-[calc(36dvh*4/3)] lg:max-w-[calc(70dvh*4/3)]"
+      >
         <GameArt game={game} size="lg" className="aspect-[16/9] w-full rounded-3xl shadow-2xl shadow-primary/30 sm:aspect-[4/3] sm:rounded-[2rem] [&>span]:text-[5rem] sm:[&>span]:text-[8rem] lg:[&>span]:text-[12rem]" />
       </motion.div>
       <div className="space-y-5 sm:space-y-8">
@@ -47,6 +58,8 @@ export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
           )}
         </div>
       </div>
+      </div>
+      </FitToScreen>
     </div>
   );
 }

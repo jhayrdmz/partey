@@ -5,13 +5,14 @@ import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { RoomCode } from "@/components/shared/RoomCode";
 import { getGame } from "@/features/games/registry";
 import { cn } from "@/utils/cn";
+import { FitToScreen } from "./FitToScreen";
 
 import type { StandingEntry as Standing } from "@shared/engine";
 
 const podiumStyle = [
   { height: "h-36 sm:h-56 lg:h-72", color: "from-mango to-[oklch(0.7_0.17_60)]", label: "1st" },
   { height: "h-28 sm:h-40 lg:h-52", color: "from-slate-300 to-slate-500", label: "2nd" },
-  { height: "h-20 sm:h-28 lg:h-40", color: "from-[oklch(0.7_0.12_50)] to-[oklch(0.55_0.12_45)]", label: "3rd" },
+  { height: "h-24 sm:h-32 lg:h-40", color: "from-[oklch(0.7_0.12_50)] to-[oklch(0.55_0.12_45)]", label: "3rd" },
 ];
 
 /** Results / leaderboard / champion screens share one layout. */
@@ -27,7 +28,10 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
   const title = champion ? "Champion!" : state.currentScreen === "leaderboard" ? "Overall leaderboard" : `${game?.meta.name ?? "Game"} results`;
 
   return (
-    <div className="flex min-h-dvh flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-12">
+    // One screen tall; FitToScreen scales the content down if it doesn't fit (no scrolling on a TV).
+    <div className="flex h-dvh flex-col overflow-hidden p-4 sm:p-6 lg:p-12 short:p-3">
+      <FitToScreen>
+      <div className="flex flex-1 flex-col gap-6 sm:gap-8">
       <header className="flex items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           {champion ? <Crown className="size-10 shrink-0 text-mango sm:size-14" /> : <Trophy className="size-9 shrink-0 text-sky sm:size-12" />}
@@ -56,7 +60,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
       {standings.length === 0 ? (
         <div className="grid flex-1 place-items-center text-3xl font-bold text-muted-foreground">No scores yet.</div>
       ) : (
-        <div className={cn("grid flex-1 content-center items-end gap-6 sm:content-normal sm:gap-10", rest.length > 0 && "lg:grid-cols-[3fr_2fr]")}>
+        <div className={cn("grid flex-1 content-center items-end gap-6 sm:content-normal sm:gap-10", rest.length > 0 && "lg:grid-cols-[3fr_2fr] short:grid-cols-[3fr_2fr]")}>
           <div className="flex items-end justify-center gap-3 lg:gap-6">
             {podium.map(({ s, place }) =>
               s ? (
@@ -102,6 +106,8 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
           )}
         </div>
       )}
+      </div>
+      </FitToScreen>
     </div>
   );
 }

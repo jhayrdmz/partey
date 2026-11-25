@@ -51,9 +51,14 @@ export function FitToScreen({ children, className, watch }: { children: React.Re
         scale(lo);
         return;
       }
-      // Still too tall at every minimum: scale everything. Zoom also widens the line length,
-      // so the result can only get shorter than this ratio predicts.
-      inner.style.zoom = String(Math.max(0.3, (outer.clientHeight / inner.scrollHeight) * 0.98));
+      // Still too tall at every minimum: zoom everything out. Start from the height ratio, then
+      // step down until it fits (zoom also re-wraps text, so the ratio is only an estimate).
+      let zoom = Math.min(1, (outer.clientHeight / inner.scrollHeight) * 0.98);
+      inner.style.zoom = String(zoom);
+      while (zoom > 0.3 && inner.getBoundingClientRect().height > outer.clientHeight + 1) {
+        zoom = Math.max(0.3, zoom * 0.92);
+        inner.style.zoom = String(zoom);
+      }
     };
 
     let frame = 0;

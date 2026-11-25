@@ -90,7 +90,8 @@ export function DisplayRoomScreen() {
   const current = room.data.status !== "playing" && state?.currentScreen === "game" ? "lobby" : (state?.currentScreen ?? "lobby");
 
   return (
-    <Backdrop>
+    // During a game and on results screens nobody is there to scroll: lock the page to one screen.
+    <Backdrop className={current === "lobby" ? undefined : "h-dvh overflow-hidden overscroll-none"}>
       <ConnectionBanner realtimeConnected={realtimeConnected} />
       <DisplayChrome hostOnline={room.data.hostConnected} />
       <AnimatePresence mode="wait">
