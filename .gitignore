@@ -28,3 +28,4 @@ screenshots/
 .idea
 .DS_Store
 *.log
+*.bundle
