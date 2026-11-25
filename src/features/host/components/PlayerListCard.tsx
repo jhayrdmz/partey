@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Loader2, UserMinus, Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { toast } from "sonner";
-import { LIMITS } from "@shared/constants";
 import type { PlayerDoc } from "@shared/types";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +16,11 @@ export function PlayerListCard({
   players,
   loading,
   showScores,
+  cap,
 }: {
   roomId: string;
+  /** Room capacity for the selected game (see roomPlayerCap). */
+  cap: number;
   players: WithId<PlayerDoc>[];
   loading: boolean;
   showScores: boolean;
@@ -52,7 +54,7 @@ export function PlayerListCard({
         <div className="flex items-center gap-2">
           <Badge variant="success">{online} online</Badge>
           <Badge variant="muted" className="tabular-nums">
-            {players.length}/{LIMITS.maxPlayersPerRoom}
+            {players.length}/{cap}
           </Badge>
         </div>
       </div>

@@ -5,3 +5,4 @@ export * from "./types";
 export * from "./api";
 export * from "./expiry";
 export * from "./engine";
+export * from "./gameSettings";

@@ -62,6 +62,33 @@ describe("speed quiz", () => {
     expect(JSON.stringify(r.public)).not.toContain("correct");
   });
 
+  it("defaults to 8 questions and 10 seconds", () => {
+    const { setup, rounds } = speedQuiz.setup(players, new Set());
+    expect(rounds).toBe(8);
+    expect(speedQuiz.openRound(setup, 1, 0).durationMs).toBe(10_000);
+  });
+
+  it("uses the host's options for question count and time", () => {
+    const { setup, rounds } = speedQuiz.setup(players, new Set(), { questionSeconds: 30, rounds: 20, maxPlayers: 50 });
+    expect(rounds).toBe(20);
+    expect(new Set(setup.items.map((i) => i.item.id)).size).toBe(20);
+    expect(speedQuiz.openRound(setup, 20, 0).durationMs).toBe(30_000);
+  });
+
+  it("supports untimed questions, with speed measured over a 30s window", () => {
+    const { setup } = speedQuiz.setup(players, new Set(), { questionSeconds: 0, rounds: 8, maxPlayers: 24 });
+    expect(speedQuiz.openRound(setup, 1, 0).durationMs).toBe(0);
+    expect(speedQuizPoints(0, 0)).toBe(1000);
+    expect(speedQuizPoints(15_000, 0)).toBe(750);
+    expect(speedQuizPoints(120_000, 0)).toBe(500);
+  });
+
+  it("keeps games started before options existed on 15 seconds", () => {
+    const { setup } = speedQuiz.setup(players, new Set());
+    const legacy = { items: setup.items };
+    expect(speedQuiz.openRound(legacy, 1, 0).durationMs).toBe(15_000);
+  });
+
   it("prefers unused questions", () => {
     const used = new Set(QUIZ.slice(0, QUIZ.length - 8).map((q) => q.id));
     const { contentIds } = speedQuiz.setup(players, used);

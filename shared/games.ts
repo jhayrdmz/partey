@@ -40,7 +40,8 @@ export const GAMES: Record<GameId, GameMeta> = {
     description: "Rapid-fire trivia. Answer right and answer fast — speed bonuses decide the champion.",
     category: "trivia",
     minPlayers: 1,
-    maxPlayers: 24,
+    // Host-adjustable in game options (default 24).
+    maxPlayers: 100,
     durationMin: 8,
     featured: true,
     playable: true,

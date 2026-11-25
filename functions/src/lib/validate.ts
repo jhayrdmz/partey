@@ -2,6 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
+import { QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
 
@@ -77,4 +78,15 @@ export function avatar(data: Data): string {
   const value = data.avatar;
   if (typeof value !== "string" || !AVATAR_IDS.includes(value)) fail("invalid-argument", "Pick an avatar.");
   return value;
+}
+
+/** Speed Quiz options from the lobby form. Every field is required. */
+export function speedQuizSettings(value: unknown): SpeedQuizSettings {
+  const data = asObject(value);
+  const { questionSeconds, maxPlayers, rounds } = data;
+  if (!(QUESTION_SECONDS_OPTIONS as readonly unknown[]).includes(questionSeconds)) fail("invalid-argument", "Pick 10s, 15s, 30s or no time limit.");
+  const { maxPlayers: mp, rounds: r } = SPEED_QUIZ_LIMITS;
+  if (!isWholeIn(maxPlayers, mp.min, mp.max)) fail("invalid-argument", `Max players must be between ${mp.min} and ${mp.max}.`);
+  if (!isWholeIn(rounds, r.min, r.max)) fail("invalid-argument", `Questions must be between ${r.min} and ${r.max}.`);
+  return { questionSeconds: questionSeconds as SpeedQuizSettings["questionSeconds"], maxPlayers, rounds };
 }

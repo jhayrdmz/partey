@@ -140,7 +140,7 @@ export async function initGame(
   const handler = getHandler(args.gameId);
   if (!handler) fail("failed-precondition", "This game is coming soon!");
   const used = new Set(args.room.usedContent ?? []);
-  const { setup, rounds, contentIds } = handler.setup(args.players, used);
+  const { setup, rounds, contentIds } = handler.setup(args.players, used, args.room.gameSettings?.[args.gameId as keyof NonNullable<ServerRoom["gameSettings"]>]);
   const gs: GameStateDoc = {
     gameId: args.gameId,
     entryId: args.entryId,
@@ -180,7 +180,8 @@ function openRound(tx: Transaction, ctx: GameCtx, round: number, nowMs: number) 
     ...ctx.gs,
     phase: "question",
     round,
-    phaseEndsAtMs: nowMs + opened.durationMs,
+    // No deadline for untimed rounds: they end when everyone has answered or the host ends them.
+    phaseEndsAtMs: opened.durationMs > 0 ? nowMs + opened.durationMs : null,
     phaseDurationMs: opened.durationMs,
     paused: false,
     remainingMs: null,
@@ -311,7 +312,9 @@ export function skipRound(tx: Transaction, ctx: GameCtx, nowMs: number) {
 export function pauseGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
   const { gs } = ctx;
   if (gs.paused) return;
-  const next: GameStateDoc = { ...gs, paused: true, remainingMs: Math.max(1000, (gs.phaseEndsAtMs ?? nowMs) - nowMs) };
+  // Untimed rounds have no deadline to freeze; remainingMs stays null so resume keeps them untimed.
+  const untimed = gs.phaseEndsAtMs === null;
+  const next: GameStateDoc = { ...gs, paused: true, remainingMs: untimed ? null : Math.max(1000, gs.phaseEndsAtMs! - nowMs) };
   tx.set(gameStateRef(ctx.roomId), next);
   writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });
 }
@@ -319,6 +322,12 @@ export function pauseGame(tx: Transaction, ctx: GameCtx, submittedCount: number,
 export function resumeGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
   const { gs } = ctx;
   if (!gs.paused) return;
+  if (gs.remainingMs === null && gs.phase === "question" && gs.phaseDurationMs === 0) {
+    const next: GameStateDoc = { ...gs, paused: false };
+    tx.set(gameStateRef(ctx.roomId), next);
+    writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });
+    return;
+  }
   const endsAt = nowMs + (gs.remainingMs ?? 5000);
   let { roundPublic, roundSecret } = gs;
   if (gs.phase === "question" && ctx.handler.shiftTimes && gs.phaseEndsAtMs) {

@@ -194,7 +194,8 @@ try {
   await shot(host, "18-host-playing");
   log("game started on all devices");
 
-  await host.getByRole("button", { name: "End game" }).first().click();
+  await host.getByRole("button", { name: "End", exact: true }).click();
+  await host.getByRole("dialog").getByRole("button", { name: "End game" }).click(); // confirm
   await tv.getByText("Overall leaderboard").waitFor();
   await tv.waitForTimeout(2200);
   await players[0].getByText("Leaderboard").first().waitFor();
@@ -206,7 +207,8 @@ try {
   for (let g = 2; g <= 3; g++) {
     await host.getByRole("button", { name: `Start game ${g} of 3` }).first().click();
     await tv.getByRole("heading", { level: 1, name: g === 2 ? "Guess the Majority" : "Reflex Battle" }).waitFor();
-    await host.getByRole("button", { name: "End game" }).first().click();
+    await host.getByRole("button", { name: "End", exact: true }).click();
+    await host.getByRole("dialog").getByRole("button", { name: "End game" }).click(); // confirm
   }
   await tv.getByText("Champion!").waitFor();
   await tv.waitForTimeout(2500);

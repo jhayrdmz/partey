@@ -36,7 +36,10 @@ export const LIMITS = {
   roomNameMax: 40,
   nicknameMin: 1,
   nicknameMax: 16,
+  /** Default room capacity (games without their own player limit). */
   maxPlayersPerRoom: 24,
+  /** Highest player limit a host can set in game options. */
+  maxPlayersHardCap: 100,
   maxDisplaysPerRoom: 4,
   maxLineupLength: 20,
   /** Failed pairing attempts allowed per uid per window. */

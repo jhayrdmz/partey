@@ -1,8 +1,11 @@
-import { Pause } from "lucide-react";
+import { Hourglass, Pause } from "lucide-react";
 import { useServerCountdown } from "@/hooks/useServerClock";
 import { cn } from "@/utils/cn";
 
-/** Countdown driven by the server clock. Turns urgent in the last 5 seconds. */
+/**
+ * Countdown driven by the server clock. Turns urgent in the last 5 seconds.
+ * Untimed rounds (durationMs 0) show a "waiting for everyone" label instead.
+ */
 export function TimerBar({
   endsAtMs,
   durationMs,
@@ -19,6 +22,21 @@ export function TimerBar({
   className?: string;
 }) {
   const left = useServerCountdown(endsAtMs, { paused, pausedRemainingMs: remainingMs });
+  if (durationMs === 0) {
+    return (
+      <div className={cn("flex items-center", className)}>
+        <span
+          className={cn(
+            "flex items-center gap-2 rounded-full bg-secondary font-bold text-muted-foreground",
+            size === "lg" ? "px-5 py-3 text-xl short:py-1.5 short:text-base" : "px-3 py-1.5 text-sm",
+          )}
+        >
+          {paused ? <Pause className={size === "lg" ? "size-6" : "size-4"} /> : <Hourglass className={size === "lg" ? "size-6" : "size-4"} />}
+          {paused ? "Paused" : "No time limit · waiting for everyone"}
+        </span>
+      </div>
+    );
+  }
   if (left === null) return null;
   const pct = Math.max(0, Math.min(100, (left / Math.max(1, durationMs)) * 100));
   const seconds = Math.ceil(left / 1000);

@@ -9,6 +9,7 @@ interface CallableMap {
   createRoom: [Api.CreateRoomRequest, Api.CreateRoomResponse];
   setGameMode: [Api.SetGameModeRequest, { ok: true }];
   setLineup: [Api.SetLineupRequest, { ok: true }];
+  setGameSettings: [Api.SetGameSettingsRequest, { ok: true }];
   lookupRoom: [Api.LookupRoomRequest, Api.LookupRoomResponse];
   joinRoom: [Api.JoinRoomRequest, Api.JoinRoomResponse];
   leaveRoom: [Api.LeaveRoomRequest, { ok: true }];

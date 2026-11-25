@@ -114,6 +114,25 @@ export const setLineup = onCall(opts, async (req) => {
   return { ok: true };
 });
 
+/**
+ * Host changes a game's options (only Speed Quiz has any). Allowed between games; a running
+ * game keeps the options it started with. Lowering the player limit never removes anyone.
+ */
+export const setGameSettings = onCall(opts, async (req) => {
+  const uid = requireUid(req);
+  const data = v.asObject(req.data);
+  const roomId = v.docId(data, "roomId");
+  if (data.gameId !== "speed-quiz") fail("invalid-argument", "This game has no options.");
+  const settings = v.speedQuizSettings(data.settings);
+  await db.runTransaction(async (tx) => {
+    const room = await getLiveRoomTx(tx, roomId);
+    assertHost(room, uid);
+    if (room.status !== "waiting") fail("failed-precondition", "Change options between games.");
+    touchRoomTx(tx, roomId, room, { gameSettings: { ...room.gameSettings, "speed-quiz": settings } });
+  });
+  return { ok: true };
+});
+
 /** Resolve a public room code into room info (used by the player join screen). */
 export const lookupRoom = onCall(opts, async (req): Promise<LookupRoomResponse> => {
   const uid = requireUid(req);

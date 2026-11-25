@@ -9,6 +9,7 @@ import { useAutoTick } from "@/features/games/engine/useAutoTick";
 import { getGame } from "@/features/games/registry";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { call, errorMessage } from "@/services/firebase";
 import { cn } from "@/utils/cn";
 
@@ -132,6 +133,9 @@ export function HostControls({
   );
 }
 
+/** Small square button: icon over a short label (same shape as the lobby's quick actions). */
+const SMALL = "h-16 w-14 shrink-0 flex-col gap-0.5 rounded-md px-0 text-[11px] font-bold xs:w-16";
+
 const PHASE_LABEL = { intro: "How to play", question: "Answering", reveal: "Results" } as const;
 
 function LiveGameControls({
@@ -159,6 +163,7 @@ function LiveGameControls({
 }) {
   // The host's device also nudges the server when a timer expires.
   useAutoTick(roomId, live);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const isTournament = room.gameMode === "tournament";
   const control = (action: GameControlAction) => run(action, () => call("controlGame", { roomId, action }));
   const nextLabel = !live ? "Next" : live.phase === "intro" ? "Start round 1" : live.phase === "question" ? "Reveal now" : live.round >= live.totalRounds ? "Show results" : "Next round";
@@ -189,28 +194,67 @@ function LiveGameControls({
           <TimerBar endsAtMs={live.phaseEndsAtMs} durationMs={live.phaseDurationMs} paused={live.paused} remainingMs={live.remainingMs} />
         </div>
       )}
-      <div className="grid grid-cols-2 gap-2">
+      {/* End · Pause · Skip as small buttons, then the main action. Skip stays in place
+          (disabled) outside questions so the buttons never shift under the host's thumb. */}
+      <div className="flex gap-2">
+        <Button variant="destructive" className={SMALL} onClick={() => setConfirmEnd(true)} disabled={Boolean(busy)}>
+          {icon("end", Flag)} End
+        </Button>
         {live?.paused ? (
-          <Button variant="accent" onClick={() => control("resume")} disabled={Boolean(busy)}>
+          <Button variant="accent" className={SMALL} onClick={() => control("resume")} disabled={Boolean(busy)}>
             {icon("resume", Play)} Resume
           </Button>
         ) : (
-          <Button variant="secondary" onClick={() => control("pause")} disabled={Boolean(busy) || !live}>
+          <Button variant="secondary" className={SMALL} onClick={() => control("pause")} disabled={Boolean(busy) || !live}>
             {icon("pause", Pause)} Pause
           </Button>
         )}
-        <Button variant="secondary" onClick={() => control("next")} disabled={Boolean(busy) || !live || live.paused}>
-          {icon("next", FastForward)} {nextLabel}
+        <Button
+          variant="outline"
+          className={SMALL}
+          onClick={() => control("skip")}
+          disabled={Boolean(busy) || live?.phase !== "question" || live.paused}
+          aria-label="Skip round"
+          title="Skip this question without scoring"
+        >
+          {icon("skip", SkipForward)} Skip
         </Button>
-        {live?.phase === "question" && (
-          <Button variant="outline" onClick={() => control("skip")} disabled={Boolean(busy) || live.paused}>
-            {icon("skip", SkipForward)} Skip round
-          </Button>
-        )}
-        <Button variant="destructive" onClick={end} disabled={Boolean(busy)} className={live?.phase === "question" ? "" : "col-span-2"}>
-          {icon("end", Flag)} End game
+        {/* Wraps to two lines rather than truncating; the icon drops on the narrowest phones. */}
+        <Button
+          size="xl"
+          variant="party"
+          className="min-w-0 flex-1 gap-2 px-3 text-base leading-tight whitespace-normal sm:text-lg"
+          onClick={() => control("next")}
+          disabled={Boolean(busy) || !live || live.paused}
+        >
+          <span className="hidden xs:contents">{icon("next", FastForward)}</span>
+          <span className="text-center">{nextLabel}</span>
         </Button>
       </div>
+
+      <Dialog open={confirmEnd} onOpenChange={setConfirmEnd}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>End {gameName}?</DialogTitle>
+            <DialogDescription>The game stops now and results are based on the points so far. This can't be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmEnd(false)}>
+              Keep playing
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={Boolean(busy)}
+              onClick={async () => {
+                await end();
+                setConfirmEnd(false);
+              }}
+            >
+              {icon("end", Flag)} End game
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

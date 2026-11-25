@@ -6,6 +6,7 @@
  */
 import type { GameId } from "./games";
 import type { PublicGameState, StandingEntry } from "./engine";
+import type { GameSettingsMap } from "./gameSettings";
 
 export interface TimestampLike {
   toMillis(): number;
@@ -39,6 +40,8 @@ export interface RoomDoc {
   /** Index into lineup of the current/next game. */
   currentGameIndex: number;
   currentGameId: GameId | null;
+  /** Host-chosen game options (Speed Quiz timer, questions, player limit). Missing = defaults. */
+  gameSettings?: GameSettingsMap;
   /** Tournament placement points (index 0 = 1st place). */
   scoring: { placementPoints: number[]; otherPoints: number };
   /** Content ids already used in this room (avoid repeat questions). */

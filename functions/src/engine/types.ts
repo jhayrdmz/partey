@@ -18,6 +18,7 @@ export interface OpenedRound<Pub = unknown, Sec = unknown> {
   public: Pub;
   /** Server-only (correct answers, etc.). */
   secret: Sec;
+  /** Answer window. 0 = no time limit: the round ends when everyone answers or the host ends it. */
   durationMs: number;
 }
 
@@ -39,8 +40,11 @@ export interface GameHandler<Setup = unknown, Pub = unknown, Sec = unknown> {
   id: GameId;
   introMs: number;
   revealMs: number;
-  /** Choose content for the whole game. `used` = content ids already played in this room. */
-  setup(players: EnginePlayer[], used: ReadonlySet<string>): { setup: Setup; rounds: number; contentIds: string[] };
+  /**
+   * Choose content for the whole game. `used` = content ids already played in this room.
+   * `settings` = the host's options for this game from the room (may be missing; apply defaults).
+   */
+  setup(players: EnginePlayer[], used: ReadonlySet<string>, settings?: unknown): { setup: Setup; rounds: number; contentIds: string[] };
   openRound(setup: Setup, round: number, nowMs: number): OpenedRound<Pub, Sec>;
   /** Normalize/validate a raw answer; throw HttpsError("invalid-argument") when invalid. */
   validate(answer: unknown, pub: Pub): unknown;

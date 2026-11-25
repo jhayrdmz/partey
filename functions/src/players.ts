@@ -1,5 +1,6 @@
 import { onCall } from "firebase-functions/v2/https";
 import { LIMITS } from "../../shared/constants";
+import { roomPlayerCap } from "../../shared/gameSettings";
 import type { JoinRoomResponse } from "../../shared/api";
 import { db, ROOM_CODES, Timestamp, roomRef } from "./lib/admin";
 import { fail, requireUid } from "./lib/errors";
@@ -41,7 +42,8 @@ export const joinRoom = onCall(opts, async (req): Promise<JoinRoomResponse> => {
       return { roomId, playerId: uid, rejoined: true };
     }
 
-    if (room.playerCount >= LIMITS.maxPlayersPerRoom) fail("resource-exhausted", "This room is full.");
+    // The selected game decides capacity (Speed Quiz's host-set limit; otherwise the default).
+    if (room.playerCount >= roomPlayerCap(room)) fail("resource-exhausted", "This room is full.");
 
     // Nicknames must be unique within a room (case-insensitive) for readable leaderboards.
     const sameName = await tx.get(roomRef(roomId).collection("players").where("nicknameKey", "==", nickname.toLowerCase()).limit(1));

@@ -112,7 +112,8 @@ try {
   await tv.getByText("Round 3 of 8").waitFor();
   log("skip round");
   await shot(host, "g07-host-live-controls");
-  await host.getByRole("button", { name: "End game" }).first().click();
+  await host.getByRole("button", { name: "End", exact: true }).click();
+  await host.getByRole("dialog").getByRole("button", { name: "End game" }).click(); // confirm
   await tv.getByText("Overall leaderboard").waitFor();
   await tv.getByText("+100").first().waitFor();
   await juan.getByText("Leaderboard").first().waitFor();
@@ -135,7 +136,8 @@ try {
   await shot(tv, "g09-tv-majority-reveal");
   await shot(juan, "g10-phone-majority-result");
   log("majority scored: crowd +500, outlier 0");
-  await host.getByRole("button", { name: "End game" }).first().click();
+  await host.getByRole("button", { name: "End", exact: true }).click();
+  await host.getByRole("dialog").getByRole("button", { name: "End game" }).click(); // confirm
   await tv.getByText("Overall leaderboard").waitFor();
 
   // ── Game 3: Reflex Battle ──────────────────────────────────────────────
@@ -160,7 +162,8 @@ try {
   // No host input: the reveal timer expires and devices auto-advance via tickGame.
   await tv.getByText("Round 2 of 5").waitFor({ timeout: 20000 });
   log("timer expiry auto-advanced to the next round (server-checked tick)");
-  await host.getByRole("button", { name: "End game" }).first().click();
+  await host.getByRole("button", { name: "End", exact: true }).click();
+  await host.getByRole("dialog").getByRole("button", { name: "End game" }).click(); // confirm
   await tv.getByText("Champion!").waitFor();
   await juan.getByText("Final results").waitFor();
   await tv.waitForTimeout(2500);

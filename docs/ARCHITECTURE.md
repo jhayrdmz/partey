@@ -31,8 +31,9 @@
 |---|---|---|
 | `createRoom` | anyone | Generates a unique 4-letter code (no I/O/L/0/1) via `roomCodes/{code}` in a transaction |
 | `setGameMode`, `setLineup` | host | Validated against the shared game catalog; freestyle allows one game |
+| `setGameSettings` | host | Speed Quiz options, saved on the room as `gameSettings["speed-quiz"]`: time per question (10s, 15s, 30s or no limit), 8–20 questions, max players 1–100. Only between games; a running game keeps the options it started with |
 | `lookupRoom` | anyone | Resolves code → room; tells the caller if they already joined or were kicked |
-| `joinRoom` | player | **Idempotent per uid** (rejoin keeps score); unique nicknames; max 24 players |
+| `joinRoom` | player | **Idempotent per uid** (rejoin keeps score); unique nicknames; capacity follows the selected game (Speed Quiz: the host's max players, otherwise 24). Lowering it never removes anyone |
 | `leaveRoom`, `kickPlayer` | player / host | Records are kept (`left` / `kicked`) for history; kicked players can't rejoin |
 | `createDisplayCode` | display | 6-digit code, crypto-random, TTL `PAIRING_CODE_TTL_SECONDS` (default 180s), shown with a QR code; replaces the display's previous open code; the display auto-refreshes it |
 | `claimDisplayPairing` | host | Host enters (or scans) the code shown on the display. **Consumes the code (single use)**, creates `displaySessions/{displayUid}`; rate-limited per uid (10 / 10 min) |
