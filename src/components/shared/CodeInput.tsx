@@ -33,9 +33,22 @@ export function CodeInput({
   const sanitize = (raw: string) =>
     (mode === "numeric" ? raw.replace(/\D/g, "") : raw.toUpperCase().replace(/[^A-Z]/g, "")).slice(0, length);
 
+  // Group gap after the third digit for 6-digit numeric codes.
+  const grouped = length === 6;
+
   return (
-    <div className={cn("relative mx-auto w-fit", className)} onClick={() => inputRef.current?.focus()}>
-      <div className="flex gap-1.5 xs:gap-2 sm:gap-3" aria-hidden>
+    <div
+      // Fluid: boxes keep their full size (--box) when there's room and shrink evenly when
+      // the container is narrower, so the input never overflows its card.
+      className={cn(
+        "relative mx-auto w-full [--box:2.25rem] [--gap:0.375rem] [--group:0.375rem]",
+        "xs:[--box:2.5rem] xs:[--gap:0.5rem] sm:[--box:4rem] sm:[--gap:0.75rem] sm:[--group:1rem]",
+        className,
+      )}
+      style={{ maxWidth: `calc(${length} * var(--box) + ${length - 1} * var(--gap)${grouped ? " + var(--group)" : ""})` }}
+      onClick={() => inputRef.current?.focus()}
+    >
+      <div className="flex w-full gap-(--gap)" aria-hidden>
         {Array.from({ length }, (_, i) => {
           const ch = value[i] ?? "";
           const active = i === Math.min(value.length, length - 1);
@@ -43,12 +56,11 @@ export function CodeInput({
             <span
               key={i}
               className={cn(
-                "grid h-12 w-9 place-items-center rounded-xl border-2 bg-background/60 text-xl font-extrabold transition-colors xs:h-14 xs:w-10 xs:text-2xl sm:h-20 sm:w-16 sm:text-4xl",
+                "grid min-w-0 flex-1 aspect-[3/4] place-items-center rounded-xl border-2 bg-background/60 text-xl font-extrabold transition-colors xs:aspect-[5/7] xs:text-2xl sm:aspect-[4/5] sm:text-4xl",
                 ch ? "border-primary/70 text-white" : "border-input text-muted-foreground",
                 active && focused && !disabled && "border-primary ring-4 ring-primary/25",
                 invalid && "border-destructive",
-                // Group gap after the third digit for 6-digit numeric codes.
-                length === 6 && i === 3 && "ml-1.5 sm:ml-4",
+                grouped && i === 3 && "ml-(--group)",
               )}
             >
               {ch}
