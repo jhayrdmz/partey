@@ -4,7 +4,7 @@
  *
  *   landing.png             landing page, desktop 1440×900
  *   display-pairing.png     TV waiting to be paired (code + QR), 1920×1080
- *   host-lobby.png          host lobby with 12 players, tablet 1180 wide @2x (full page)
+ *   host-lobby.png          host lobby with 12 players, landscape tablet 1180×820 @2x (visible area)
  *   player-speed-quiz.png   a player answering Speed Quiz, phone 390×844 @2x
  *
  * Eleven players join straight through the Auth + Functions emulators (fast); the twelfth is a
@@ -112,14 +112,10 @@ for (const d of sessions.documents ?? []) await patchDoc(d.name.split("/document
 
 await host.getByText("12 online").waitFor({ timeout: 15000 });
 await host.waitForTimeout(1200);
-// Show all 12 players: grow the tablet viewport to the page's height, so the sticky host controls
-// sit at the bottom (a full-page capture would draw them mid-page). Hide leftover toasts.
+// What a landscape tablet shows without scrolling. Hide leftover toasts (e.g. "display connected").
 await host.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" });
-const fullHeight = await host.evaluate(() => document.scrollingElement.scrollHeight);
-await host.setViewportSize({ width: 1180, height: fullHeight });
-await host.waitForTimeout(600);
+await host.waitForTimeout(300);
 await host.screenshot({ path: `${OUT}/host-lobby.png` });
-await host.setViewportSize({ width: 1180, height: 820 });
 log("host-lobby.png");
 
 // ── 4. A player answering Speed Quiz, phone ─────────────────────────────
