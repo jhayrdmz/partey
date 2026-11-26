@@ -16,7 +16,7 @@ export function WaitingBar({ label, waiting = true }: { label: string; waiting?:
       {waiting && (
         <div className="relative h-2.5 overflow-hidden rounded-full bg-secondary" aria-hidden>
           <motion.div
-            className="absolute inset-y-0 w-1/3 rounded-full bg-gradient-to-r from-sky to-primary"
+            className="absolute inset-y-0 w-1/3 rounded-full bg-primary"
             initial={{ left: "-33%" }}
             animate={{ left: "100%" }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}

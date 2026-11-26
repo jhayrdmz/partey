@@ -75,7 +75,7 @@ export function CreateRoomScreen() {
                   key={s}
                   type="button"
                   onClick={() => setRoomName(s)}
-                  className="min-h-10 rounded-full border border-border bg-secondary/50 px-3.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/60 hover:text-foreground"
+                  className="min-h-10 rounded-md border border-border bg-secondary/50 px-3.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/60 hover:text-foreground"
                 >
                   {s}
                 </button>
@@ -86,7 +86,7 @@ export function CreateRoomScreen() {
           {lastRoom && (
             <Link
               to={`/host/${lastRoom.roomId}`}
-              className="mt-8 flex items-center gap-3 rounded-2xl border border-border bg-card/60 p-4 transition hover:border-primary/60"
+              className="mt-8 flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-primary/60"
             >
               <span className="grid size-11 place-items-center rounded-xl bg-secondary text-sky">
                 <History className="size-5" />

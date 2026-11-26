@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Crown, Eye, FastForward, Flag, Gamepad2, Loader2, Pause, Play, RotateCcw, Shuffle, SkipForward, Users } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import type { RoomDoc } from "@shared/types";
 import type { GameControlAction, PublicGameState } from "@shared/engine";
@@ -40,6 +40,8 @@ export function HostControls({
   actions?: HostControlActions;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirmChange, setConfirmChange] = useState(false);
+  const navigate = useNavigate();
   const isTournament = room.gameMode === "tournament";
   const entry = room.lineup[isTournament ? room.currentGameIndex : 0];
   const game = entry ? getGame(entry.gameId) : null;
@@ -100,6 +102,7 @@ export function HostControls({
         ? "Replay"
         : "Start";
   const subLabel = game?.meta.name;
+  const canChangeGame = !isTournament && Boolean(room.lastPlayedGameId) && !compact;
 
   return (
     <div className="space-y-2">
@@ -110,21 +113,38 @@ export function HostControls({
       )}
       <div className="flex gap-2">
         {actions?.("row")}
-        <Button size="xl" variant="party" className="min-w-0 flex-1" onClick={start} disabled={Boolean(busy) || !game || notEnough}>
+        {/* Tighter padding than the xl default, so the label still fits beside the small buttons on a phone. */}
+        <Button size="xl" variant="party" className="min-w-0 flex-1 gap-2 px-3" onClick={start} disabled={Boolean(busy) || !game || notEnough}>
           {icon("start", room.lastPlayedGameId === game?.meta.id && !isTournament ? RotateCcw : Play)}
           <span className="flex min-w-0 flex-col items-start leading-tight">
             <span className="max-w-full truncate">{label}</span>
             {subLabel && <span className="max-w-full truncate text-sm font-semibold opacity-85">{subLabel}</span>}
           </span>
         </Button>
+        {/* Freestyle, after a game: pick a different one (small, styled like Skip; asks first). */}
+        {canChangeGame && (
+          <Button variant="outline" className={SMALL} onClick={() => setConfirmChange(true)} disabled={Boolean(busy)} aria-label="Choose another game" title="Choose another game">
+            <Shuffle /> Change
+          </Button>
+        )}
       </div>
-      {!isTournament && room.lastPlayedGameId && !compact && (
-        <Button asChild variant="outline" className="w-full">
-          <Link to={`/host/${roomId}/games`}>
-            <Shuffle className="size-4" /> Choose another game
-          </Link>
-        </Button>
-      )}
+      <Dialog open={confirmChange} onOpenChange={setConfirmChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose another game?</DialogTitle>
+            <DialogDescription>You'll go to the game library to pick a different game. Players stay in the room.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmChange(false)}>
+              Keep {game?.meta.name ?? "this game"}
+            </Button>
+            <Button onClick={() => navigate(`/host/${roomId}/games`)}>
+              <Shuffle /> Choose another game
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {playedSome && !compact && (
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Gamepad2 className="size-4" /> The leaderboard is showing on the display.
@@ -209,7 +229,8 @@ function LiveGameControls({
           {icon("end", Flag)} End
         </Button>
         {live?.paused ? (
-          <Button variant="accent" className={SMALL} onClick={() => control("resume")} disabled={Boolean(busy)}>
+          // Resume keeps its original blue so it stands out from Pause and the yellow main action.
+          <Button className={cn(SMALL, "bg-[oklch(0.66_0.2_255)] text-white hover:brightness-110")} onClick={() => control("resume")} disabled={Boolean(busy)}>
             {icon("resume", Play)} Resume
           </Button>
         ) : (

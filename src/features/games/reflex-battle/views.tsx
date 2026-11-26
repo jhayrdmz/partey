@@ -11,7 +11,7 @@ function DisplayGo({ goAtMs, paused, submitted, eligible }: { goAtMs: number; pa
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-6 rounded-[3rem] transition-colors duration-75",
+        "flex flex-1 flex-col items-center justify-center gap-6 rounded-3xl transition-colors duration-75",
         go ? "bg-success" : "bg-destructive/90",
         paused && "bg-muted",
       )}

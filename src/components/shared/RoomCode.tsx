@@ -9,7 +9,7 @@ export function RoomCode({ code, size = "md", className }: { code: string; size?
           key={i}
           aria-hidden
           className={cn(
-            "grid place-items-center rounded-xl border-2 border-primary/40 bg-gradient-to-b from-secondary to-card font-extrabold text-white shadow-lg shadow-primary/20",
+            "grid place-items-center rounded-xl border-2 border-primary/40 bg-secondary font-extrabold text-white",
             size === "sm" && "size-10 text-xl",
             size === "md" && "size-14 text-3xl",
             size === "lg" && "size-20 text-5xl",

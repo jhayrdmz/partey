@@ -39,7 +39,7 @@ export const views: GameViews = {
   PlayerAnswered: ({ game }) => {
     const pub = round(game);
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card/60 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card text-center">
         <span className="text-6xl">{pub?.kind === "vote" ? "🗳️" : "🎤"}</span>
         <p className="text-2xl font-black">{pub?.kind === "vote" ? "Vote locked in!" : "Clue sent!"}</p>
         <p className="text-muted-foreground">{pub?.kind === "vote" ? "Waiting for everyone to vote…" : "Watch the big screen."}</p>

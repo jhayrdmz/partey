@@ -15,7 +15,7 @@ const secretOf = (secret: unknown) => (secret && typeof secret === "object" && "
 
 function CategoryChip({ category, className }: { category: ImpostorRound["category"]; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 font-bold text-muted-foreground", className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 font-bold text-muted-foreground", className)}>
       Category · <span className="text-foreground">{categoryLabel(category)}</span>
     </span>
   );
@@ -68,7 +68,7 @@ export function RoleCard({ me }: { me: { secret: unknown } | null }) {
   const impostor = secret.role === "impostor";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2 border-border bg-card/80">
+    <div className="relative overflow-hidden rounded-2xl border-2 border-border bg-card">
       <AnimatePresence mode="wait" initial={false}>
         {shown ? (
           <motion.div
@@ -77,21 +77,21 @@ export function RoleCard({ me }: { me: { secret: unknown } | null }) {
             animate={{ rotateX: 0, opacity: 1 }}
             exit={{ rotateX: -80, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className={cn("flex items-center gap-3 p-4", impostor ? "bg-gradient-to-br from-guava/40 to-primary/30" : "bg-gradient-to-br from-calamansi/25 to-sky/20")}
+            className={cn("flex items-center gap-3 p-4 text-background", impostor ? "bg-guava" : "bg-calamansi")}
           >
             <span className="text-4xl">{impostor ? "🕵️" : "🤫"}</span>
             <div className="min-w-0 flex-1">
               {impostor ? (
                 <>
-                  <p className="text-xl leading-tight font-black text-guava">You are the Impostor!</p>
-                  <p className="text-sm text-foreground/80">
+                  <p className="text-xl leading-tight font-black">You are the Impostor!</p>
+                  <p className="text-sm text-background/80">
                     Category: <b>{categoryLabel(secret.category)}</b>. Listen and blend in.
                   </p>
-                  {secret.partners.length > 0 && <p className="text-sm text-foreground/80">Also impostor: {secret.partners.map((p) => p.nickname).join(", ")}</p>}
+                  {secret.partners.length > 0 && <p className="text-sm text-background/80">Also impostor: {secret.partners.map((p) => p.nickname).join(", ")}</p>}
                 </>
               ) : (
                 <>
-                  <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Secret word · {categoryLabel(secret.category)}</p>
+                  <p className="text-xs font-bold tracking-wide text-background/70 uppercase">Secret word · {categoryLabel(secret.category)}</p>
                   <p className="truncate text-3xl leading-tight font-black">{secret.word}</p>
                 </>
               )}
@@ -146,10 +146,10 @@ export function ClueInput({ submit, submitting }: { submit: (answer: unknown) =>
         if (oneWord) submit({ clue: word });
       }}
     >
-      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-3xl bg-gradient-to-br from-mango/30 to-guava/30 p-5 text-center">
-        <Mic className="mx-auto size-10 text-mango" />
+      <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="rounded-3xl bg-mango p-5 text-center text-black">
+        <Mic className="mx-auto size-10" />
         <p className="mt-2 text-3xl font-black">Your turn!</p>
-        <p className="text-muted-foreground">Say one word out loud, then type it.</p>
+        <p className="text-black/70">Say one word out loud, then type it.</p>
       </motion.div>
       <input
         aria-label="Your one-word clue"
@@ -175,7 +175,7 @@ export function ClueInput({ submit, submitting }: { submit: (answer: unknown) =>
 export function Listening({ pub }: { pub: Extract<ImpostorRound, { kind: "turn" }> }) {
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <div className="flex flex-col items-center gap-2 rounded-3xl bg-card/60 p-5 text-center">
+      <div className="flex flex-col items-center gap-2 rounded-3xl bg-card p-5 text-center">
         <AvatarBubble avatar={pub.turnPlayer.avatar} size="lg" />
         <p className="text-2xl font-black">{pub.turnPlayer.nickname} is giving a clue</p>
         <p className="text-muted-foreground">Listen closely…</p>
@@ -205,7 +205,7 @@ export function VotePicker({ pub, uid, submit, submitting }: { pub: Extract<Impo
               aria-checked={selected}
               onClick={() => setChoice(c)}
               className={cn(
-                "relative flex flex-col items-center gap-1.5 rounded-2xl border-2 bg-card/70 p-3 transition-colors",
+                "relative flex flex-col items-center gap-1.5 rounded-2xl border-2 bg-card p-3 transition-colors",
                 selected ? "border-guava bg-guava/15" : "border-transparent",
               )}
             >
@@ -255,7 +255,7 @@ export function PlayerOutcome({ r, mine }: { r: Extract<ImpostorReveal, { kind: 
       </motion.div>
       <p className={cn("text-4xl font-black", won ? "text-calamansi" : "text-guava")}>{won ? "You win!" : "You lose!"}</p>
       <p className="text-lg font-bold">{o.winner === "crew" ? "The crew caught the impostor" : "The impostor got away"}</p>
-      <div className="w-full space-y-1 rounded-2xl bg-card/70 p-4">
+      <div className="w-full space-y-1 rounded-2xl bg-card p-4">
         <p className="text-sm text-muted-foreground">The secret word was</p>
         <p className="text-3xl font-black">{o.word}</p>
         <p className="text-sm text-muted-foreground">

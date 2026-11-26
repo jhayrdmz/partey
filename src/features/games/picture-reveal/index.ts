@@ -6,7 +6,7 @@ export const module: GameModule = {
   id: "picture-reveal",
   meta: GAMES["picture-reveal"],
   icon: ImageIcon,
-  art: { from: "#ca8a04", to: "#ea580c", emoji: "🖼️" },
+  art: { from: "#b9a6ff", to: "#b9a6ff", emoji: "🖼️" },
   interactions: ["multiple-choice", "text"],
   howToPlay: ["A hidden picture is revealed tile by tile.", "Lock in your guess whenever you are ready.", "The earlier you guess right, the more you score."],
 };

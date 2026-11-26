@@ -304,6 +304,7 @@ await host.getByRole("button", { name: "Pause" }).click();
 await tv.getByText("Paused", { exact: true }).first().waitFor({ timeout: 10000 });
 await byName[r2.artist].getByText("Paused", { exact: true }).first().waitFor({ timeout: 10000 });
 expect(true, "pause freezes the artist's canvas");
+await shot(host, "8b-host-paused");
 await byName[r2.guessers[0]].getByText("The host will resume the game shortly.").waitFor({ timeout: 10000 });
 expect(true, "guessers' phones get the same paused cover as the TV");
 await shot(byName[r2.guessers[0]], "8a-phone-paused");
@@ -338,6 +339,18 @@ expect(final.includes(g1), "final standings on the TV");
 await host.getByRole("button", { name: /Replay/ }).waitFor({ timeout: 15000 });
 expect(true, "host can replay or choose another game");
 await shot(host, "10-host-final");
+// "Change" (small, beside Replay) asks before leaving for the game library.
+await host.getByRole("button", { name: "Choose another game" }).click();
+const changeDlg = host.getByRole("dialog");
+await changeDlg.getByText("Choose another game?").waitFor();
+await shot(host, "10b-host-change-confirm");
+await changeDlg.getByRole("button", { name: /^Keep / }).click();
+await changeDlg.waitFor({ state: "hidden" });
+expect(host.url().endsWith(`/host/${roomId}`), "cancelling keeps the host in the lobby");
+await host.getByRole("button", { name: "Choose another game" }).click();
+await host.getByRole("dialog").getByRole("button", { name: "Choose another game" }).click();
+await host.waitForURL(/\/games$/, { timeout: 10000 });
+expect(true, "confirming opens the game library");
 
 await b.close();
 log("Draw & Guess E2E passed");

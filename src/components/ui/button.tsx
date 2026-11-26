@@ -8,16 +8,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-gradient-to-br from-primary to-[oklch(0.56_0.24_280)] text-primary-foreground shadow-lg shadow-primary/30 hover:brightness-110",
-        accent: "bg-gradient-to-br from-accent to-[oklch(0.6_0.2_240)] text-accent-foreground shadow-lg shadow-accent/30 hover:brightness-110",
-        party:
-          "bg-gradient-to-r from-mango via-guava to-primary text-white shadow-lg shadow-guava/30 hover:brightness-110",
+        // Flat fills, as in the design: yellow for the main action, coral for the secondary accent.
+        default: "bg-primary text-primary-foreground hover:brightness-105",
+        accent: "bg-accent text-accent-foreground hover:brightness-105",
+        party: "bg-primary text-primary-foreground font-bold hover:brightness-105",
         destructive: "bg-destructive text-destructive-foreground hover:brightness-110",
         outline: "border-2 border-border bg-transparent hover:bg-secondary hover:border-primary/50",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary/70",
-        link: "text-sky underline-offset-4 hover:underline",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         sm: "h-10 px-3 text-sm",

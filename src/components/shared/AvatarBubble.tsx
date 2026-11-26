@@ -26,7 +26,7 @@ export function AvatarBubble({
     <span className={cn("relative inline-grid shrink-0 place-items-center rounded-full", sizes[size], className)}>
       <span
         className="absolute inset-0 rounded-full ring-2 ring-white/15"
-        style={{ background: `radial-gradient(circle at 30% 25%, color-mix(in oklch, ${a.color} 85%, white), ${a.color})` }}
+        style={{ background: a.color }}
       />
       <span className="relative leading-none" role="img" aria-label={a.label}>
         {a.emoji}

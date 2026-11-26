@@ -146,7 +146,7 @@ export function DisplayPairScreen() {
         <div className="flex w-full items-center gap-3 text-sm font-semibold text-muted-foreground" aria-hidden>
           <span className="h-px flex-1 bg-border" /> or scan this QR code <span className="h-px flex-1 bg-border" />
         </div>
-        <div className="bg-white p-3 shadow-2xl shadow-sky/20">
+        <div className="bg-white p-3">
           <QRCodeSVG
             value={displayPairUrl(ticket.code)}
             size={176}

@@ -7,7 +7,7 @@ export const module: GameModule = {
   id: "speed-quiz",
   meta: GAMES["speed-quiz"],
   icon: Zap,
-  art: { from: "#7c3aed", to: "#2563eb", emoji: "⚡" },
+  art: { from: "#ff6b5b", to: "#ff6b5b", emoji: "⚡" },
   interactions: ["multiple-choice"],
   // "Disco Funk Fever" by Otomusu (https://otomusu.com/), royalty-free; credit is optional. Hosted on R2.
   music: mediaUrl(MEDIA.speedQuizMusic),

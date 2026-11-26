@@ -7,7 +7,7 @@ export const module: GameModule = {
   id: "reflex-battle",
   meta: GAMES["reflex-battle"],
   icon: Timer,
-  art: { from: "#dc2626", to: "#f59e0b", emoji: "🏁" },
+  art: { from: "#7fe0c8", to: "#7fe0c8", emoji: "🏁" },
   interactions: ["reaction"],
   showTimer: false,
   // "Space Cat's Slot Machine" by Otomusu (https://otomusu.com/), royalty-free; credit is optional. Hosted on R2.

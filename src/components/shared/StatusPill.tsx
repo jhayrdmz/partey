@@ -13,7 +13,7 @@ export function StatusPill({ online, onlineLabel = "Connected", offlineLabel = "
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold",
+        "inline-flex items-center gap-2 rounded-md px-3 py-1 text-xs font-bold",
         online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
         className,
       )}

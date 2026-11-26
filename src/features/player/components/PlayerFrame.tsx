@@ -24,7 +24,7 @@ export function PlayerFrame({
           <Logo size="sm" />
           <div className="flex items-center gap-2">
             {nickname && avatar && (
-              <span className="flex items-center gap-2 rounded-full bg-secondary/70 py-1 pr-3 pl-1">
+              <span className="flex items-center gap-2 rounded-md bg-secondary/70 py-1 pr-3 pl-1">
                 <AvatarBubble avatar={avatar} size="xs" />
                 <span className="max-w-28 truncate text-sm font-bold">{nickname}</span>
                 {score !== undefined && <span className="text-sm font-extrabold text-mango tabular-nums">{score}</span>}

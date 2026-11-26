@@ -40,7 +40,7 @@ export function HostHeader({ step, backTo, title, subtitle, right }: {
                   className={cn(
                     "grid size-7 place-items-center rounded-full text-xs font-bold transition-colors",
                     i < current && "bg-success/20 text-success",
-                    i === current && "bg-primary text-primary-foreground shadow-md shadow-primary/40",
+                    i === current && "bg-primary text-primary-foreground",
                     i > current && "bg-secondary text-muted-foreground",
                   )}
                 >

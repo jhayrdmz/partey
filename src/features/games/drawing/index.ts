@@ -6,7 +6,7 @@ export const module: GameModule = {
   id: "drawing",
   meta: GAMES["drawing"],
   icon: Brush,
-  art: { from: "#ea580c", to: "#db2777", emoji: "🎨" },
+  art: { from: "#7fe0c8", to: "#7fe0c8", emoji: "🎨" },
   interactions: ["drawing", "text"],
   multipleAttempts: true,
   loadViews: () => import("./views").then((m) => m.views),

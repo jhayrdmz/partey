@@ -21,7 +21,7 @@ export function DisplayChrome({ hostOnline }: { hostOnline: boolean }) {
   return (
     <>
       {!hostOnline && (
-        <div className="fixed top-3 left-1/2 z-40 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-full bg-warning px-4 py-1.5 text-center text-sm font-bold text-black shadow-lg sm:top-4 sm:px-5 sm:py-2 sm:text-lg">
+        <div className="fixed top-3 left-1/2 z-40 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-md bg-warning px-4 py-1.5 text-center text-sm font-bold text-black shadow-lg sm:top-4 sm:px-5 sm:py-2 sm:text-lg">
           Host disconnected — waiting for them to come back…
         </div>
       )}

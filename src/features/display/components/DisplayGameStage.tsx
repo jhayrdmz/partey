@@ -30,7 +30,7 @@ function RoundHeader({ state, game }: { state: DisplayStateDoc; game: PublicGame
           {meta?.showTimer === false ? <div className="hidden flex-1 sm:block" /> : <TimerBar endsAtMs={game.phaseEndsAtMs} durationMs={game.phaseDurationMs} paused={game.paused} remainingMs={game.remainingMs} size="lg" className="order-last basis-full sm:order-none sm:min-w-80 sm:flex-1 sm:basis-auto" />}
           {/* A one-person turn (e.g. The Impostor's clue) has no meaningful "answered" count. */}
           {game.eligible > 1 && (
-            <span className="ml-auto flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-lg font-extrabold tabular-nums sm:ml-0 sm:px-5 sm:py-3 sm:text-2xl short:py-1.5 short:text-lg">
+            <span className="ml-auto flex items-center gap-2 rounded-md bg-secondary px-3 py-1.5 text-lg font-extrabold tabular-nums sm:ml-0 sm:px-5 sm:py-3 sm:text-2xl short:py-1.5 short:text-lg">
               <Users className="size-5 sm:size-7 short:size-5" /> {game.submitted}/{game.eligible}
             </span>
           )}

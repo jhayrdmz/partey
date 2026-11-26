@@ -32,7 +32,7 @@ export function DisplayChoices({
             animate={{ opacity: reveal && !win ? 0.45 : 1, scale: 1 }}
             transition={{ delay: reveal ? 0 : i * 0.08 }}
             className={cn(
-              "relative flex min-h-[calc(5rem*var(--fit-c,1))] items-center gap-2.5 overflow-hidden rounded-2xl px-3 py-[calc(0.75rem*var(--fit-c,1))] text-white shadow-xl sm:min-h-[calc(6rem*var(--fit-c,1))] sm:gap-5 sm:rounded-3xl sm:px-6 sm:py-[calc(1.25rem*var(--fit-c,1))] lg:min-h-[calc(8rem*var(--fit-c,1))]",
+              "relative flex min-h-[calc(5rem*var(--fit-c,1))] items-center gap-2.5 overflow-hidden rounded-2xl px-3 py-[calc(0.75rem*var(--fit-c,1))] text-background sm:min-h-[calc(6rem*var(--fit-c,1))] sm:gap-5 sm:rounded-3xl sm:px-6 sm:py-[calc(1.25rem*var(--fit-c,1))] lg:min-h-[calc(8rem*var(--fit-c,1))]",
               s.bg,
             )}
           >
@@ -59,7 +59,7 @@ export function DisplayChoices({
             )}
             {/* Drawn inside the tile, on top of the count bar: an outer ring or a scale-up
                 would spill past the screen edge, where the fit-to-screen box clips it. */}
-            {win && <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] border-4 border-white/90 sm:border-[6px] lg:border-8" />}
+            {win && <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit] border-4 border-background sm:border-[6px] lg:border-8" />}
           </motion.div>
         );
       })}

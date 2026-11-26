@@ -32,9 +32,9 @@ export function GameCard({
       aria-pressed={mode === "freestyle" ? selected : undefined}
       aria-label={!playable ? `${game.meta.name} (coming soon)` : mode === "tournament" ? `Add ${game.meta.name} to lineup` : `Select ${game.meta.name}`}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-card/80 text-left transition-colors outline-none",
+        "group relative flex flex-col overflow-hidden rounded-2xl border-2 bg-card text-left transition-colors outline-none",
         "focus-visible:ring-4 focus-visible:ring-ring/50 active:scale-[0.98]",
-        selected ? "border-primary shadow-xl shadow-primary/25" : "border-border hover:border-primary/50",
+        selected ? "border-primary" : "border-border hover:border-primary/50",
         !playable && "cursor-not-allowed opacity-60 hover:border-border",
       )}
     >
@@ -42,7 +42,7 @@ export function GameCard({
       <span
         className={cn(
           "absolute top-3 right-3 grid min-w-10 place-items-center rounded-full px-2 py-2 text-sm font-extrabold shadow-lg transition",
-          selected ? "bg-primary text-white" : "bg-background/70 text-white backdrop-blur",
+          selected ? "bg-primary text-primary-foreground" : "bg-background/70 text-white backdrop-blur",
         )}
       >
         {!playable ? (

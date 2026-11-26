@@ -25,20 +25,14 @@ function RoleCard({ to, icon: Icon, title, description, cta, accent, delay }: Ro
         className={cn(
           "group relative flex h-full flex-col gap-4 overflow-hidden rounded-3xl border-2 p-6 transition-all outline-none sm:p-8",
           "glass hover:-translate-y-1 focus-visible:ring-4 focus-visible:ring-ring/50 active:scale-[0.99]",
-          accent === "primary" ? "border-primary/40 hover:border-primary" : "border-accent/40 hover:border-accent",
+          // The border is a darker shade of the card's own surface (#221d45), not an accent colour.
+          "border-[#17132f]",
         )}
       >
-        <div
-          aria-hidden
-          className={cn(
-            "absolute -top-16 -right-16 size-48 rounded-full opacity-40 blur-3xl transition-opacity group-hover:opacity-70",
-            accent === "primary" ? "bg-primary" : "bg-accent",
-          )}
-        />
         <span
           className={cn(
-            "grid size-14 place-items-center rounded-2xl text-white shadow-lg sm:size-16",
-            accent === "primary" ? "bg-gradient-to-br from-primary to-guava shadow-primary/40" : "bg-gradient-to-br from-accent to-sky shadow-accent/40",
+            "grid size-14 place-items-center rounded-2xl sm:size-16",
+            accent === "primary" ? "bg-mango text-black" : "bg-guava text-background",
           )}
         >
           <Icon className="size-7 sm:size-8" />
@@ -50,7 +44,7 @@ function RoleCard({ to, icon: Icon, title, description, cta, accent, delay }: Ro
         <span
           className={cn(
             "mt-auto inline-flex items-center gap-2 pt-2 text-lg font-bold",
-            accent === "primary" ? "text-[oklch(0.82_0.14_295)]" : "text-sky",
+            accent === "primary" ? "text-mango" : "text-guava",
           )}
         >
           {cta} <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
@@ -70,9 +64,9 @@ export function LandingScreen() {
             Party games on the big screen, played on your phone. Gather the barkada, pick your games, and battle for the crown.
           </p>
           <ul className="mt-5 flex flex-wrap gap-2 text-sm font-semibold text-muted-foreground">
-            <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Users className="size-4 text-mango" /> Up to {LIMITS.maxPlayersHardCap} players</li>
-            <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Smartphone className="size-4 text-calamansi" /> No app or account</li>
-            <li className="inline-flex items-center gap-1.5 rounded-full bg-secondary/70 px-3 py-1.5"><Crown className="size-4 text-guava" /> {GAME_LIST.length} games</li>
+            <li className="inline-flex items-center gap-1.5 rounded-md bg-secondary/70 px-3 py-1.5"><Users className="size-4 text-mango" /> Up to {LIMITS.maxPlayersHardCap} players</li>
+            <li className="inline-flex items-center gap-1.5 rounded-md bg-secondary/70 px-3 py-1.5"><Smartphone className="size-4 text-calamansi" /> No app or account</li>
+            <li className="inline-flex items-center gap-1.5 rounded-md bg-secondary/70 px-3 py-1.5"><Crown className="size-4 text-guava" /> {GAME_LIST.length} games</li>
           </ul>
         </motion.header>
 

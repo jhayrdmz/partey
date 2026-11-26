@@ -28,7 +28,7 @@ export function ChoiceButtons({
             disabled={disabled}
             onClick={() => onPick(i)}
             className={cn(
-              "flex min-h-16 items-center gap-4 rounded-2xl px-4 text-left text-lg font-extrabold text-white shadow-lg transition outline-none",
+              "flex min-h-16 items-center gap-4 rounded-2xl px-4 text-left text-lg font-extrabold text-background transition outline-none",
               "focus-visible:ring-4 focus-visible:ring-white/70 active:scale-[0.97] disabled:opacity-60",
               s.bg,
               selected === i && "ring-4 ring-white",

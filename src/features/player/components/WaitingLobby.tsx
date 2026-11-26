@@ -24,7 +24,7 @@ export function WaitingLobby({ room, nickname, avatar }: { room: RoomDoc; nickna
           </p>
         </div>
 
-        <div className="w-full space-y-3 rounded-2xl border bg-card/70 p-5 text-left">
+        <div className="w-full space-y-3 rounded-2xl border bg-card p-5 text-left">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Users className="size-5" /> {connected} player{connected === 1 ? "" : "s"} connected
           </div>

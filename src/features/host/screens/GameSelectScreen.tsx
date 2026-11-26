@@ -140,7 +140,7 @@ export function GameSelectScreen() {
           {/* Tablet landscape / desktop: persistent lineup sidebar. */}
           {mode === "tournament" && (
             <aside className="hidden lg:sticky lg:top-6 lg:block">
-              <div className="space-y-4 rounded-2xl border bg-card/80 p-5 backdrop-blur">
+              <div className="space-y-4 rounded-2xl border bg-card p-5 backdrop-blur">
                 <h2 className="flex items-center gap-2 text-lg font-extrabold">
                   <ListOrdered className="size-5 text-primary" /> Lineup
                 </h2>

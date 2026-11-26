@@ -138,7 +138,7 @@ function NextHint({ game, className }: { game: PublicGameState; className?: stri
 
 export function CategoryChip({ category, className }: { category: DrawRound["category"]; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 font-bold text-muted-foreground", className)}>
+    <span className={cn("inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1 font-bold text-muted-foreground", className)}>
       Category · <span className="text-foreground">{DRAW_CATEGORY_LABELS[category]}</span>
     </span>
   );
@@ -274,10 +274,11 @@ function ColorPicker({ color, eraser, onPick }: { color: string; eraser: boolean
 /** The artist's private prompt card. */
 export function PromptCard({ secret }: { secret: Extract<DrawSecret, { role: "artist" }> }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-mango/30 to-guava/30 px-4 py-2.5">
-      <Paintbrush className="size-6 shrink-0 text-mango" />
+    // A solid yellow card with dark text, like the design's colour cards.
+    <div className="flex items-center gap-3 rounded-2xl bg-mango px-4 py-2.5 text-black">
+      <Paintbrush className="size-6 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold tracking-wide text-muted-foreground uppercase">Draw this · {DRAW_CATEGORY_LABELS[secret.category]}</p>
+        <p className="text-xs font-bold tracking-wide text-black/70 uppercase">Draw this · {DRAW_CATEGORY_LABELS[secret.category]}</p>
         <p className="truncate text-2xl leading-tight font-black">{secret.word}</p>
       </div>
     </div>
@@ -508,7 +509,7 @@ export function GuessPad({ roomId, game, pub, submit, submitting, paused }: { ro
 
   return (
     <form className="flex flex-1 flex-col gap-3" onSubmit={send}>
-      <div className="flex flex-col gap-3 rounded-3xl bg-card/60 p-3">
+      <div className="flex flex-col gap-3 rounded-3xl bg-card p-3">
         <div className="flex items-start gap-3">
           {/* A small live copy of the big screen: half the phone's width, so the rest still fits. */}
           <LiveDrawing key={pub.drawingKey} roomId={roomId} drawingKey={pub.drawingKey} className="w-1/2 shrink-0 rounded-xl" label={`${pub.artist.nickname}'s drawing`} />
@@ -564,7 +565,7 @@ export function GuessPad({ roomId, game, pub, submit, submitting, paused }: { ro
       {attempts.length > 1 && (
         <ul className="flex flex-wrap justify-center gap-1.5" aria-label="Your wrong guesses">
           {attempts.slice(1).map((a, i) => (
-            <li key={`${a.text}-${i}`} className="rounded-full bg-secondary/70 px-2.5 py-0.5 text-sm text-muted-foreground line-through">
+            <li key={`${a.text}-${i}`} className="rounded-md bg-secondary/70 px-2.5 py-0.5 text-sm text-muted-foreground line-through">
               {a.text}
             </li>
           ))}
@@ -598,7 +599,7 @@ export function Guessed({ game, uid }: { game: PublicGameState; uid: string }) {
     if (navigator.vibrate) navigator.vibrate([40, 30, 80]);
   }, []);
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card/60 p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card p-6 text-center">
       <motion.span initial={{ scale: 0.3, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 220, damping: 12 }} className="grid size-24 place-items-center rounded-full bg-success/20">
         <Check className="size-14 text-success" />
       </motion.span>
@@ -787,7 +788,7 @@ export function HostDrawingPanel({ game, roomId }: { game: PublicGameState; room
             </p>
             <div className="flex flex-wrap gap-1.5">
               {sortedAnswerers(game).map((a) => (
-                <span key={a.playerId} className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-sm font-bold">
+                <span key={a.playerId} className="inline-flex items-center gap-1 rounded-md bg-success/15 px-2 py-0.5 text-sm font-bold">
                   <AvatarBubble avatar={a.avatar} size="xs" /> {a.nickname}
                 </span>
               ))}

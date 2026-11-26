@@ -19,7 +19,7 @@ export function AvatarPicker({ value, onChange }: { value: string; onChange: (id
               "focus-visible:ring-4 focus-visible:ring-ring/50 active:scale-90",
               selected ? "scale-105 ring-4 ring-primary" : "opacity-80 hover:opacity-100",
             )}
-            style={{ background: `radial-gradient(circle at 30% 25%, color-mix(in oklch, ${a.color} 80%, white), ${a.color})` }}
+            style={{ background: a.color }}
           >
             <span className="drop-shadow">{a.emoji}</span>
           </button>

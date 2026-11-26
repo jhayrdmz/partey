@@ -28,7 +28,7 @@ export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; pla
         {standings.slice(0, 5).map((s, i) => (
           <li
             key={s.playerId}
-            className={cn("flex items-center gap-3 rounded-2xl bg-card/70 p-3 text-left", s.playerId === playerId && "ring-2 ring-primary")}
+            className={cn("flex items-center gap-3 rounded-2xl bg-card p-3 text-left", s.playerId === playerId && "ring-2 ring-primary")}
           >
             <span className="w-6 text-center font-extrabold text-muted-foreground">{i + 1}</span>
             <AvatarBubble avatar={s.avatar} size="sm" />

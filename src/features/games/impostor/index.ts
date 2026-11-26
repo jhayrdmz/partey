@@ -8,7 +8,7 @@ export const module: GameModule = {
   id: "impostor",
   meta: GAMES["impostor"],
   icon: VenetianMask,
-  art: { from: "#be185d", to: "#7c3aed", emoji: "🕵️" },
+  art: { from: "#b9a6ff", to: "#b9a6ff", emoji: "🕵️" },
   music: mediaUrl(MEDIA.impostorMusic),
   interactions: ["private-clue", "text", "vote"],
   // Scores only change at the very end; a "Top scores" strip after every clue would be noise.

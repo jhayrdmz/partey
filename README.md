@@ -14,22 +14,20 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 ## Screenshots
 
 ![Landing page: choose Host a Game or Game Display](docs/screenshots/landing.png)
+<p align="center"><sub><b>Landing</b>: host a game or connect a screen</sub></p>
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/host-create-room.png" alt="Host creating a room on a phone" width="280"><br>
-      <sub><b>Host</b>: create a room from your phone</sub>
-    </td>
-    <td align="center" width="50%">
-      <img src="docs/screenshots/player-join.png" alt="Player entering a room code on a phone" width="280"><br>
-      <sub><b>Player</b>: join with the room code (or scan the QR)</sub>
-    </td>
-  </tr>
-</table>
+![Host lobby on a tablet: 12 players connected, a four-game tournament lineup and the Start tournament button](docs/screenshots/host-lobby.png)
+<p align="center"><sub><b>Host</b>: the lobby on a tablet, with 12 players in and a tournament lineup ready</sub></p>
+
+<p align="center">
+  <img src="docs/screenshots/player-speed-quiz.png" alt="A player's phone during Speed Quiz: the question, a timer and four coloured answer tiles" width="280"><br>
+  <sub><b>Player</b>: answering Speed Quiz on a phone</sub>
+</p>
 
 ![Display pairing screen on a TV: a 6-digit code and a QR code for the host](docs/screenshots/display-pairing.png)
 <p align="center"><sub><b>Display</b>: the TV shows a code; the host enters it or scans the QR</sub></p>
+
+To regenerate these, run the emulators and dev server, then `node scripts/screenshots.mjs` (needs Playwright).
 
 ---
 

@@ -32,7 +32,7 @@ function RoundResult({ me, totalRounds }: { me: PlayerPrivateDoc; totalRounds: n
       ) : (
         <p className="text-xl text-muted-foreground">Round skipped</p>
       )}
-      <div className="w-full rounded-2xl bg-card/70 p-5">
+      <div className="w-full rounded-2xl bg-card p-5">
         <p className="flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground">
           <Trophy className="size-4 text-mango" /> This game
         </p>
@@ -132,7 +132,7 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
 
 function Waiting({ icon: Icon, title, text }: { icon: React.ElementType; title: string; text: string }) {
   return (
-    <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card/60 text-center")}>
+    <div className={cn("flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl bg-card text-center")}>
       <Icon className="size-14 text-primary" />
       <p className="text-2xl font-black">{title}</p>
       <p className="text-muted-foreground">{text}</p>

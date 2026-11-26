@@ -10,9 +10,9 @@ import { FitToScreen } from "./FitToScreen";
 import type { StandingEntry as Standing } from "@shared/engine";
 
 const podiumStyle = [
-  { height: "h-36 sm:h-56 lg:h-72", color: "from-mango to-[oklch(0.7_0.17_60)]", label: "1st" },
-  { height: "h-28 sm:h-40 lg:h-52", color: "from-slate-300 to-slate-500", label: "2nd" },
-  { height: "h-24 sm:h-32 lg:h-40", color: "from-[oklch(0.7_0.12_50)] to-[oklch(0.55_0.12_45)]", label: "3rd" },
+  { height: "h-36 sm:h-56 lg:h-72", color: "bg-mango text-black", label: "1st" },
+  { height: "h-28 sm:h-40 lg:h-52", color: "bg-sky", label: "2nd" },
+  { height: "h-24 sm:h-32 lg:h-40", color: "bg-guava", label: "3rd" },
 ];
 
 /** Results / leaderboard / champion screens share one layout. */
@@ -74,10 +74,10 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   {place === 0 && <Crown className="size-9 text-mango sm:size-12" />}
                   <AvatarBubble avatar={s.avatar} size={place === 0 ? "xl" : "lg"} className={place === 0 ? "max-sm:size-20 max-sm:text-4xl" : "max-sm:size-14 max-sm:text-3xl"} />
                   <p className="max-w-full truncate text-base font-extrabold sm:text-xl lg:text-3xl">{s.nickname}</p>
-                  <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl bg-gradient-to-b pt-4 text-black", podiumStyle[place].height, podiumStyle[place].color)}>
+                  <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl pt-4 text-background", podiumStyle[place].height, podiumStyle[place].color)}>
                     <span className="text-2xl font-black sm:text-3xl lg:text-5xl">{podiumStyle[place].label}</span>
                     <span className="text-sm font-extrabold tabular-nums sm:text-xl lg:text-2xl">{s.score} pts</span>
-                    {s.delta !== undefined && <span className="mt-1 rounded-full bg-black/15 px-2 text-sm font-bold sm:px-3 sm:text-lg">+{s.delta}</span>}
+                    {s.delta !== undefined && <span className="mt-1 rounded-md bg-black/15 px-2 text-sm font-bold sm:px-3 sm:text-lg">+{s.delta}</span>}
                   </div>
                 </motion.div>
               ) : (

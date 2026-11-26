@@ -45,7 +45,7 @@ export function TimerBar({
     <div className={cn("flex items-center gap-3", className)} role="timer" aria-label={paused ? "Paused" : `${seconds} seconds left`}>
       <div className={cn("relative flex-1 overflow-hidden rounded-full bg-secondary", size === "lg" ? "h-4" : "h-2.5")}>
         <div
-          className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-100 ease-linear", urgent ? "bg-guava" : "bg-gradient-to-r from-sky to-primary")}
+          className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-100 ease-linear", urgent ? "bg-guava" : "bg-primary")}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -53,7 +53,7 @@ export function TimerBar({
         className={cn(
           "grid place-items-center rounded-full font-black tabular-nums",
           size === "lg" ? "size-20 text-4xl" : "size-11 text-lg",
-          urgent ? "bg-guava text-white" : "bg-secondary",
+          urgent ? "bg-guava text-background" : "bg-secondary",
         )}
       >
         {paused ? <Pause className={size === "lg" ? "size-9" : "size-5"} /> : seconds}

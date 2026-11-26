@@ -40,7 +40,7 @@ export function DisplayLobby({ room, players }: { room: RoomDoc; players: WithId
             <h2 className="flex items-center gap-3 text-xl font-extrabold sm:text-2xl lg:text-3xl">
               <Users className="size-6 text-mango sm:size-8" /> Players
             </h2>
-            <span className="rounded-full bg-primary/20 px-3 py-1 text-xl font-extrabold tabular-nums sm:px-4 sm:py-1.5 sm:text-2xl lg:text-3xl">{players.length}</span>
+            <span className="rounded-md bg-primary/20 px-3 py-1 text-xl font-extrabold tabular-nums sm:px-4 sm:py-1.5 sm:text-2xl lg:text-3xl">{players.length}</span>
           </div>
           {players.length === 0 ? (
             <div className="grid flex-1 place-items-center text-center">

@@ -52,8 +52,8 @@ export function CategoryFilter({
             aria-selected={category === c}
             onClick={() => onCategory(c)}
             className={cn(
-              "min-h-10 shrink-0 rounded-full border px-4 text-sm font-bold transition",
-              category === c ? "border-primary bg-primary text-white" : "border-border bg-secondary/50 text-muted-foreground hover:text-foreground",
+              "min-h-10 shrink-0 rounded-md border px-4 text-sm font-bold transition",
+              category === c ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/50 text-muted-foreground hover:text-foreground",
             )}
           >
             {c === "all" ? "All games" : CATEGORY_LABELS[c]}

@@ -19,7 +19,7 @@ export function ReactionPad({ goAtMs, paused, onTap, disabled }: { goAtMs: numbe
       className={cn(
         "flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl text-white shadow-2xl outline-none select-none",
         "focus-visible:ring-4 focus-visible:ring-white/70",
-        go ? "bg-success shadow-success/40" : "bg-destructive shadow-destructive/30",
+        go ? "bg-success" : "bg-destructive",
         paused && "bg-muted",
       )}
       aria-label={go ? "Tap now!" : "Wait for green"}

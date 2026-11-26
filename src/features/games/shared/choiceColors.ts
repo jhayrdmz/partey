@@ -1,9 +1,11 @@
 /** Option styling: color + letter (never color alone, for accessibility). */
 export const CHOICE_STYLES = [
-  { letter: "A", bg: "bg-[oklch(0.62_0.22_25)]", ring: "ring-[oklch(0.62_0.22_25)]", bar: "bg-[oklch(0.62_0.22_25)]" },
-  { letter: "B", bg: "bg-[oklch(0.58_0.2_255)]", ring: "ring-[oklch(0.58_0.2_255)]", bar: "bg-[oklch(0.58_0.2_255)]" },
-  { letter: "C", bg: "bg-[oklch(0.72_0.16_75)]", ring: "ring-[oklch(0.72_0.16_75)]", bar: "bg-[oklch(0.72_0.16_75)]" },
-  { letter: "D", bg: "bg-[oklch(0.62_0.17_150)]", ring: "ring-[oklch(0.62_0.17_150)]", bar: "bg-[oklch(0.62_0.17_150)]" },
+  // The design's four party colours; light fills, so tiles use dark text.
+  { letter: "A", bg: "bg-guava text-background", ring: "ring-guava", bar: "bg-guava" },
+  { letter: "B", bg: "bg-sky text-background", ring: "ring-sky", bar: "bg-sky" },
+  // Yellow fills always take black text.
+  { letter: "C", bg: "bg-mango text-black", ring: "ring-mango", bar: "bg-mango" },
+  { letter: "D", bg: "bg-calamansi text-background", ring: "ring-calamansi", bar: "bg-calamansi" },
 ] as const;
 
 export const choiceStyle = (i: number) => CHOICE_STYLES[i % CHOICE_STYLES.length];

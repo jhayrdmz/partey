@@ -32,9 +32,9 @@ export function GetReady({ state }: { state: DisplayStateDoc }) {
             initial={{ x: -16, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.15 + i * 0.1 }}
-            className="flex gap-3 rounded-2xl bg-card/70 p-4"
+            className="flex gap-3 rounded-2xl bg-card p-4"
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-extrabold">{i + 1}</span>
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-sm font-extrabold text-black">{i + 1}</span>
             <span className="pt-1">{step}</span>
           </motion.li>
         ))}

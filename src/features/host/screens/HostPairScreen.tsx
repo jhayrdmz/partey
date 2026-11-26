@@ -66,7 +66,7 @@ export function HostPairScreen() {
         <HostHeader backTo={`/host/${room.roomId}`} title="Connect this display?" subtitle="It will show your room's lobby, games and leaderboards." />
 
         <div className="mt-8 flex flex-1 flex-col">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card/70 p-6 text-center">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border bg-card p-6 text-center">
             <span className="grid size-16 place-items-center rounded-2xl bg-sky/15 text-sky">
               <Tv className="size-8" />
             </span>
