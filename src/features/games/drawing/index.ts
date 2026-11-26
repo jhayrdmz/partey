@@ -2,12 +2,14 @@ import { Brush } from "lucide-react";
 import { GAMES } from "@shared/games";
 import { MEDIA, mediaUrl } from "@/utils/media";
 import type { GameModule } from "../types";
+import cover from "./cover.webp";
+import thumb from "./icon.webp";
 
 export const module: GameModule = {
   id: "drawing",
   meta: GAMES["drawing"],
   icon: Brush,
-  art: { from: "#7fe0c8", to: "#7fe0c8", emoji: "🎨" },
+  art: { from: "#7fe0c8", cover, thumb },
   interactions: ["drawing", "text"],
   music: mediaUrl(MEDIA.drawingMusic),
   multipleAttempts: true,

@@ -2,12 +2,14 @@ import { Timer } from "lucide-react";
 import { GAMES } from "@shared/games";
 import type { GameModule } from "../types";
 import { MEDIA, mediaUrl } from "@/utils/media";
+import cover from "./cover.webp";
+import thumb from "./icon.webp";
 
 export const module: GameModule = {
   id: "reflex-battle",
   meta: GAMES["reflex-battle"],
   icon: Timer,
-  art: { from: "#7fe0c8", to: "#7fe0c8", emoji: "🏁" },
+  art: { from: "#7fe0c8", cover, thumb },
   interactions: ["reaction"],
   showTimer: false,
   // "Space Cat's Slot Machine" by Otomusu (https://otomusu.com/), royalty-free; credit is optional. Hosted on R2.

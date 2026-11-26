@@ -1,26 +1,21 @@
 import { cn } from "@/utils/cn";
 import type { GameModule } from "./types";
 
-/** Game artwork: a flat colour tile (the game's `art.from`), a big emoji and an icon watermark. */
-export function GameArt({ game, className, size = "md" }: { game: GameModule; className?: string; size?: "sm" | "md" | "lg" }) {
-  const Icon = game.icon;
+/** Game cover art (16:9, title baked in). Callers size it; keep a 16:9 box so the title isn't cropped. */
+export function GameArt({ game, className }: { game: GameModule; className?: string }) {
   return (
-    <div
+    <img
+      src={game.art.cover}
+      alt=""
       aria-hidden
-      className={cn("relative isolate overflow-hidden rounded-xl", className)}
+      decoding="async"
+      className={cn("block rounded-xl object-cover", className)}
       style={{ background: game.art.from }}
-    >
-      <Icon className="absolute -right-3 -bottom-3 size-[70%] max-h-24 rotate-[-12deg] text-background/15" strokeWidth={1.5} />
-      <span
-        className={cn(
-          "absolute inset-0 grid place-items-center",
-          size === "sm" && "text-2xl",
-          size === "md" && "text-5xl",
-          size === "lg" && "text-7xl md:text-8xl",
-        )}
-      >
-        {game.art.emoji}
-      </span>
-    </div>
+    />
   );
+}
+
+/** Small square game icon (transparent) for lineups, headers and "up next" chips. */
+export function GameThumb({ game, className }: { game: GameModule; className?: string }) {
+  return <img src={game.art.thumb} alt="" aria-hidden decoding="async" className={cn("block size-10 shrink-0 object-contain", className)} />;
 }

@@ -3,12 +3,14 @@ import type { ImpostorReveal, ImpostorRound } from "@shared/engine";
 import { GAMES } from "@shared/games";
 import { MEDIA, mediaUrl } from "@/utils/media";
 import type { GameModule } from "../types";
+import cover from "./cover.webp";
+import thumb from "./icon.webp";
 
 export const module: GameModule = {
   id: "impostor",
   meta: GAMES["impostor"],
   icon: VenetianMask,
-  art: { from: "#b9a6ff", to: "#b9a6ff", emoji: "🕵️" },
+  art: { from: "#b9a6ff", cover, thumb },
   music: mediaUrl(MEDIA.impostorMusic),
   interactions: ["private-clue", "text", "vote"],
   // Scores only change at the very end; a "Top scores" strip after every clue would be noise.

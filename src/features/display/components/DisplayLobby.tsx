@@ -4,6 +4,7 @@ import type { PlayerDoc, RoomDoc } from "@shared/types";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { JoinQr } from "@/components/shared/JoinQr";
 import { RoomCode } from "@/components/shared/RoomCode";
+import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import type { WithId } from "@/services/firebase";
 import { joinUrlLabel } from "@/utils/urls";
@@ -79,8 +80,8 @@ export function DisplayLobby({ room, players }: { room: RoomDoc; players: WithId
         {next && (
           <span className="text-muted-foreground">
             {isTournament ? `Game ${room.currentGameIndex + 1} of ${room.lineup.length}: ` : "Up next: "}
-            <span className="text-foreground">
-              {next.art.emoji} {next.meta.name}
+            <span className="inline-flex items-center gap-1.5 align-middle text-foreground">
+              <GameThumb game={next} className="size-[1.4em]" /> {next.meta.name}
             </span>
           </span>
         )}

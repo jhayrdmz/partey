@@ -2,6 +2,7 @@ import { Tv, Users } from "lucide-react";
 import { motion } from "motion/react";
 import type { RoomDoc } from "@shared/types";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
+import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import { WaitingBar } from "./WaitingBar";
 
@@ -33,7 +34,7 @@ export function WaitingLobby({ room, nickname, avatar }: { room: RoomDoc; nickna
           </div>
           {next && (
             <div className="flex items-center gap-3 rounded-xl bg-secondary/50 p-3 text-sm">
-              <span className="text-2xl">{next.art.emoji}</span>
+              <GameThumb game={next} className="size-9" />
               <span>
                 Up next: <span className="font-bold">{next.meta.name}</span>
               </span>

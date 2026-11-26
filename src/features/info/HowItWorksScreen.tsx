@@ -263,7 +263,7 @@ export function HowItWorksScreen() {
           <div className="grid gap-4 md:grid-cols-2">
             {PLAYABLE.map((g) => (
               <article key={g.id} className="flex flex-col overflow-hidden rounded-2xl bg-card">
-                <GameArt game={g} size="md" className="aspect-[16/7] w-full rounded-none" />
+                <GameArt game={g} className="aspect-video w-full rounded-none" />
                 <div className="flex flex-1 flex-col gap-4 p-6">
                   <div>
                     <h3 className="text-2xl font-extrabold">{g.meta.name}</h3>

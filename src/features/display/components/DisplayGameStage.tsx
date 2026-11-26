@@ -4,6 +4,7 @@ import type { DisplayStateDoc } from "@shared/types";
 import type { PublicGameState } from "@shared/engine";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { useGameViews } from "@/features/games/engine/useGameViews";
+import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import { TimerBar } from "@/features/games/shared/TimerBar";
 import { PausedOverlay } from "@/features/games/shared/PausedOverlay";
@@ -16,7 +17,7 @@ function RoundHeader({ state, game }: { state: DisplayStateDoc; game: PublicGame
   return (
     <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-8 sm:gap-y-4 short:gap-y-2">
       <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-        {meta && <span className="text-4xl sm:text-5xl short:text-3xl">{meta.art.emoji}</span>}
+        {meta && <GameThumb game={meta} className="size-12 sm:size-16 short:size-10" />}
         <div className="min-w-0">
           <p className="truncate text-xl font-extrabold sm:text-2xl short:text-lg">{meta?.meta.name}</p>
           <p className="text-base font-semibold text-muted-foreground sm:text-xl short:text-sm">

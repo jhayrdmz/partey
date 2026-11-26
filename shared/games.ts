@@ -10,6 +10,7 @@ export const GAME_IDS = [
   // Coming soon: keep last in the library.
   "picture-reveal",
   "survey-showdown",
+  "perfectly-hold",
 ] as const;
 
 export type GameId = (typeof GAME_IDS)[number];
@@ -121,6 +122,17 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 2,
     maxPlayers: 24,
     durationMin: 10,
+    playable: false,
+  },
+  "perfectly-hold": {
+    id: "perfectly-hold",
+    name: "Perfectly Hold",
+    tagline: "Hold tight. Release right.",
+    description: "Hold the button and let go the moment the meter hits the target zone. Closest release wins.",
+    category: "action",
+    minPlayers: 2,
+    maxPlayers: 24,
+    durationMin: 5,
     playable: false,
   },
 };

@@ -2,12 +2,14 @@ import { Shuffle } from "lucide-react";
 import { GAMES } from "@shared/games";
 import type { GameModule } from "../types";
 import { MEDIA, mediaUrl } from "@/utils/media";
+import cover from "./cover.webp";
+import thumb from "./icon.webp";
 
 export const module: GameModule = {
   id: "word-scramble",
   meta: GAMES["word-scramble"],
   icon: Shuffle,
-  art: { from: "#ff6b5b", to: "#ff6b5b", emoji: "🔤" },
+  art: { from: "#ff6b5b", cover, thumb },
   interactions: ["text"],
   // "遊園地のにぎやかな一日" (A lively day at the amusement park) by Otomusu, royalty-free. Hosted on R2.
   music: mediaUrl(MEDIA.wordScrambleMusic),

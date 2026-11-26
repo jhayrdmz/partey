@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { DRAW_CATEGORIES } from "@shared/engine";
 import { DRAW_CATEGORY_LABELS, SCRAMBLE_CATEGORY_LABELS, SCRAMBLE_DIFFICULTY_LABELS, categoryLabel, drawingSettings, impostorSettings, scrambleSettings, speedQuizSettings } from "@shared/gameSettings";
 import type { RoomDoc } from "@shared/types";
-import { GameArt } from "@/features/games/GameArt";
+import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -63,7 +63,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
               )}
             >
               {isTournament && <span className="w-5 text-center text-sm font-extrabold text-muted-foreground">{i + 1}</span>}
-              <GameArt game={game} size="sm" className="size-11 shrink-0" />
+              <GameThumb game={game} className="size-11" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{game.meta.name}</p>
                 <p className={cn("text-xs text-muted-foreground", summaries[entry.gameId] ? "line-clamp-2" : "truncate")}>{summaries[entry.gameId] ?? game.meta.tagline}</p>

@@ -15,8 +15,11 @@ export interface GameModule {
   id: GameId;
   meta: GameMeta;
   icon: LucideIcon;
-  /** Two CSS colors for the card artwork gradient. */
-  art: { from: string; to: string; emoji: string };
+  /**
+   * Artwork. `cover` is a 1280×720 image (title baked in) for cards and intros; `thumb` is a small
+   * square icon (transparent) for lineups and headers. `from` is the backdrop while images load.
+   */
+  art: { from: string; cover: string; thumb: string };
   howToPlay: string[];
   interactions: InteractionKind[];
   /** Show the round countdown (Reflex hides it: it would reveal when GO fires). */

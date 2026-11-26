@@ -14,7 +14,7 @@ export function GetReady({ state }: { state: DisplayStateDoc }) {
   return (
     <div className="flex flex-1 flex-col gap-6">
       <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
-        <GameArt game={game} size="lg" className="aspect-[16/10] w-full rounded-3xl" />
+        <GameArt game={game} className="aspect-video w-full rounded-3xl" />
       </motion.div>
       <div className="space-y-1 text-center">
         {state.gameNumber && state.totalGames && (

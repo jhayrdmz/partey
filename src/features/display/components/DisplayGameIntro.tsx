@@ -21,9 +21,9 @@ export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
         initial={{ scale: 0.7, rotate: -6, opacity: 0 }}
         animate={{ scale: 1, rotate: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 120, damping: 12 }}
-        className="mx-auto w-full max-w-[calc(30dvh*16/9)] sm:max-w-[calc(36dvh*4/3)] lg:max-w-[calc(70dvh*4/3)]"
+        className="mx-auto w-full max-w-[calc(30dvh*16/9)] sm:max-w-[calc(36dvh*16/9)] lg:max-w-[calc(60dvh*16/9)]"
       >
-        <GameArt game={game} size="lg" className="aspect-[16/9] w-full rounded-3xl sm:aspect-[4/3] sm:rounded-2xl [&>span]:text-[5rem] sm:[&>span]:text-[8rem] lg:[&>span]:text-[12rem]" />
+        <GameArt game={game} className="aspect-video w-full rounded-3xl sm:rounded-2xl" />
       </motion.div>
       <div className="space-y-5 sm:space-y-8">
         <motion.div initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>

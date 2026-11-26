@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, ListOrdered, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { getGame } from "@/features/games/registry";
-import { GameArt } from "@/features/games/GameArt";
+import { GameThumb } from "@/features/games/GameArt";
 import type { DraftEntry } from "@/stores/lineupDraftStore";
 import { Button } from "@/components/ui/button";
 
@@ -44,7 +44,7 @@ export function LineupEditor({
                 className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 p-2"
               >
                 <span className="w-6 text-center text-sm font-extrabold text-muted-foreground">{i + 1}</span>
-                <GameArt game={game} size="sm" className="size-9 shrink-0 [&>span]:text-lg" />
+                <GameThumb game={game} className="size-9" />
                 <span className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">{game.meta.name}</span>
                 <div className="flex shrink-0 items-center">
                   <Button size="icon-sm" variant="ghost" aria-label={`Move ${game.meta.name} up`} disabled={i === 0} onClick={() => onMove(entry.key, -1)}>
