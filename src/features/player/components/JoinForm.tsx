@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Loader2, PartyPopper } from "lucide-react";
 import { Link } from "react-router";
-import { LIMITS } from "@shared/constants";
+import { LIMITS, cleanName } from "@shared/constants";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { BottomBar } from "@/components/shared/BottomBar";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,8 @@ export function JoinForm({
   error: string | null;
 }) {
   const profile = usePlayerProfile();
-  const [nickname, setNickname] = useState(profile.nickname);
+  // A nickname saved before the current rules may be too long or have symbols: clean it up.
+  const [nickname, setNickname] = useState(() => cleanName(profile.nickname, LIMITS.nicknameMax));
   const [submitting, setSubmitting] = useState(false);
   const valid = nickname.trim().length >= LIMITS.nicknameMin;
 
@@ -67,10 +68,15 @@ export function JoinForm({
           placeholder="What should we call you?"
           maxLength={LIMITS.nicknameMax}
           value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
+          onChange={(e) => setNickname(cleanName(e.target.value, LIMITS.nicknameMax))}
           aria-invalid={Boolean(error) || undefined}
-          aria-describedby={error ? "join-error" : undefined}
+          aria-describedby={error ? "join-error" : "nickname-hint"}
         />
+        {!error && (
+          <p id="nickname-hint" className="text-sm text-muted-foreground">
+            Letters and numbers only, up to {LIMITS.nicknameMax} characters.
+          </p>
+        )}
         {error && (
           <p id="join-error" className="text-sm font-semibold text-destructive" role="alert">
             {error}

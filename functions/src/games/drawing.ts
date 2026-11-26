@@ -1,19 +1,17 @@
 import { randomInt } from "node:crypto";
 import type { DrawCategory, DrawReveal, DrawRound, DrawSecret, PlayerPick } from "../../../shared/engine";
 import { DRAWING_LIMITS, drawingSettings, type DrawingSettings } from "../../../shared/gameSettings";
-import { DRAW_POINTS, guessPoints } from "../../../shared/drawing";
+import { DRAW_POINTS, MAX_GUESS_LENGTH, guessPoints } from "../../../shared/drawing";
 
-export { DRAW_POINTS, guessPoints };
+export { DRAW_POINTS, MAX_GUESS_LENGTH, guessPoints };
 import { fail } from "../lib/errors";
-import { cleanText } from "../lib/validate";
+import { capRaw, cleanText } from "../lib/validate";
 import { generateId } from "../lib/codes";
 import type { EnginePlayer, GameHandler, ScoredRound } from "../engine/types";
 import { pickFresh, shuffle } from "../engine/random";
 import { ALL_DRAW_PROMPTS, type DrawPrompt } from "./drawingContent";
 
 
-/** Longest guess accepted (characters). */
-export const MAX_GUESS_LENGTH = 40;
 
 export interface DrawingSetup {
   /** Unique per game: namespaces this game's strokes in the Realtime Database. */
@@ -168,6 +166,7 @@ export const drawing: GameHandler<DrawingSetup, DrawRound, Secret> = {
   validate(answer) {
     const raw = (answer as { guess?: unknown } | null)?.guess;
     if (typeof raw !== "string") fail("invalid-argument", "Type your guess.");
+    capRaw(raw, MAX_GUESS_LENGTH, "Guesses");
     const guess = cleanText(raw);
     if (!guess) fail("invalid-argument", "Type your guess.");
     if ([...guess].length > MAX_GUESS_LENGTH) fail("invalid-argument", `Guesses are at most ${MAX_GUESS_LENGTH} characters.`);

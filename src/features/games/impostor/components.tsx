@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Check, Eye, EyeOff, Lock, Mic, Send, VenetianMask, Vote } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ImpostorClue, ImpostorReveal, ImpostorRound, ImpostorSecret, PlayerPick } from "@shared/engine";
-import { categoryLabel } from "@shared/gameSettings";
+import { IMPOSTOR_LIMITS, categoryLabel } from "@shared/gameSettings";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/utils/cn";
@@ -154,8 +154,8 @@ export function ClueInput({ submit, submitting }: { submit: (answer: unknown) =>
       <input
         aria-label="Your one-word clue"
         value={clue}
-        onChange={(e) => setClue(e.target.value.replace(/\s+/g, ""))}
-        maxLength={24}
+        onChange={(e) => setClue(e.target.value.replace(/\s+/g, "").slice(0, IMPOSTOR_LIMITS.clue.max))}
+        maxLength={IMPOSTOR_LIMITS.clue.max}
         autoFocus
         autoComplete="off"
         autoCorrect="off"

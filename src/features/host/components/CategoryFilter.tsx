@@ -4,6 +4,9 @@ import { CATEGORY_LABELS } from "@/features/games/registry";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils/cn";
 
+/** Longest search text (no game name comes close). */
+const SEARCH_MAX = 40;
+
 export function CategoryFilter({
   category,
   onCategory,
@@ -25,7 +28,8 @@ export function CategoryFilter({
           aria-label="Search games"
           placeholder="Search games"
           value={search}
-          onChange={(e) => onSearch(e.target.value)}
+          maxLength={SEARCH_MAX}
+          onChange={(e) => onSearch(e.target.value.slice(0, SEARCH_MAX))}
           className="h-12 pl-12 text-base"
         />
         {search && (

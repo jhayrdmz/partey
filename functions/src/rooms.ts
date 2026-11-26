@@ -16,7 +16,7 @@ const opts = { region: REGION, cors: true } as const;
 export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> => {
   const uid = requireUid(req);
   const data = v.asObject(req.data);
-  const roomName = v.text(data, "roomName", LIMITS.roomNameMin, LIMITS.roomNameMax, "Room name");
+  const roomName = v.name(data, "roomName", LIMITS.roomNameMin, LIMITS.roomNameMax, "Room name");
 
   const ref = db.collection(ROOMS).doc();
   for (let attempt = 0; attempt < 8; attempt++) {

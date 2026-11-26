@@ -63,6 +63,8 @@ export const IMPOSTOR_LIMITS = {
   maxPlayers: { min: 3, max: 24, default: 12 },
   /** Custom secret word length (characters, spaces included). */
   customWord: { min: 2, max: 30 },
+  /** A clue: one word, up to this many characters. */
+  clue: { max: 24 },
   /** Fewest players the game can start with. */
   minPlayers: 3,
 } as const;

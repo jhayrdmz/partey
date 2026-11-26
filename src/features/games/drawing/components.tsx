@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, Eraser, Hand, Lightbulb, Loader2, Paintbrush, Pencil, Send, Trash2, TriangleAlert, Undo2, X } from "lucide-react";
 import { Popover } from "radix-ui";
 import { AnimatePresence, motion } from "motion/react";
-import { DRAW_SIZE, guessPoints, DRAW_POINTS, type DrawAccess } from "@shared/drawing";
+import { DRAW_SIZE, MAX_GUESS_LENGTH, guessPoints, DRAW_POINTS, type DrawAccess } from "@shared/drawing";
 import type { DrawReveal, DrawRound, DrawSecret, PlayerPick, PublicGameState, SubmitAnswerResponse } from "@shared/engine";
 import { DRAW_CATEGORY_LABELS } from "@shared/gameSettings";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
@@ -532,8 +532,8 @@ export function GuessPad({ roomId, game, pub, submit, submitting, paused }: { ro
           ref={inputRef}
           aria-label="Your guess"
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={40}
+          onChange={(e) => setText(e.target.value.slice(0, MAX_GUESS_LENGTH))}
+          maxLength={MAX_GUESS_LENGTH}
           autoFocus
           autoComplete="off"
           autoCorrect="off"

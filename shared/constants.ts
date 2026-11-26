@@ -33,9 +33,9 @@ export const PAIRING_CODE_LENGTH = 6;
 
 export const LIMITS = {
   roomNameMin: 2,
-  roomNameMax: 40,
+  roomNameMax: 30,
   nicknameMin: 1,
-  nicknameMax: 16,
+  nicknameMax: 12,
   /** Default room capacity (games without their own player limit). */
   maxPlayersPerRoom: 24,
   /** Highest player limit a host can set in game options. */
@@ -52,3 +52,19 @@ export const LIMITS = {
 /** Default tournament placement points: index 0 = first place. */
 export const DEFAULT_PLACEMENT_POINTS = [100, 60, 30] as const;
 export const DEFAULT_OTHER_PLACEMENT_POINTS = 10;
+
+/**
+ * Room names and nicknames: letters (any language, e.g. "Niño") and numbers, with single spaces
+ * between words. No symbols or emoji. Lengths come from LIMITS.
+ */
+export const NAME_PATTERN = /^[\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u;
+
+/**
+ * Clean a name as it's typed: drops symbols and emoji, collapses spaces, no leading space, and
+ * cuts it to `max` characters (counted as characters, not UTF-16 units). A trailing space is kept
+ * so the next word can be typed; trim before submitting.
+ */
+export function cleanName(raw: string, max: number): string {
+  const cleaned = raw.normalize("NFC").replace(/[^\p{L}\p{N} ]/gu, "").replace(/ {2,}/g, " ").replace(/^ /, "");
+  return [...cleaned].slice(0, max).join("");
+}

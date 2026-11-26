@@ -119,7 +119,7 @@ function OptionsForm({ room, roomId, onDone }: { room: RoomDoc; roomId: string; 
                   placeholder={wordLoading ? "Loading…" : "e.g. Pizza"}
                   disabled={wordLoading}
                   value={word}
-                  onChange={(e) => setWord(e.target.value)}
+                  onChange={(e) => setWord(e.target.value.slice(0, L.customWord.max))}
                   aria-invalid={wordInvalid && word.length > 0}
                   aria-describedby="imp-custom-word-hint"
                   className="pr-14"

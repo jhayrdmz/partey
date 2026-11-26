@@ -1,6 +1,7 @@
 import { IMPOSTOR_CATEGORIES, type ImpostorCategory, type ImpostorClue, type ImpostorOutcome, type ImpostorReveal, type ImpostorRound, type ImpostorSecret, type PlayerPick } from "../../../shared/engine";
 import { IMPOSTOR_LIMITS, impostorSettings, maxImpostorsFor, type ImpostorHostSecret, type ImpostorSettings } from "../../../shared/gameSettings";
 import { fail } from "../lib/errors";
+import { capRaw } from "../lib/validate";
 import type { EngineSubmission, GameHandler, ScoredRound } from "../engine/types";
 import { pickFresh, shuffle } from "../engine/random";
 import { ALL_IMPOSTOR_WORDS } from "./impostorContent";
@@ -175,6 +176,7 @@ export const impostor: GameHandler<ImpostorSetup, ImpostorRound, Secret> = {
     const a = (answer ?? {}) as Record<string, unknown>;
     if (pub.kind === "turn") {
       if (typeof a.clue !== "string") fail("invalid-argument", "Type your clue.");
+      capRaw(a.clue, IMPOSTOR_LIMITS.clue.max, "Clues");
       const clue = a.clue.trim().replace(/\s+/g, " ");
       if (!/^[\p{L}\p{N}][\p{L}\p{N}'’-]{0,23}$/u.test(clue)) fail("invalid-argument", "One word only, no spaces (up to 24 letters).");
       // Only the crew knows the word; rejecting an impostor's guess would tell them it's right.

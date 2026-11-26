@@ -57,3 +57,6 @@ export const DRAW_POINTS = {
 export function guessPoints(order: number): number {
   return DRAW_POINTS.byOrder[order] ?? DRAW_POINTS.rest;
 }
+
+/** Longest guess accepted (characters). The phone stops typing here; the server refuses more. */
+export const MAX_GUESS_LENGTH = 40;

@@ -18,7 +18,7 @@ export const joinRoom = onCall(opts, async (req): Promise<JoinRoomResponse> => {
   const uid = requireUid(req);
   const data = v.asObject(req.data);
   const code = v.roomCode(data);
-  const nickname = v.text(data, "nickname", LIMITS.nicknameMin, LIMITS.nicknameMax, "Nickname");
+  const nickname = v.name(data, "nickname", LIMITS.nicknameMin, LIMITS.nicknameMax, "Nickname");
   const avatar = v.avatar(data);
 
   const codeSnap = await db.collection(ROOM_CODES).doc(code).get();

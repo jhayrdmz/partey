@@ -1,6 +1,6 @@
 /** Input validation for callable payloads. Every failure is an "invalid-argument" with a user-facing message. */
 import { AVATAR_IDS } from "../../../shared/avatars";
-import { LIMITS, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
+import { LIMITS, NAME_PATTERN, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
 import { DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
@@ -14,6 +14,14 @@ export function asObject(data: unknown): Data {
   return data as Data;
 }
 
+/**
+ * Refuse a raw string far longer than any valid value before cleaning or matching it, so a huge
+ * payload costs nothing. Generous: room for spaces and invisible characters that get stripped.
+ */
+export function capRaw(raw: string, max: number, label: string): void {
+  if (raw.length > max * 4 + 32) fail("invalid-argument", `${label} must be at most ${max} characters.`);
+}
+
 /** Strip control and invisible characters, collapse whitespace, trim. */
 export function cleanText(raw: string): string {
   return raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
@@ -23,10 +31,18 @@ export function cleanText(raw: string): string {
 export function text(data: Data, key: string, min: number, max: number, label: string): string {
   const raw = data[key];
   if (typeof raw !== "string") fail("invalid-argument", `${label} is required.`);
+  capRaw(raw, max, label);
   const value = cleanText(raw);
   const length = [...value].length;
   if (length < min) fail("invalid-argument", min <= 1 ? `${label} is required.` : `${label} must be at least ${min} characters.`);
   if (length > max) fail("invalid-argument", `${label} must be at most ${max} characters.`);
+  return value;
+}
+
+/** A room name or nickname: `text` rules plus letters and numbers only (single spaces between words). */
+export function name(data: Data, key: string, min: number, max: number, label: string): string {
+  const value = text(data, key, min, max, label).normalize("NFC");
+  if (!NAME_PATTERN.test(value)) fail("invalid-argument", `${label} can only use letters and numbers.`);
   return value;
 }
 
@@ -65,7 +81,7 @@ export function lineup(data: Data): GameId[] {
 /** Player room code; case-insensitive, ignores spaces. */
 export function roomCode(data: Data): string {
   const raw = data.roomCode;
-  const code = typeof raw === "string" ? raw.replace(/\s+/g, "").toUpperCase() : "";
+  const code = typeof raw === "string" && raw.length <= 32 ? raw.replace(/\s+/g, "").toUpperCase() : "";
   if (code.length !== ROOM_CODE_LENGTH || [...code].some((c) => !ROOM_CODE_ALPHABET.includes(c))) {
     fail("invalid-argument", `Room codes are ${ROOM_CODE_LENGTH} letters. Check the code on the big screen.`);
   }
@@ -75,7 +91,7 @@ export function roomCode(data: Data): string {
 /** Display pairing code; digits only, ignores spaces and dashes. */
 export function pairingCode(data: Data): string {
   const raw = data.code;
-  const code = typeof raw === "string" ? raw.replace(/[\s-]/g, "") : "";
+  const code = typeof raw === "string" && raw.length <= 32 ? raw.replace(/[\s-]/g, "") : "";
   if (!new RegExp(`^\\d{${PAIRING_CODE_LENGTH}}$`).test(code)) fail("invalid-argument", `Enter the ${PAIRING_CODE_LENGTH}-digit code shown on the host's screen.`);
   return code;
 }
@@ -132,6 +148,7 @@ export function drawingSettings(value: unknown): DrawingSettings {
   if (!(DRAW_SECONDS_OPTIONS as readonly unknown[]).includes(drawSeconds)) fail("invalid-argument", `Pick a drawing time: ${DRAW_SECONDS_OPTIONS.join(", ")} seconds.`);
   if (!(HINT_SECONDS_OPTIONS as readonly unknown[]).includes(hintSeconds)) fail("invalid-argument", `Pick letter hints: off or every ${HINT_SECONDS_OPTIONS.filter(Boolean).join(", ")} seconds.`);
   if (!Array.isArray(categories) || categories.length === 0) fail("invalid-argument", "Pick at least one category.");
+  if (categories.length > DRAW_CATEGORIES.length) fail("invalid-argument", "Too many categories.");
   if (categories.some((c) => !(DRAW_CATEGORIES as readonly unknown[]).includes(c))) fail("invalid-argument", "Unknown category.");
   if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
   // Stored in the catalog's order, without duplicates.
