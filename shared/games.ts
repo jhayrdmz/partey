@@ -6,8 +6,9 @@ export const GAME_IDS = [
   "majority",
   "drawing",
   "word-scramble",
-  "picture-reveal",
   "reflex-battle",
+  // Coming soon: keep last in the library.
+  "picture-reveal",
   "survey-showdown",
 ] as const;
 
