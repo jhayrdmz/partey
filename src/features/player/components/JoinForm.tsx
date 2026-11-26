@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Loader2, PartyPopper } from "lucide-react";
 import { Link } from "react-router";
-import { LIMITS, cleanName } from "@shared/constants";
+import { LIMITS, cleanName, finishName } from "@shared/constants";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { BottomBar } from "@/components/shared/BottomBar";
 import { Button } from "@/components/ui/button";
@@ -27,15 +27,16 @@ export function JoinForm({
   // A nickname saved before the current rules may be too long or have symbols: clean it up.
   const [nickname, setNickname] = useState(() => cleanName(profile.nickname, LIMITS.nicknameMax));
   const [submitting, setSubmitting] = useState(false);
-  const valid = nickname.trim().length >= LIMITS.nicknameMin;
+  const finished = finishName(nickname);
+  const valid = finished.length >= LIMITS.nicknameMin;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid || submitting) return;
     setSubmitting(true);
-    profile.setNickname(nickname.trim());
+    profile.setNickname(finished);
     try {
-      await onJoin(nickname.trim(), profile.avatar);
+      await onJoin(finished, profile.avatar);
     } finally {
       setSubmitting(false);
     }
@@ -74,7 +75,7 @@ export function JoinForm({
         />
         {!error && (
           <p id="nickname-hint" className="text-sm text-muted-foreground">
-            Letters and numbers only, up to {LIMITS.nicknameMax} characters.
+            Letters and numbers (a space or hyphen between words), up to {LIMITS.nicknameMax} characters.
           </p>
         )}
         {error && (

@@ -28,7 +28,7 @@
 
 ## Callable functions (`functions/src`)
 
-**Input limits.** Every callable starts with `requireUid`, which also refuses request bodies over 8 KB (`MAX_REQUEST_BYTES`). Every text field has a fixed maximum, checked on the server and mirrored by `maxLength` on the matching input: nickname 12, room name 30 (both letters, numbers and single spaces only), display name 40, Impostor clue 24 and custom word 30, Draw & Guess guess 40, host game search 40 (client only). Raw strings far over their limit are refused before they're cleaned or matched (`capRaw`), and arrays in game options are capped too. Draw & Guess strokes are limited by the RTDB rules (only the current artist, ≤ 2,400 characters per chunk).
+**Input limits.** Every callable starts with `requireUid`, which also refuses request bodies over 8 KB (`MAX_REQUEST_BYTES`). Every text field has a fixed maximum, checked on the server and mirrored by `maxLength` on the matching input: nickname 12, room name 30 (both letters and numbers, with a single space or hyphen between words), display name 40, Impostor clue 24 and custom word 30, Draw & Guess guess 40, host game search 40 (client only). Raw strings far over their limit are refused before they're cleaned or matched (`capRaw`), and arrays in game options are capped too. Draw & Guess strokes are limited by the RTDB rules (only the current artist, ≤ 2,400 characters per chunk).
 
 | Function | Caller | Notes |
 |---|---|---|

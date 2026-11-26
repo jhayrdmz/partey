@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, History, Loader2, PartyPopper } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
-import { LIMITS, cleanName } from "@shared/constants";
+import { LIMITS, cleanName, finishName } from "@shared/constants";
 import { Backdrop } from "@/components/shared/Backdrop";
 import { BottomBar } from "@/components/shared/BottomBar";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ export function CreateRoomScreen() {
       cancelled = true;
     };
   }, [user]);
-  const trimmed = roomName.trim();
+  const trimmed = finishName(roomName);
   const valid = trimmed.length >= LIMITS.roomNameMin;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -67,7 +67,7 @@ export function CreateRoomScreen() {
               aria-describedby="room-name-hint"
             />
             <p id="room-name-hint" className="text-sm text-muted-foreground">
-              Letters and numbers only, up to {LIMITS.roomNameMax} characters.
+              Letters and numbers (a space or hyphen between words), up to {LIMITS.roomNameMax} characters.
             </p>
             <div className="flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (

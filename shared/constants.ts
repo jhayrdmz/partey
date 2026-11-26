@@ -54,17 +54,28 @@ export const DEFAULT_PLACEMENT_POINTS = [100, 60, 30] as const;
 export const DEFAULT_OTHER_PLACEMENT_POINTS = 10;
 
 /**
- * Room names and nicknames: letters (any language, e.g. "Niño") and numbers, with single spaces
- * between words. No symbols or emoji. Lengths come from LIMITS.
+ * Room names and nicknames: letters (any language, e.g. "Niño") and numbers, with a single space or
+ * hyphen between words ("Year-end Party"). No other symbols or emoji. Lengths come from LIMITS.
  */
-export const NAME_PATTERN = /^[\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u;
+export const NAME_PATTERN = /^[\p{L}\p{N}]+(?:[ -][\p{L}\p{N}]+)*$/u;
 
 /**
- * Clean a name as it's typed: drops symbols and emoji, collapses spaces, no leading space, and
- * cuts it to `max` characters (counted as characters, not UTF-16 units). A trailing space is kept
- * so the next word can be typed; trim before submitting.
+ * Clean a name as it's typed: drops symbols and emoji, keeps one space or hyphen between words
+ * (a run like " - " becomes "-"), nothing leading, and cuts it to `max` characters (counted as
+ * characters, not UTF-16 units). A trailing space or hyphen is kept so the next word can be
+ * typed; pass the result through `finishName` before submitting.
  */
 export function cleanName(raw: string, max: number): string {
-  const cleaned = raw.normalize("NFC").replace(/[^\p{L}\p{N} ]/gu, "").replace(/ {2,}/g, " ").replace(/^ /, "");
+  const cleaned = raw
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N} -]/gu, "")
+    .replace(/[ -]*-[ -]*/g, "-")
+    .replace(/ {2,}/g, " ")
+    .replace(/^[ -]+/, "");
   return [...cleaned].slice(0, max).join("");
+}
+
+/** A typed name ready to submit: no trailing space or hyphen. */
+export function finishName(name: string): string {
+  return name.replace(/[ -]+$/, "");
 }

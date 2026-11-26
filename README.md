@@ -16,8 +16,8 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 ![Landing page: choose Host a Game or Game Display](docs/screenshots/landing.png)
 <p align="center"><sub><b>Landing</b>: host a game or connect a screen</sub></p>
 
-![Host lobby on a tablet: 12 players connected, a four-game tournament lineup and the Start tournament button](docs/screenshots/host-lobby.png)
-<p align="center"><sub><b>Host</b>: the lobby on a tablet, with 12 players in and a tournament lineup ready</sub></p>
+![Host lobby on a tablet: 10 players connected, a four-game tournament lineup and the Start tournament button](docs/screenshots/host-lobby.png)
+<p align="center"><sub><b>Host</b>: the lobby on a tablet, with 10 players in and a tournament lineup ready</sub></p>
 
 <p align="center">
   <img src="docs/screenshots/player-speed-quiz.png" alt="A player's phone during Speed Quiz: the question, a timer and four coloured answer tiles" width="280"><br>

@@ -4,10 +4,10 @@
  *
  *   landing.png             landing page, desktop 1440×900
  *   display-pairing.png     TV waiting to be paired (code + QR), 1920×1080
- *   host-lobby.png          host lobby with 12 players, landscape tablet 1180×820 @2x (visible area)
+ *   host-lobby.png          host lobby with 10 players, landscape tablet 1180×820 @2x (visible area)
  *   player-speed-quiz.png   a player answering Speed Quiz, phone 390×844 @2x
  *
- * Eleven players join straight through the Auth + Functions emulators (fast); the twelfth is a
+ * Nine players join straight through the Auth + Functions emulators (fast); the tenth is a
  * real phone browser, used for the Speed Quiz shot. The local emulators never fire the RTDB
  * presence trigger (its region differs from the emulated database's), so for the lobby shot the
  * seeded players are marked online directly in the Firestore emulator. Local emulators only.
@@ -26,11 +26,12 @@ const FIRESTORE = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(defau
 fs.mkdirSync(OUT, { recursive: true });
 const log = (...a) => console.log("•", ...a);
 
+const ROOM_NAME = "StealthDev Year-end Party";
 const PLAYERS = [
-  ["Ana", "mango"], ["Ben", "carabao"], ["Carlo", "jeep"], ["Dani", "eagle"], ["Ella", "turtle"], ["Franco", "fish"],
-  ["Gabby", "rooster"], ["Hiro", "cat"], ["Isa", "octopus"], ["Jun", "frog"], ["Kat", "star"],
+  ["Mac", "mango"], ["Jolo", "carabao"], ["Penpen", "jeep"], ["Mayk", "eagle"], ["Benj", "turtle"],
+  ["Ralph", "fish"], ["Aeizen", "rooster"], ["Albert", "cat"], ["Norman", "octopus"],
 ];
-const PHONE_PLAYER = ["Lito", "rocket"];
+const PHONE_PLAYER = ["Olym", "rocket"];
 
 async function json(url, init) {
   const res = await fetch(url, init);
@@ -73,10 +74,10 @@ await tv.screenshot({ path: `${OUT}/display-pairing.png` });
 log("display-pairing.png");
 const pairCode = (await tv.getByLabel(/^Pairing code /).getAttribute("aria-label")).replace("Pairing code ", "").replace(/ /g, "");
 
-// ── 3. Host lobby, 12 players, tablet ───────────────────────────────────
+// ── 3. Host lobby, 10 players, tablet ───────────────────────────────────
 const host = await page({ viewport: { width: 1180, height: 820 }, deviceScaleFactor: 2, hasTouch: true });
 await host.goto(`${BASE}/host`);
-await host.getByLabel("Room name").fill("Barkada Game Night");
+await host.getByLabel("Room name").fill(ROOM_NAME);
 await host.getByRole("button", { name: "Continue" }).click();
 await host.waitForURL(/\/mode$/, { timeout: 30000 });
 const roomId = host.url().split("/host/")[1].split("/")[0];
@@ -101,7 +102,7 @@ await phone.getByLabel("Nickname").fill(PHONE_PLAYER[0]);
 await phone.getByRole("radio", { name: /Rocket/ }).click();
 await phone.getByRole("button", { name: "Join the party" }).click();
 await phone.getByText(`Hi, ${PHONE_PLAYER[0]}!`).waitFor();
-log("12 players joined");
+log(`${PLAYERS.length + 1} players joined`);
 
 // Mark everyone online (see the note at the top) so the lobby shows them connected.
 const players = await json(`${FIRESTORE}/rooms/${roomId}/players?pageSize=50`, { headers: { authorization: "Bearer owner" } });
@@ -110,7 +111,7 @@ await patchDoc(`rooms/${roomId}`, { connectedPlayerCount: { integerValue: String
 const sessions = await json(`${FIRESTORE}/rooms/${roomId}/displaySessions`, { headers: { authorization: "Bearer owner" } });
 for (const d of sessions.documents ?? []) await patchDoc(d.name.split("/documents/")[1], { connected: { booleanValue: true } });
 
-await host.getByText("12 online").waitFor({ timeout: 15000 });
+await host.getByText(`${PLAYERS.length + 1} online`).waitFor({ timeout: 15000 });
 await host.waitForTimeout(1200);
 // What a landscape tablet shows without scrolling. Hide leftover toasts (e.g. "display connected").
 await host.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" });

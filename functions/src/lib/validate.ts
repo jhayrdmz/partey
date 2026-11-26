@@ -42,7 +42,7 @@ export function text(data: Data, key: string, min: number, max: number, label: s
 /** A room name or nickname: `text` rules plus letters and numbers only (single spaces between words). */
 export function name(data: Data, key: string, min: number, max: number, label: string): string {
   const value = text(data, key, min, max, label).normalize("NFC");
-  if (!NAME_PATTERN.test(value)) fail("invalid-argument", `${label} can only use letters and numbers.`);
+  if (!NAME_PATTERN.test(value)) fail("invalid-argument", `${label} can only use letters and numbers (with a space or hyphen between words).`);
   return value;
 }
 
