@@ -29,6 +29,8 @@ A real-time multiplayer party game platform. One device **hosts**, a TV or table
 
 To regenerate these, run the emulators and dev server, then `node scripts/screenshots.mjs` (needs Playwright).
 
+The favicon is `public/favicon.svg`. The social share image (`public/og-image.png`, 1200×630) and the PNG app icons are rendered from it and the brand fonts by `node scripts/brand-images.mjs` (needs Playwright); rerun it after changing either.
+
 ---
 
 ## Quick start (local, no Firebase account needed)

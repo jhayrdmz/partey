@@ -1,0 +1,8 @@
+# Partey: index the public pages; rooms (host, player and display screens) are private and short-lived.
+User-agent: *
+Allow: /
+Disallow: /host
+Disallow: /play
+Disallow: /display
+
+Sitemap: https://joinpartey.com/sitemap.xml

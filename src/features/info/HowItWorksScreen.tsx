@@ -2,7 +2,6 @@
  * /how-it-works: the full guide (three screens, setup, modes, every game, scoring, tips) and FAQ.
  * Follows the "How it works" artboard of the Partey design canvas. Static: no Firebase needed.
  */
-import { useEffect } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Crown, Lightbulb, Monitor, Repeat, Smartphone, Trophy, Tv, Users } from "lucide-react";
 import { Link } from "react-router";
 import { DEFAULT_OTHER_PLACEMENT_POINTS, DEFAULT_PLACEMENT_POINTS, EXPIRY, HOST_LIMITS, HOUR_MS, LIMITS, MINUTE_MS } from "@shared/constants";
@@ -12,6 +11,7 @@ import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { GameArt } from "@/features/games/GameArt";
 import { GAME_LIST } from "@/features/games/registry";
+import { usePageMeta } from "@/hooks/usePageMeta";
 import { cn } from "@/utils/cn";
 
 const PLAYABLE = GAME_LIST.filter((g) => g.meta.playable);
@@ -64,7 +64,7 @@ const STEPS = [
   { title: "Start!", text: "Tap Start. Each game opens with a short how-to-play, then the rounds run themselves; you can pause or skip any time." },
 ] as const;
 
-const FAQ: { q: string; a: React.ReactNode }[] = [
+const FAQ: { q: string; a: string }[] = [
   {
     q: "Do players need to install an app or make an account?",
     a: "No. Partey runs in the browser. Players scan the QR code or type the room code, pick a nickname and an avatar, and they're in.",
@@ -130,14 +130,21 @@ function SectionTitle({ eyebrow, title, accent, id }: { eyebrow: string; title: 
   );
 }
 
+/** FAQ as schema.org FAQPage (eligible for FAQ rich results). Built from the same list the page shows. */
+const FAQ_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+};
+
 export function HowItWorksScreen() {
-  useEffect(() => {
-    const previous = document.title;
-    document.title = "How Partey works · Party games on your phone";
-    return () => {
-      document.title = previous;
-    };
-  }, []);
+  usePageMeta({
+    title: "How Partey works: guide and FAQ",
+    description:
+      "How to host a Partey game night: create a room, connect your TV, and everyone joins on their phone with a QR code. Game modes, every game's rules and scoring, tips and FAQ.",
+    path: "/how-it-works",
+    jsonLd: FAQ_LD,
+  });
 
   return (
     <Backdrop>

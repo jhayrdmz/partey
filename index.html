@@ -2,13 +2,62 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#0b0b24" />
-    <meta name="description" content="Partey — party games on the big screen, played on your phone. Tara, laro!" />
-    <title>Partey — Tara, laro!</title>
+    <title>Partey: party games on the big screen, played on your phone</title>
+    <meta name="description" content="Free party games for game night, classrooms and the holidays. One host, one TV, and everyone plays on their phone: Speed Quiz, The Impostor, Draw & Guess and more. No app, no accounts. Tara, laro!" />
+    <link rel="canonical" href="https://joinpartey.com/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#15122e" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="Partey" />
+    <meta name="apple-mobile-web-app-title" content="Partey" />
+
+    <!-- Open Graph (Facebook, Messenger, LinkedIn, Discord…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Partey" />
+    <meta property="og:url" content="https://joinpartey.com/" />
+    <meta property="og:title" content="Partey: party games on the big screen, played on your phone" />
+    <meta property="og:description" content="One host, one TV, and everyone plays on their phone. Speed Quiz, The Impostor, Draw & Guess and more. No app, no accounts. Tara, laro!" />
+    <meta property="og:image" content="https://joinpartey.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Partey. Tara, laro! Party games on the big screen, played on your phone. No app to install, no accounts, scan and play." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Partey: party games on the big screen, played on your phone" />
+    <meta name="twitter:description" content="One host, one TV, and everyone plays on their phone. No app, no accounts. Tara, laro!" />
+    <meta name="twitter:image" content="https://joinpartey.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Partey. Tara, laro! Party games on the big screen, played on your phone." />
+
+    <!-- Structured data: what Partey is, for search engines -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Partey",
+        "alternateName": "Partey: Tara, laro!",
+        "url": "https://joinpartey.com/",
+        "description": "Real-time party games on the big screen, played on your phone. One host, one TV, and everyone plays: no app, no accounts.",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires a modern web browser with JavaScript.",
+        "inLanguage": "en",
+        "image": "https://joinpartey.com/og-image.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
   <body>
+    <noscript>Partey needs JavaScript to run. Party games on the big screen, played on your phone.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
