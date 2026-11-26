@@ -11,7 +11,7 @@ export const module: GameModule = {
   art: { from: "#3a4255", cover, thumb },
   interactions: ["reaction"],
   howToPlay: [
-    "Hold the tap on your phone to pour. Your glass fills on the big screen.",
+    "Players take turns. On your turn, hold the tap on your phone to pour while everyone watches the big screen.",
     "Let go as close to the MAX line as you dare.",
     "Closest pour wins. Overflow and you score nothing.",
   ],
