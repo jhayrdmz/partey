@@ -16,6 +16,8 @@ const router = createBrowserRouter([
     hydrateFallbackElement: <LoadingScreen />,
     children: [
       { path: "/", element: <LandingScreen /> },
+      // Static guide + FAQ: no Firebase needed.
+      { path: "/how-it-works", lazy: async () => ({ Component: (await import("@/features/info/HowItWorksScreen")).HowItWorksScreen }) },
       {
         element: <RequireFirebase />,
         children: [

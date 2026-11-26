@@ -1,4 +1,4 @@
-import { ArrowRight, Crown, MonitorPlay, Smartphone, Tv, Users } from "lucide-react";
+import { CircleHelp, ArrowRight, Crown, MonitorPlay, Smartphone, Tv, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { LIMITS } from "@shared/constants";
 import { Link } from "react-router";
@@ -59,7 +59,18 @@ export function LandingScreen() {
     <Backdrop>
       <main className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-4 pt-10 pb-8 sm:px-6 sm:pt-16 lg:justify-center">
         <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 sm:mb-12">
-          <Logo size="lg" tagline />
+          <div className="flex items-start justify-between gap-4">
+            <Logo size="lg" tagline />
+            {/* Centred on the wordmark line (48px, 60px from sm), not on wordmark + tagline. */}
+            <nav aria-label="Site" className="mt-0.5 shrink-0 sm:mt-2">
+              <Link
+                to="/how-it-works"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-secondary/50 px-3.5 text-sm font-semibold text-muted-foreground transition hover:border-primary/60 hover:text-foreground"
+              >
+                <CircleHelp className="size-4 text-mango" /> How it works
+              </Link>
+            </nav>
+          </div>
           <p className="mt-5 max-w-xl text-lg text-foreground/80 sm:text-xl">
             Party games on the big screen, played on your phone. Gather the barkada, pick your games, and battle for the crown.
           </p>
