@@ -136,10 +136,10 @@ export function HostControls({
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmChange(false)}>
-              Keep {game?.meta.name ?? "this game"}
+              Keep this game
             </Button>
             <Button onClick={() => navigate(`/host/${roomId}/games`)}>
-              <Shuffle /> Choose another game
+              <Shuffle /> Choose another
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -344,11 +344,11 @@ await host.getByRole("button", { name: "Choose another game" }).click();
 const changeDlg = host.getByRole("dialog");
 await changeDlg.getByText("Choose another game?").waitFor();
 await shot(host, "10b-host-change-confirm");
-await changeDlg.getByRole("button", { name: /^Keep / }).click();
+await changeDlg.getByRole("button", { name: "Keep this game" }).click();
 await changeDlg.waitFor({ state: "hidden" });
 expect(host.url().endsWith(`/host/${roomId}`), "cancelling keeps the host in the lobby");
 await host.getByRole("button", { name: "Choose another game" }).click();
-await host.getByRole("dialog").getByRole("button", { name: "Choose another game" }).click();
+await host.getByRole("dialog").getByRole("button", { name: "Choose another", exact: true }).click();
 await host.waitForURL(/\/games$/, { timeout: 10000 });
 expect(true, "confirming opens the game library");
 
