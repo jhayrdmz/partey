@@ -20,6 +20,8 @@ export interface StandingEntry {
   score: number;
   /** Change this game (tournament leaderboard: placement points awarded). */
   delta?: number;
+  /** A game's per-player stat for the final results, e.g. "7 words solved" (Word Scramble). */
+  detail?: string;
 }
 
 /** Live game info inside displayState (public). */
@@ -216,6 +218,38 @@ export type DrawSecret = { role: "artist"; word: string; category: DrawCategory 
 
 export type DrawAnswer = { guess: string };
 
+/* ─── Word Scramble ────────────────────────────────────────────────────── */
+
+export const SCRAMBLE_CATEGORIES = ["general", "animals", "food", "technology", "geography", "science", "sports", "entertainment"] as const;
+export type ScrambleCategory = (typeof SCRAMBLE_CATEGORIES)[number];
+export const SCRAMBLE_DIFFICULTIES = ["easy", "medium", "hard"] as const;
+export type ScrambleDifficulty = (typeof SCRAMBLE_DIFFICULTIES)[number];
+
+/** Public round data: the scramble only, never the word. Same for every player. */
+export interface ScrambleRound {
+  /** Shuffled letters, uppercase (never in the word's own order). */
+  letters: string[];
+  category: ScrambleCategory;
+  difficulty: ScrambleDifficulty;
+  /** Hints revealed so far (when hints are on): a letter in its place in the answer. */
+  hints: { index: number; letter: string }[];
+  /** Minimum time between one player's guesses. */
+  cooldownMs: number;
+  /** The host turned on the speed bonus (so phones can show exact points as soon as they solve it). */
+  speedBonus: boolean;
+}
+
+export interface ScrambleReveal {
+  word: string;
+  category: ScrambleCategory;
+  /** Correct answers, in order. `points` includes any speed bonus. */
+  solvers: (PlayerPick & { ms: number; points: number; bonus: number })[];
+  /** How many could answer. */
+  eligible: number;
+}
+
+export type ScrambleAnswer = { guess: string };
+
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
 export type ChoiceAnswer = { choice: number };
@@ -235,6 +269,8 @@ export interface SubmitAnswerResponse {
   correct?: boolean;
   /** A wrong guess that was nearly right ("So close!"). */
   close?: boolean;
+  /** Games with a guess cooldown (Word Scramble): server-clock ms when this player may guess again. */
+  retryAtMs?: number;
 }
 
 export interface TickGameRequest {

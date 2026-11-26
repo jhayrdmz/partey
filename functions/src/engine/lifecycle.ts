@@ -17,6 +17,9 @@ const displayRef = (roomId: string) => roomRef(roomId).collection("displayState"
 const privateRef = (roomId: string, uid: string) => roomRef(roomId).collection("private").doc(uid);
 export const submissionRef = (roomId: string, entryId: string, round: number, uid: string) =>
   roomRef(roomId).collection("submissions").doc(`${entryId}_${round}_${uid}`);
+/** Last attempt time for games with a guess cooldown (one doc per player per round). */
+export const attemptRef = (roomId: string, entryId: string, round: number, uid: string) =>
+  roomRef(roomId).collection("attempts").doc(`${entryId}_${round}_${uid}`);
 const submissionsQuery = (roomId: string, entryId: string, round: number) =>
   roomRef(roomId).collection("submissions").where("entryId", "==", entryId).where("round", "==", round);
 
@@ -297,7 +300,10 @@ function writeReveal(
 export function finalizeGame(tx: Transaction, ctx: GameCtx, nowMs: number) {
   const { gs, room, roomId } = ctx;
   const isTournament = room.gameMode === "tournament";
-  const gameStandings = standingsFrom(gs.scores, ctx.players);
+  const gameStandings = standingsFrom(gs.scores, ctx.players).map((s) => {
+    const detail = ctx.handler.standingDetail?.(gs.setup, s.playerId);
+    return detail ? { ...s, detail } : s;
+  });
   const awarded = isTournament ? placementPoints(gameStandings, room.scoring) : new Map<string, number>();
 
   for (const p of ctx.players) {
@@ -309,7 +315,11 @@ export function finalizeGame(tx: Transaction, ctx: GameCtx, nowMs: number) {
 
   const overall: StandingEntry[] = isTournament
     ? ctx.players
-        .map((p) => ({ ...p, score: (ctx.roomScores[p.playerId] ?? 0) + (awarded.get(p.playerId) ?? 0), delta: awarded.get(p.playerId) ?? 0 }))
+        .map((p) => {
+          // This game's stat (e.g. "7 words solved") rides along on the tournament leaderboard too.
+          const detail = gameStandings.find((g) => g.playerId === p.playerId)?.detail;
+          return { ...p, score: (ctx.roomScores[p.playerId] ?? 0) + (awarded.get(p.playerId) ?? 0), delta: awarded.get(p.playerId) ?? 0, ...(detail ? { detail } : {}) };
+        })
         .sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname))
     : gameStandings;
 

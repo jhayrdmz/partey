@@ -1,5 +1,6 @@
 import { Brush } from "lucide-react";
 import { GAMES } from "@shared/games";
+import { MEDIA, mediaUrl } from "@/utils/media";
 import type { GameModule } from "../types";
 
 export const module: GameModule = {
@@ -8,6 +9,7 @@ export const module: GameModule = {
   icon: Brush,
   art: { from: "#7fe0c8", to: "#7fe0c8", emoji: "🎨" },
   interactions: ["drawing", "text"],
+  music: mediaUrl(MEDIA.drawingMusic),
   multipleAttempts: true,
   loadViews: () => import("./views").then((m) => m.views),
   hostControls: (game) => {

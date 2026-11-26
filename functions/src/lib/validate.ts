@@ -2,7 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, NAME_PATTERN, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
@@ -154,4 +154,26 @@ export function drawingSettings(value: unknown): DrawingSettings {
   // Stored in the catalog's order, without duplicates.
   const chosen = DRAW_CATEGORIES.filter((c) => (categories as unknown[]).includes(c)) as DrawCategory[];
   return { rounds, drawSeconds: drawSeconds as DrawingSettings["drawSeconds"], hintSeconds: hintSeconds as DrawingSettings["hintSeconds"], categories: chosen, maxPlayers };
+}
+
+/** Word Scramble options from the lobby form. Every field is required. */
+export function scrambleSettings(value: unknown): ScrambleSettings {
+  const data = asObject(value);
+  const { rounds, roundSeconds, difficulty, category, hints, speedBonus, maxPlayers } = data;
+  const L = SCRAMBLE_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!(SCRAMBLE_SECONDS_OPTIONS as readonly unknown[]).includes(roundSeconds)) fail("invalid-argument", `Pick a round time: ${SCRAMBLE_SECONDS_OPTIONS.join(", ")} seconds.`);
+  if (!(SCRAMBLE_DIFFICULTY_OPTIONS as readonly unknown[]).includes(difficulty)) fail("invalid-argument", "Pick a difficulty.");
+  if (!(SCRAMBLE_CATEGORY_OPTIONS as readonly unknown[]).includes(category)) fail("invalid-argument", "Pick a category.");
+  if (typeof hints !== "boolean" || typeof speedBonus !== "boolean") fail("invalid-argument", "Invalid hint or speed bonus option.");
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  return {
+    rounds,
+    roundSeconds: roundSeconds as ScrambleSettings["roundSeconds"],
+    difficulty: difficulty as ScrambleSettings["difficulty"],
+    category: category as ScrambleSettings["category"],
+    hints,
+    speedBonus,
+    maxPlayers,
+  };
 }

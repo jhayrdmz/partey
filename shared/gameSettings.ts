@@ -3,7 +3,7 @@
  * Cloud Functions (validation, game setup, join cap). Keep free of runtime dependencies.
  */
 import { LIMITS } from "./constants";
-import { DRAW_CATEGORIES, IMPOSTOR_CATEGORIES, type DrawCategory, type ImpostorCategory } from "./engine";
+import { DRAW_CATEGORIES, IMPOSTOR_CATEGORIES, SCRAMBLE_CATEGORIES, type DrawCategory, type ImpostorCategory } from "./engine";
 import type { GameId } from "./games";
 import type { GameMode, LineupEntry } from "./types";
 
@@ -155,11 +155,98 @@ export const DRAW_CATEGORY_LABELS: Record<DrawCategory, string> = {
   filipino: "Filipino Culture",
 };
 
+/* ─── Word Scramble ────────────────────────────────────────────────────── */
+
+export const SCRAMBLE_ROUND_PRESETS = [5, 10, 15] as const;
+export const SCRAMBLE_SECONDS_OPTIONS = [15, 20, 30, 45] as const;
+export type ScrambleSeconds = (typeof SCRAMBLE_SECONDS_OPTIONS)[number];
+export const SCRAMBLE_DIFFICULTY_OPTIONS = ["easy", "medium", "hard", "mixed"] as const;
+export type ScrambleDifficultyOption = (typeof SCRAMBLE_DIFFICULTY_OPTIONS)[number];
+export const SCRAMBLE_CATEGORY_OPTIONS = ["random", ...SCRAMBLE_CATEGORIES] as const;
+export type ScrambleCategoryOption = (typeof SCRAMBLE_CATEGORY_OPTIONS)[number];
+
+export interface ScrambleSettings {
+  /** Words in the game: 5, 10, 15 or a custom number. */
+  rounds: number;
+  roundSeconds: ScrambleSeconds;
+  difficulty: ScrambleDifficultyOption;
+  category: ScrambleCategoryOption;
+  /** Reveal the first letter halfway through, and the last with a quarter of the time left. */
+  hints: boolean;
+  /** Up to SCRAMBLE_POINTS.speedBonusMax extra for answering early. */
+  speedBonus: boolean;
+  /** New players can't join while Word Scramble is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const SCRAMBLE_LIMITS = {
+  rounds: { min: 3, max: 30, default: 10 },
+  roundSeconds: { default: 30 as ScrambleSeconds },
+  maxPlayers: { min: 1, max: 24, default: 24 },
+  /** Fixed: one guess every 5 seconds per player (enforced by the server). */
+  cooldownMs: 5_000,
+  /** Longest guess accepted. */
+  guessMax: 24,
+} as const;
+
+/** Points by correct-answer order (1st, 2nd, 3rd, then everyone after), plus the optional speed bonus. */
+export const SCRAMBLE_POINTS = {
+  byOrder: [100, 75, 50],
+  rest: 25,
+  /** With speed bonus on: up to this many extra, in proportion to the time left. */
+  speedBonusMax: 50,
+} as const;
+
+export const DEFAULT_SCRAMBLE_SETTINGS: ScrambleSettings = {
+  rounds: SCRAMBLE_LIMITS.rounds.default,
+  roundSeconds: SCRAMBLE_LIMITS.roundSeconds.default,
+  difficulty: "mixed",
+  category: "random",
+  hints: true,
+  speedBonus: false,
+  maxPlayers: SCRAMBLE_LIMITS.maxPlayers.default,
+};
+
+export function scrambleSettings(stored?: Partial<ScrambleSettings> | null): ScrambleSettings {
+  return { ...DEFAULT_SCRAMBLE_SETTINGS, ...stored };
+}
+
+export const SCRAMBLE_CATEGORY_LABELS: Record<ScrambleCategoryOption, string> = {
+  random: "Random",
+  general: "General Vocabulary",
+  animals: "Animals",
+  food: "Food",
+  technology: "Technology",
+  geography: "Geography",
+  science: "Science",
+  sports: "Sports",
+  entertainment: "Entertainment",
+};
+
+export const SCRAMBLE_DIFFICULTY_LABELS: Record<ScrambleDifficultyOption, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  mixed: "Mixed",
+};
+
+/** Points for the n-th correct answer (0-based), before any speed bonus. */
+export function scramblePoints(order: number): number {
+  return SCRAMBLE_POINTS.byOrder[order] ?? SCRAMBLE_POINTS.rest;
+}
+
+/** Speed bonus: up to SCRAMBLE_POINTS.speedBonusMax, in proportion to the time left. Same on server and phones. */
+export function scrambleSpeedBonus(elapsedMs: number, durationMs: number): number {
+  const left = Math.max(0, Math.min(1, 1 - elapsedMs / Math.max(1, durationMs)));
+  return Math.round(SCRAMBLE_POINTS.speedBonusMax * left);
+}
+
 /** Settings stored on the room, keyed by game. */
 export interface GameSettingsMap {
   "speed-quiz"?: SpeedQuizSettings;
   impostor?: ImpostorSettings;
   drawing?: DrawingSettings;
+  "word-scramble"?: ScrambleSettings;
 }
 
 /** Settings with defaults filled in (rooms created before options existed have none). */
@@ -187,6 +274,7 @@ export function roomPlayerCap(room: {
   if (upcoming === "speed-quiz") return speedQuizSettings(room.gameSettings?.["speed-quiz"]).maxPlayers;
   if (upcoming === "impostor") return impostorSettings(room.gameSettings?.impostor).maxPlayers;
   if (upcoming === "drawing") return drawingSettings(room.gameSettings?.drawing).maxPlayers;
+  if (upcoming === "word-scramble") return scrambleSettings(room.gameSettings?.["word-scramble"]).maxPlayers;
   return LIMITS.maxPlayersPerRoom;
 }
 

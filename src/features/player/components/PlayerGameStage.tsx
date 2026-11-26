@@ -10,7 +10,7 @@ import { TimerBar } from "@/features/games/shared/TimerBar";
 import { PausedOverlay } from "@/features/games/shared/PausedOverlay";
 import { getGame } from "@/features/games/registry";
 import { useLiveDoc } from "@/hooks/useFirestore";
-import { call, errorMessage, refs } from "@/services/firebase";
+import { call, errorDetails, errorMessage, refs } from "@/services/firebase";
 import { playSound } from "@/utils/sound";
 import { cn } from "@/utils/cn";
 import { GetReady } from "./GetReady";
@@ -88,6 +88,9 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
       // Rejected (e.g. "That's the secret word!"): unlock so the player can try again.
       // The server is idempotent, so a retry can never count twice.
       lockedRound.current = null;
+      // Guessed too soon (server cooldown): the game shows its own countdown instead of a toast.
+      const retryAtMs = errorDetails<{ retryAtMs?: number }>(err)?.retryAtMs;
+      if (typeof retryAtMs === "number") return { accepted: false, correct: false, retryAtMs };
       toast.error(errorMessage(err));
       return null;
     } finally {

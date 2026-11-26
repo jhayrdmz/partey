@@ -7,7 +7,7 @@ import { assertHost } from "../lib/rooms";
 import * as v from "../lib/validate";
 import { REGION } from "../config";
 import {
-  advance, countSubmissions, gameStateRef, hostGameAction, loadGameCtx, loadSubmissions, pauseGame, resumeGame, runRoundEvent, skipRound, submissionRef, type GameCtx,
+  advance, attemptRef, countSubmissions, gameStateRef, hostGameAction, loadGameCtx, loadSubmissions, pauseGame, resumeGame, runRoundEvent, skipRound, submissionRef, type GameCtx,
 } from "./lifecycle";
 
 const opts = { region: REGION, cors: true } as const;
@@ -69,9 +69,24 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
     // Already answered (for multi-attempt games: already guessed right). Never scores twice.
     if ((await tx.get(ref)).exists) return { accepted: false, entryId: gs.entryId, eligible: gs.eligibleIds.length };
     const answer = handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup });
-    // Multi-attempt rounds: a wrong guess is answered right away and leaves no trace.
+    // Guess cooldown (per player, per round), checked here so a client can't skip it.
+    const cooldown = handler.attemptCooldownMs ?? 0;
+    let retryAtMs: number | undefined;
+    if (cooldown > 0) {
+      const aRef = attemptRef(roomId, gs.entryId, gs.round, uid);
+      const last = (await tx.get(aRef)).get("lastAtMs") as number | undefined;
+      if (last !== undefined && receivedAtMs - last < cooldown) {
+        const waitS = Math.ceil((last + cooldown - receivedAtMs) / 1000);
+        fail("resource-exhausted", `Wait ${waitS}s before guessing again.`, { retryAtMs: last + cooldown });
+      }
+      tx.set(aRef, { entryId: gs.entryId, round: gs.round, playerId: uid, lastAtMs: receivedAtMs });
+      retryAtMs = receivedAtMs + cooldown;
+    }
+    // Multi-attempt rounds: a wrong guess is answered right away; nothing is stored but the cooldown.
     const verdict = handler.check?.(answer, gs.roundPublic, gs.roundSecret);
-    if (verdict && !verdict.correct) return { accepted: false, correct: false, close: verdict.close === true, entryId: gs.entryId, eligible: gs.eligibleIds.length };
+    if (verdict && !verdict.correct) {
+      return { accepted: false, correct: false, close: verdict.close === true, retryAtMs, entryId: gs.entryId, eligible: gs.eligibleIds.length };
+    }
 
     tx.create(ref, { entryId: gs.entryId, round: gs.round, playerId: uid, answer, submittedAtMs: receivedAtMs });
     tx.set(roomRef(roomId).collection("private").doc(uid), { answered: true, answer }, { merge: true });
@@ -96,6 +111,7 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
     accepted: result.accepted,
     ...("correct" in result ? { correct: result.correct } : {}),
     ...("close" in result && result.close ? { close: true } : {}),
+    ...("retryAtMs" in result && result.retryAtMs ? { retryAtMs: result.retryAtMs } : {}),
   };
 });
 

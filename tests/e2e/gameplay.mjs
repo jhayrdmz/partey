@@ -33,7 +33,7 @@ try {
   await host.getByRole("button", { name: /Tournament Mode/ }).click();
   await host.waitForURL(/games$/);
   // Unplayable games can't be added.
-  if (!(await host.getByRole("button", { name: "Word Scramble (coming soon)" }).isDisabled())) throw new Error("Word Scramble should be disabled");
+  if (!(await host.getByRole("button", { name: "Picture Reveal (coming soon)" }).isDisabled())) throw new Error("Picture Reveal should be disabled");
   for (const g of ["Speed Quiz", "Guess the Majority", "Reflex Battle"]) await host.getByRole("button", { name: `Add ${g} to lineup` }).click();
   await host.getByRole("button", { name: /Continue with 3 games/ }).first().click();
   await host.getByText("Tournament lineup").waitFor();

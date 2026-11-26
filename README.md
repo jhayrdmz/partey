@@ -96,10 +96,13 @@ Open three browser windows (or devices on your LAN):
 | `npm run functions:watch` | Rebuild Cloud Functions on save (for the Functions emulator) |
 | `npm run deploy` | Build and deploy rules, functions and hosting to production |
 | `npm run deploy:hosting` | Build and deploy only the web app to production |
+| `npm run deploy:channel` | Build and deploy the web app to the `preview-partey` preview channel on production (own URL, 30 days; production backend) |
+| `npm run deploy:preview` | Build (staging mode) and deploy rules, functions and hosting to the **staging** project (alias `preview`) |
+| `npm run deploy:preview:hosting` | Build (staging mode) and deploy only the web app to staging |
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
 | `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
-| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, a full game of The Impostor, a full game of Draw & Guess, and the free-tier host limits (emulators + dev server running) |
+| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, a full game of The Impostor, a full game of Draw & Guess, a full game of Word Scramble, and the free-tier host limits (emulators + dev server running) |
 
 To run the function integration tests against running emulators:
 
@@ -161,11 +164,44 @@ Live at **https://joinpartey.com/**.
 
 5. Before a public launch, consider enabling **App Check** for the callable functions.
 
-**Deploying to a different project:** add it with `npx firebase use --add` (choose an alias such as `staging`), put its web config in `.env`, its RTDB URL in `functions/.env`, and replace `--project prod` in the commands above.
+## Staging
+
+Two ways to try a release before production:
+
+| | Preview channel | Staging project |
+|---|---|---|
+| Command | `npm run deploy:channel` | `npm run deploy:preview` (front end only: `npm run deploy:preview:hosting`) |
+| What's separate | The web app only (its own URL on production) | Everything: web app, Cloud Functions, rules, Firestore, Realtime Database, data |
+| Backend | **Production's** functions, data and rules | Its own |
+| Good for | A quick look at UI changes, sharing a link | Testing server changes (functions, rules, limits) without touching production |
+
+### Preview channel
+
+`npm run deploy:channel` builds the production web app and deploys it to the Hosting channel **`preview-partey`** on `partey-21c76` (Firebase turns `_` into `-`, so `preview_partey` and `preview-partey` are the same channel). The CLI prints its URL (`https://partey-21c76--preview-partey-<hash>.web.app`); the channel expires after 30 days and is redeployed in place each time. Firebase authorises preview-channel domains for sign-in automatically.
+
+Anything created on the preview (rooms, hosts) is **real production data**, and it runs against the **deployed** functions, so a server change can't be tried here until it's in production. For that, use the staging project.
+
+### Staging project (alias `preview`)
+
+A second Firebase project, fully separate from production. Config is kept apart so a staging deploy can never reach production:
+
+| File | Used for |
+|---|---|
+| `.env.staging` (from `.env.staging.example`) | The staging web app config. `npm run build:staging` builds with `vite --mode staging`, which loads it on top of `.env`; **every** Firebase key must be set, or production's value would leak in |
+| `functions/.env.preview` (from `functions/.env.preview.example`) | Staging function config, loaded on top of `functions/.env` when deploying with `--project preview`. Must set `RTDB_URL` (functions/.env has production's) |
+
+`scripts/check-staging-env.mjs` runs before every staging build and refuses unless the `preview` alias is a real project other than production, `.env.staging` sets every key for that project with emulators off, and `functions/.env.preview` sets a non-production `RTDB_URL`. Staging builds are also kept out of search engines (`noindex` and a `robots.txt` that disallows everything).
+
+**One-time setup:**
+
+1. Create the project in the Firebase console (for example `partey-staging`; project IDs can't contain `_`) and repeat "One-time setup" above for it: Blaze plan, Anonymous sign-in, Firestore and Realtime Database in `asia-southeast1`, a Web app, artifact cleanup and the TTL policies (with that project's ID).
+2. Put its ID in `.firebaserc` under `"preview"` (replacing `REPLACE-WITH-STAGING-PROJECT-ID`).
+3. `cp .env.staging.example .env.staging` and fill in its Web app config; `cp functions/.env.preview.example functions/.env.preview` and set its `RTDB_URL`.
+4. `npm run deploy:preview`.
 
 ## Media on Cloudflare R2
 
-Large media (music for Speed Quiz, Guess the Majority, Reflex Battle, Impostor and the display's waiting screens) is served from the Cloudflare R2 bucket **`partey-storage`**, not bundled with the app. The app reads the bucket's public URL from `VITE_MEDIA_BASE_URL` in `.env`. Leave it unset to run without music. Object keys live in `src/utils/media.ts`.
+Large media (music for Speed Quiz, Guess the Majority, Reflex Battle, Impostor, Word Scramble, Draw & Guess and the display's waiting screens) is served from the Cloudflare R2 bucket **`partey-storage`**, not bundled with the app. The app reads the bucket's public URL from `VITE_MEDIA_BASE_URL` in `.env`. Leave it unset to run without music. Object keys live in `src/utils/media.ts`.
 
 The bucket currently uses its public `r2.dev` URL, which Cloudflare rate-limits and intends for development. For production traffic, connect a custom domain (`npx wrangler r2 bucket domain add partey-storage --domain media.example.com --zone-id <zone>`) and update `VITE_MEDIA_BASE_URL`.
 
@@ -225,6 +261,6 @@ Background music: Otomusu (https://otomusu.com/). Royalty-free under the [Otomus
 - *Rejoin as host* is only offered for rooms that still exist and that you still own.
 - Server-authoritative room lifecycle, display pairing (display shows the code, host enters it; single-use, expiring, rate-limited), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
 - **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
-- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd), Reflex Battle (5 rounds, false-start detection) The Impostor (secret roles, one-word clue turns, voting with revotes on a tie; the host picks the category or types their own single-use secret word, 1–3 impostors, clue rounds and max players) and Draw & Guess (one artist per round draws a secret prompt on their phone, live on the big screen; everyone else races to type the answer; letter hints appear every few seconds; the host sets rounds, drawing time, hint interval, prompt categories and max players). The other three games show as *Coming soon*.
+- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd), Reflex Battle (5 rounds, false-start detection) The Impostor (secret roles, one-word clue turns, voting with revotes on a tie; the host picks the category or types their own single-use secret word, 1–3 impostors, clue rounds and max players), Word Scramble (tap the scrambled letters to spell the word; guess every 5 seconds, first answers score most; the host sets rounds, time, difficulty, category, hints and a speed bonus) and Draw & Guess (one artist per round draws a secret prompt on their phone, live on the big screen; everyone else races to type the answer; letter hints appear every few seconds; the host sets rounds, drawing time, hint interval, prompt categories and max players). The other two games show as *Coming soon*.
 
 **Next:** Word Scramble, Picture Reveal and Survey Showdown; host-editable scoring; PWA; App Check.

@@ -74,6 +74,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   {place === 0 && <Crown className="size-9 text-mango sm:size-12" />}
                   <AvatarBubble avatar={s.avatar} size={place === 0 ? "xl" : "lg"} className={place === 0 ? "max-sm:size-20 max-sm:text-4xl" : "max-sm:size-14 max-sm:text-3xl"} />
                   <p className="max-w-full truncate text-base font-extrabold sm:text-xl lg:text-3xl">{s.nickname}</p>
+                  {s.detail && <p className="max-w-full truncate text-xs font-semibold text-muted-foreground sm:text-base lg:text-lg">{s.detail}</p>}
                   <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl pt-4 text-background", podiumStyle[place].height, podiumStyle[place].color)}>
                     <span className="text-2xl font-black sm:text-3xl lg:text-5xl">{podiumStyle[place].label}</span>
                     <span className="text-sm font-extrabold tabular-nums sm:text-xl lg:text-2xl">{s.score} pts</span>
@@ -97,7 +98,10 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                 >
                   <span className="w-8 font-extrabold text-muted-foreground">{i + 4}</span>
                   <AvatarBubble avatar={s.avatar} size="sm" />
-                  <span className="flex-1 truncate font-bold">{s.nickname}</span>
+                  <span className="min-w-0 flex-1 truncate font-bold">
+                    {s.nickname}
+                    {s.detail && <span className="ml-2 text-base font-semibold text-muted-foreground">{s.detail}</span>}
+                  </span>
                   {s.delta !== undefined && <span className="text-lg font-bold text-calamansi tabular-nums">+{s.delta}</span>}
                   <span className="font-extrabold tabular-nums">{s.score}</span>
                 </motion.li>

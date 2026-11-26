@@ -118,6 +118,13 @@ export interface GameHandler<Setup = unknown, Pub = unknown, Sec = unknown> {
   /** Publish who has answered so far (names only) in PublicGameState.answeredBy. */
   showAnswerers?: boolean;
   /**
+   * Multi-attempt rounds: minimum ms between one player's attempts (Word Scramble: 5 s). Enforced by
+   * the server per player per round (attempts/{entry_round_uid}); a new round starts fresh.
+   */
+  attemptCooldownMs?: number;
+  /** A per-player stat shown on the final results (e.g. "7 words solved"), from the final setup. */
+  standingDetail?(setup: Setup, playerId: string): string | undefined;
+  /**
    * A timed change during a round (Draw & Guess reveals a letter). Runs once `dueAtMs` (the
    * scheduled time) passes on the server clock; returns the new public payload and when the next
    * event is due (null = no more). Scheduling shifts with pauses like the deadline.

@@ -23,6 +23,7 @@ const SCORING: Partial<Record<GameId, string>> = {
   majority: "Pick the answer most players picked and score 500. Ties for the top spot all count.",
   "reflex-battle": "The fastest three taps score 500, 350 and 250; everyone else who taps in time scores 150. Tap before GO and you score 0.",
   impostor: "If the crew votes out the impostor, every crew member scores 500 (plus 250 if you voted for them). If the impostor survives, they score 1,000.",
+  "word-scramble": "The first correct answer scores 100, then 75 and 50, and 25 for everyone after. Wrong guesses cost nothing; you can guess again every 5 seconds. The host can add a speed bonus (up to +50).",
   drawing: "Correct guessers score 100, 80, 60 and 40 in the order they get it, then 20 each. The artist earns 50 when anyone guesses right. Letters appear as hints while the clock runs.",
 };
 

@@ -32,7 +32,10 @@ export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; pla
           >
             <span className="w-6 text-center font-extrabold text-muted-foreground">{i + 1}</span>
             <AvatarBubble avatar={s.avatar} size="sm" />
-            <span className="flex-1 truncate font-bold">{s.nickname}</span>
+            <span className="min-w-0 flex-1 truncate font-bold">
+              {s.nickname}
+              {s.detail && <span className="block truncate text-xs font-semibold text-muted-foreground">{s.detail}</span>}
+            </span>
             {s.delta !== undefined && <span className="text-sm font-bold text-calamansi tabular-nums">+{s.delta}</span>}
             <span className="font-extrabold tabular-nums">{s.score}</span>
           </li>

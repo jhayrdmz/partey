@@ -52,6 +52,7 @@ export const ROOM_SUBCOLLECTIONS = [
   "gameState",
   "private",
   "submissions",
+  "attempts",
   "hostSecrets",
 ] as const;
 

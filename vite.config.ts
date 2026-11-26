@@ -1,11 +1,31 @@
+import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
+
+/** Staging builds (`--mode staging`) must never be indexed: noindex meta + a robots.txt that disallows all. */
+function stagingNoIndex(): Plugin {
+  let outDir = 'dist'
+  return {
+    name: 'partey-staging-noindex',
+    apply: 'build',
+    configResolved(config) {
+      outDir = resolve(config.root, config.build.outDir)
+    },
+    transformIndexHtml(html) {
+      return html.replace(/<meta name="robots" content="[^"]*" \/>/, '<meta name="robots" content="noindex, nofollow" />')
+    },
+    closeBundle() {
+      writeFileSync(resolve(outDir, 'robots.txt'), '# Partey staging: not for search engines.\nUser-agent: *\nDisallow: /\n')
+    },
+  }
+}
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
+export default defineConfig(({ mode }) => ({
+  plugins: [react(), tailwindcss(), ...(mode === 'staging' ? [stagingNoIndex()] : [])],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -27,4 +47,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

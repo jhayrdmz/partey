@@ -81,13 +81,13 @@ export const GAMES: Record<GameId, GameMeta> = {
   "word-scramble": {
     id: "word-scramble",
     name: "Word Scramble",
-    tagline: "Unjumble the letters",
-    description: "Letters get shuffled on screen. Be the first to type the real word.",
+    tagline: "Beat the clock",
+    description: "Unscramble the letters. Beat the clock. Be the fastest! The quicker you crack the word, the more you score.",
     category: "word",
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 6,
-    playable: false,
+    playable: true,
   },
   "picture-reveal": {
     id: "picture-reveal",

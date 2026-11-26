@@ -13,6 +13,10 @@ export const MEDIA = {
   reflexBattleMusic: "music/reflex-battle/space-cat-slot-machine.mp3",
   majorityMusic: "music/majority/brass-band-on-the-hill.mp3",
   impostorMusic: "music/impostor/poko-poko-comical-parade.mp3",
+  // "遊園地のにぎやかな一日" (A lively day at the amusement park) by Otomusu.
+  wordScrambleMusic: "music/word-scramble/amusement-park-lively-day.mp3",
+  // "ドタバタ大作戦" (Slapstick operation) by Otomusu.
+  drawingMusic: "music/drawing/slapstick-operation.mp3",
   /** Display pairing screen, room lobby and between games: waiting for the host. */
   lobbyMusic: "music/lobby/santa-town-festival.mp3",
 } as const;

@@ -1,6 +1,7 @@
 {
   "projects": {
     "default": "demo-partey",
-    "prod": "partey-21c76"
+    "prod": "partey-21c76",
+    "preview": "partey-staging"
   }
 }
