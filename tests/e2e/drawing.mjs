@@ -146,16 +146,24 @@ await until(async () => (await inked(host, "Preview")) > 100, 10000, "strokes on
 expect(true, "the host sees a live preview");
 await pickColor(A, "Red");
 expect((await A.getByRole("button", { name: "Brush color: Red" }).count()) === 1, "the colour button shows the picked colour");
+await A.getByRole("button", { name: /^Brush size: / }).click();
 await A.getByRole("radio", { name: "Huge brush" }).click();
+await A.getByRole("radiogroup", { name: "Brush size" }).waitFor({ state: "hidden" });
+expect((await A.getByRole("button", { name: "Brush size: Huge" }).count()) === 1, "the pencil button picks the brush size");
 await scribble(A, 0.3, 0.6);
 const twoStrokes = await inked(tv, "drawing");
 await A.getByRole("button", { name: "Undo" }).click();
 await until(async () => (await inked(tv, "drawing")) < twoStrokes, 10000, "undo on the TV");
 expect(true, "undo removes the stroke from the TV");
-await A.getByRole("button", { name: "Clear canvas" }).click();
-await A.getByRole("button", { name: "Tap again to clear the canvas" }).click();
-await until(async () => (await inked(tv, "drawing")) === 0, 10000, "clear on the TV");
-expect(true, "clear (two taps) empties the TV canvas");
+await A.getByRole("button", { name: "Reset board" }).click();
+await A.getByRole("dialog").getByRole("button", { name: "Keep drawing" }).click();
+await A.getByRole("dialog").waitFor({ state: "hidden" });
+expect((await inked(tv, "drawing")) > 0, "cancelling the reset keeps the drawing");
+await A.getByRole("button", { name: "Reset board" }).click();
+await shot(A, "2d-phone-reset-confirm");
+await A.getByRole("dialog").getByRole("button", { name: "Reset board" }).click();
+await until(async () => (await inked(tv, "drawing")) === 0, 10000, "reset on the TV");
+expect(true, "reset (after confirming) empties the TV canvas");
 await scribble(A);
 await pickColor(A, "Blue");
 await scribble(A, 0.1, 0.5);
@@ -163,6 +171,9 @@ await until(async () => (await inked(tv, "drawing")) > 500, 10000, "redrawn stro
 expect(await fitsScreen(A), "artist screen fits a 390×844 phone without scrolling");
 await A.getByRole("button", { name: /^Brush color: / }).click();
 await shot(A, "2b-phone-artist-colors");
+await A.keyboard.press("Escape");
+await A.getByRole("button", { name: /^Brush size: / }).click();
+await shot(A, "2e-phone-artist-sizes");
 await A.keyboard.press("Escape");
 await A.setViewportSize({ width: 375, height: 667 });
 await A.waitForTimeout(300);
@@ -196,6 +207,36 @@ if (near) {
   expect(true, `"${near}" is flagged as close`);
 }
 await shot(byName[g1], "3-phone-guess-wrong");
+expect(await fitsScreen(byName[g1]), "guesser screen fits without scrolling (submit pinned at the bottom)");
+// On-screen keyboard (simulated: Playwright can't open one). Like iOS, the visual viewport shrinks
+// and scrolls while the layout viewport stays full height: the Guess button must sit on the keyboard.
+{
+  const G = byName[g1];
+  const keyboard = (height, offsetTop) => G.evaluate(([h, top]) => {
+    const vv = window.visualViewport;
+    if (h === null) { delete vv.height; delete vv.offsetTop; }
+    else {
+      Object.defineProperty(vv, "height", { configurable: true, get: () => h });
+      Object.defineProperty(vv, "offsetTop", { configurable: true, get: () => top });
+    }
+    vv.dispatchEvent(new Event("resize"));
+    vv.dispatchEvent(new Event("scroll"));
+  }, [height, offsetTop]);
+  const buttonBottom = async () => { const b = await G.getByRole("button", { name: "Submit guess" }).boundingBox(); return b.y + b.height; };
+  const keyboardTop = (h, top) => top + h; // in layout-viewport coordinates
+  await keyboard(480, 0);
+  await G.waitForTimeout(150);
+  let bottom = await buttonBottom();
+  expect(bottom <= keyboardTop(480, 0) && bottom >= keyboardTop(480, 0) - 30, `keyboard up: Guess button sits on top of the keyboard (${Math.round(bottom)} vs ${keyboardTop(480, 0)})`);
+  await keyboard(480, 150); // the page scrolled under the keyboard
+  await G.waitForTimeout(150);
+  bottom = await buttonBottom();
+  expect(bottom <= keyboardTop(480, 150) && bottom >= keyboardTop(480, 150) - 30, `page scrolled: the button follows the keyboard (${Math.round(bottom)} vs ${keyboardTop(480, 150)})`);
+  await keyboard(null);
+  await G.waitForTimeout(150);
+  bottom = await buttonBottom();
+  expect(bottom >= 844 - 60, `keyboard down: back at the bottom of the screen (${Math.round(bottom)})`);
+}
 await guess(g1, `the ${r1.word.toUpperCase()}`);
 await byName[g1].getByText("You got it!").waitFor({ timeout: 10000 });
 expect(true, `${g1} guesses right (case and article ignored)`);

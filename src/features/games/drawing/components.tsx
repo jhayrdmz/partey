@@ -1,6 +1,6 @@
 /** Draw & Guess pieces: canvas, artist tools, guess pad, display and host panels (assembled in views.tsx). */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Check, Eraser, Hand, Lightbulb, Loader2, Paintbrush, Send, Trash2, TriangleAlert, Undo2, X } from "lucide-react";
+import { Check, Eraser, Hand, Lightbulb, Loader2, Paintbrush, Pencil, Send, Trash2, TriangleAlert, Undo2, X } from "lucide-react";
 import { Popover } from "radix-ui";
 import { AnimatePresence, motion } from "motion/react";
 import { DRAW_SIZE, guessPoints, DRAW_POINTS, type DrawAccess } from "@shared/drawing";
@@ -8,7 +8,9 @@ import type { DrawReveal, DrawRound, DrawSecret, PlayerPick, PublicGameState, Su
 import { DRAW_CATEGORY_LABELS } from "@shared/gameSettings";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { BottomBar } from "@/components/shared/BottomBar";
+import { KeyboardDockedBar } from "@/components/shared/KeyboardDockedBar";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerCountdown } from "@/hooks/useServerClock";
 import { cn } from "@/utils/cn";
 import { playSound } from "@/utils/sound";
@@ -172,6 +174,58 @@ function useSquareFit() {
   return { ref, side };
 }
 
+/** Every toolbar button: same size and shape, sharing the row equally. */
+const TOOL = "h-12 min-w-0 flex-1 rounded-md";
+
+/** One pencil button for the brush size; tap it for a pop-up of sizes. */
+function StrokePicker({ width, color, eraser, onPick }: { width: number; color: string; eraser: boolean; onPick: (w: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const current = SIZES.find((s) => s.w === width) ?? SIZES[1];
+  const ink = eraser ? "#d4d4d4" : color === "#ffffff" ? "#d4d4d4" : color;
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label={`Brush size: ${current.label}`}
+          className={cn(TOOL, "relative grid place-items-center border-2 bg-secondary/60", open ? "border-primary" : "border-transparent")}
+        >
+          <Pencil className="size-5 text-white" />
+          {/* The current thickness, under the pencil. */}
+          <span className="absolute bottom-1.5 left-1/2 w-5 -translate-x-1/2 rounded-full" style={{ height: Math.max(2, Math.min(6, current.w / 9)), backgroundColor: ink }} />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content side="top" align="center" sideOffset={8} collisionPadding={12} className="z-50 w-56 rounded-2xl border bg-popover p-2 shadow-xl">
+          <div role="radiogroup" aria-label="Brush size" className="grid gap-1">
+            {SIZES.map((s) => {
+              const selected = width === s.w;
+              return (
+                <button
+                  key={s.w}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`${s.label} brush`}
+                  onClick={() => {
+                    onPick(s.w);
+                    setOpen(false);
+                  }}
+                  className={cn("flex h-12 items-center gap-3 rounded-md border-2 px-3 text-left text-sm font-bold", selected ? "border-primary bg-primary/15" : "border-transparent hover:bg-secondary/60")}
+                >
+                  <Pencil className="size-4 shrink-0 text-white" />
+                  <span className="flex-1">{s.label}</span>
+                  <span className="w-16 rounded-full" style={{ height: Math.max(2, s.w / 2.6), backgroundColor: ink }} />
+                </button>
+              );
+            })}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 /** One button showing the current colour; tap it for a pop-up palette. */
 function ColorPicker({ color, eraser, onPick }: { color: string; eraser: boolean; onPick: (c: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -182,7 +236,7 @@ function ColorPicker({ color, eraser, onPick }: { color: string; eraser: boolean
         <button
           type="button"
           aria-label={`Brush color: ${name}`}
-          className={cn("grid size-11 shrink-0 place-items-center rounded-lg border-2 bg-secondary/60", open ? "border-primary" : "border-transparent")}
+          className={cn(TOOL, "grid place-items-center border-2 bg-secondary/60", open ? "border-primary" : "border-transparent")}
         >
           <span className={cn("size-7 rounded-full ring-2 ring-white/70", eraser && "opacity-40")} style={{ backgroundColor: color }} />
         </button>
@@ -203,7 +257,7 @@ function ColorPicker({ color, eraser, onPick }: { color: string; eraser: boolean
                     onPick(c);
                     setOpen(false);
                   }}
-                  className={cn("grid size-12 place-items-center rounded-xl border-2", selected ? "border-foreground ring-2 ring-primary" : "border-white/20")}
+                  className={cn("grid size-12 place-items-center rounded-md border-2", selected ? "border-foreground ring-2 ring-primary" : "border-white/20")}
                   style={{ backgroundColor: c }}
                 >
                   {selected && <Check className={cn("size-5", c === "#ffffff" || c === "#facc15" ? "text-neutral-900" : "text-white")} />}
@@ -239,7 +293,7 @@ export function ArtistBoard({ roomId, uid, game, pub, secret }: { roomId: string
   const [color, setColor] = useState<string>(COLORS[0]);
   const [width, setWidth] = useState<number>(SIZES[1].w);
   const [eraser, setEraser] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [access, setAccess] = useState<DrawAccess | null>(null);
   const strokes = useRef<Stroke[]>([]);
   const [version, setVersion] = useState(0);
@@ -285,12 +339,6 @@ export function ArtistBoard({ roomId, uid, game, pub, secret }: { roomId: string
       active.current = null;
     }
   }, [canDraw]);
-
-  useEffect(() => {
-    if (!confirmClear) return;
-    const t = window.setTimeout(() => setConfirmClear(false), 2500);
-    return () => window.clearTimeout(t);
-  }, [confirmClear]);
 
   const point = (e: { clientX: number; clientY: number }, el: HTMLElement) => {
     const r = el.getBoundingClientRect();
@@ -352,9 +400,8 @@ export function ArtistBoard({ roomId, uid, game, pub, secret }: { roomId: string
     strokes.current = strokes.current.slice(0, -1);
     bump();
   };
-  const clear = () => {
-    if (!confirmClear) return setConfirmClear(true);
-    setConfirmClear(false);
+  const reset = () => {
+    setConfirmReset(false);
     writer.current?.clear();
     active.current = null;
     strokes.current = [];
@@ -395,48 +442,39 @@ export function ArtistBoard({ roomId, uid, game, pub, secret }: { roomId: string
       <BottomBar always className="mt-0 space-y-2 pt-2.5 sm:-mx-4 sm:px-4">
         <div className="flex items-center gap-1.5">
           <ColorPicker color={color} eraser={eraser} onPick={(c) => { setColor(c); setEraser(false); }} />
-          <div role="radiogroup" aria-label="Brush size" className="flex min-w-0 flex-1 gap-1.5">
-            {SIZES.map((s) => {
-              const selected = width === s.w;
-              return (
-                <button
-                  key={s.w}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  aria-label={`${s.label} brush`}
-                  onClick={() => setWidth(s.w)}
-                  className={cn("grid h-11 min-w-0 flex-1 place-items-center rounded-lg border-2 bg-secondary/60", selected ? "border-primary bg-primary/15" : "border-transparent")}
-                >
-                  <span className="rounded-full" style={{ width: Math.max(4, s.w / 2.4), height: Math.max(4, s.w / 2.4), backgroundColor: eraser ? "currentColor" : color === "#ffffff" ? "#d4d4d4" : color }} />
-                </button>
-              );
-            })}
-          </div>
-          <Button type="button" size="icon" variant={eraser ? "accent" : "secondary"} className="size-11 shrink-0 rounded-lg" aria-pressed={eraser} aria-label="Eraser" onClick={() => setEraser((v) => !v)}>
+          <StrokePicker width={width} color={color} eraser={eraser} onPick={setWidth} />
+          <Button type="button" size="icon" variant={eraser ? "accent" : "secondary"} className={TOOL} aria-pressed={eraser} aria-label="Eraser" onClick={() => setEraser((v) => !v)}>
             <Eraser />
           </Button>
-          <Button type="button" size="icon" variant="secondary" className="size-11 shrink-0 rounded-lg" aria-label="Undo" onClick={undo} disabled={empty || !canDraw}>
-            <Undo2 />
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant={confirmClear ? "destructive" : "secondary"}
-            className={cn("size-11 shrink-0 rounded-lg", confirmClear && "animate-pulse")}
-            aria-label={confirmClear ? "Tap again to clear the canvas" : "Clear canvas"}
-            title={confirmClear ? "Tap again to clear" : "Clear canvas"}
-            onClick={clear}
-            disabled={empty || !canDraw}
-          >
+          <Button type="button" size="icon" variant="secondary" className={TOOL} aria-label="Reset board" onClick={() => setConfirmReset(true)} disabled={empty || !canDraw}>
             <Trash2 />
+          </Button>
+          <Button type="button" size="icon" variant="secondary" className={TOOL} aria-label="Undo" onClick={undo} disabled={empty || !canDraw}>
+            <Undo2 />
           </Button>
         </div>
         <p className="flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-warning">
           <TriangleAlert className="size-3.5 shrink-0" />
-          {confirmClear ? "Tap the bin again to clear everything." : "No letters or numbers! It shows live on the big screen."}
+          No letters or numbers! It shows live on the big screen.
         </p>
       </BottomBar>
+
+      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset the board?</DialogTitle>
+            <DialogDescription>This erases your whole drawing, on the big screen too. It can't be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmReset(false)}>
+              Keep drawing
+            </Button>
+            <Button variant="destructive" onClick={reset} disabled={!canDraw}>
+              <Trash2 /> Reset board
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -480,7 +518,7 @@ export function GuessPad({ game, pub, submit, submitting, paused }: { game: Publ
         <p className="text-sm text-muted-foreground">Watch the big screen and guess!</p>
       </div>
 
-      <div className="flex gap-2">
+      <div>
         <input
           ref={inputRef}
           aria-label="Your guess"
@@ -495,11 +533,8 @@ export function GuessPad({ game, pub, submit, submitting, paused }: { game: Publ
           enterKeyHint="send"
           placeholder={paused ? "Paused…" : "Type your guess…"}
           disabled={paused}
-          className="h-14 min-w-0 flex-1 rounded-md border-2 border-input bg-background/60 px-4 text-xl font-bold outline-none focus:border-primary"
+          className="h-14 w-full rounded-md border-2 border-input bg-background/60 px-4 text-xl font-bold outline-none focus:border-primary"
         />
-        <Button type="submit" size="xl" variant="party" className="h-14 shrink-0 px-5" disabled={!guess || submitting || paused} aria-label="Submit guess">
-          {submitting ? <Loader2 className="animate-spin" /> : <Send />}
-        </Button>
       </div>
 
       <AnimatePresence mode="popLayout">
@@ -526,6 +561,22 @@ export function GuessPad({ game, pub, submit, submitting, paused }: { game: Publ
           ))}
         </ul>
       )}
+
+      {/* Pinned to the bottom of the screen, or right above the keyboard while typing. */}
+      <KeyboardDockedBar>
+        <Button
+          type="submit"
+          size="xl"
+          variant="party"
+          className="w-full"
+          disabled={!guess || submitting || paused}
+          aria-label="Submit guess"
+          // Keep the keyboard open: tapping the button mustn't blur the input first.
+          onPointerDown={(e) => e.preventDefault()}
+        >
+          {submitting ? <Loader2 className="animate-spin" /> : <Send />} Guess
+        </Button>
+      </KeyboardDockedBar>
     </form>
   );
 }
