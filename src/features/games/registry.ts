@@ -9,6 +9,7 @@ import { module as pictureReveal } from "./picture-reveal";
 import { module as reflexBattle } from "./reflex-battle";
 import { module as surveyShowdown } from "./survey-showdown";
 import { module as perfectlyHold } from "./perfectly-hold";
+import { module as numberRush } from "./number-rush";
 
 export const GAME_MODULES: Record<GameId, GameModule> = {
   "speed-quiz": speedQuiz,
@@ -20,6 +21,7 @@ export const GAME_MODULES: Record<GameId, GameModule> = {
   "reflex-battle": reflexBattle,
   "survey-showdown": surveyShowdown,
   "perfectly-hold": perfectlyHold,
+  "number-rush": numberRush,
 };
 
 export const GAME_LIST: GameModule[] = GAME_IDS.map((id) => GAME_MODULES[id]);

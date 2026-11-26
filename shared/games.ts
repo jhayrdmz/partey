@@ -11,6 +11,7 @@ export const GAME_IDS = [
   "picture-reveal",
   "survey-showdown",
   "perfectly-hold",
+  "number-rush",
 ] as const;
 
 export type GameId = (typeof GAME_IDS)[number];
@@ -133,6 +134,17 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 2,
     maxPlayers: 24,
     durationMin: 5,
+    playable: false,
+  },
+  "number-rush": {
+    id: "number-rush",
+    name: "Number Rush",
+    tagline: "Predict the move. Master the numbers!",
+    description: "Higher or lower? Call the next number card before time runs out and build the longest streak.",
+    category: "action",
+    minPlayers: 1,
+    maxPlayers: 24,
+    durationMin: 6,
     playable: false,
   },
 };
