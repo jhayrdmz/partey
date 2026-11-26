@@ -21,6 +21,11 @@ export interface GameModule {
   interactions: InteractionKind[];
   /** Show the round countdown (Reflex hides it: it would reveal when GO fires). */
   showTimer?: boolean;
+  /**
+   * Players may answer several times per round until one is right (Draw & Guess). The phone keeps
+   * the answer form up while an attempt is in flight instead of showing "answer locked in".
+   */
+  multipleAttempts?: boolean;
   /** Show the "Top scores" strip on the display after each round (default true). */
   showStandings?: boolean;
   /**

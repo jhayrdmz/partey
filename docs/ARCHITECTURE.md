@@ -2,7 +2,7 @@
 
 ## Principles
 
-1. **Clients never write.** Every mutation goes through a callable Cloud Function that validates input, checks the caller's role, and runs in a Firestore transaction. Firestore and RTDB rules grant reads only, except each client may write its *own* RTDB presence node.
+1. **Clients never write.** Every mutation goes through a callable Cloud Function that validates input, checks the caller's role, and runs in a Firestore transaction. Firestore and RTDB rules grant reads only, except each client may write its *own* RTDB presence node, and Draw & Guess's current artist may write that round's strokes (see below).
 2. **Three strictly separated roles**, each authenticated anonymously:
    - **Host**: `rooms/{roomId}.hostId == uid`
    - **Player**: `rooms/{roomId}/players/{uid}` exists with status `online|offline`
@@ -32,7 +32,7 @@
 |---|---|---|
 | `createRoom` | anyone | Generates a unique 4-letter code (no I/O/L/0/1) via `roomCodes/{code}` in a transaction |
 | `setGameMode`, `setLineup` | host | Validated against the shared game catalog; freestyle allows one game |
-| `setGameSettings` | host | Game options saved on the room as `gameSettings[gameId]`. Speed Quiz: time per question (10s, 15s, 30s or no limit), 8–20 questions, max players 1–100. The Impostor: category, 1–3 impostors (kept a minority at start), 1–3 clue rounds, max players 3–24, and an optional custom word (2–30 characters; needs a real category). The room only stores `customWord: true`; the word goes to the host-only `hostSecrets/impostor` doc and is read by `startGame`. It's single-use: that start deletes it and turns `customWord` back off, in the same transaction. Only between games; a running game keeps the options it started with |
+| `setGameSettings` | host | Game options saved on the room as `gameSettings[gameId]`. Speed Quiz: time per question (10s, 15s, 30s or no limit), 8–20 questions, max players 1–100. The Impostor: category, 1–3 impostors (kept a minority at start), 1–3 clue rounds, max players 3–24, and an optional custom word (2–30 characters; needs a real category). The room only stores `customWord: true`; the word goes to the host-only `hostSecrets/impostor` doc and is read by `startGame`. It's single-use: that start deletes it and turns `customWord` back off, in the same transaction. Draw & Guess: 2–20 rounds, 45/60/80/100/120 s to draw, a letter hint every 10/15/20/30 s or none, one or more prompt categories, max players 3–24. Only between games; a running game keeps the options it started with |
 | `lookupRoom` | anyone | Resolves code → room; tells the caller if they already joined or were kicked |
 | `joinRoom` | player | **Idempotent per uid** (rejoin keeps score); unique nicknames; capacity follows the selected game (Speed Quiz: the host's max players, otherwise 24). Lowering it never removes anyone |
 | `leaveRoom`, `kickPlayer` | player / host | Records are kept (`left` / `kicked`) for history; kicked players can't rejoin |
@@ -40,11 +40,12 @@
 | `claimDisplayPairing` | host | Host enters (or scans) the code shown on the display. **Consumes the code (single use)**, creates `displaySessions/{displayUid}`; rate-limited per uid (10 / 10 min) |
 | `revokeDisplay` | host | Display loses access immediately |
 | `startGame`, `endGame` | host | Server-side lifecycle; idempotent against double taps; writes history + standings |
-| `submitAnswer` | player | One per player per round; validated by the game handler; closes the round early when all have answered |
-| `tickGame` | host, players | Advances a phase only once the server clock passes its deadline |
+| `submitAnswer` | player | One per player per round; validated by the game handler; closes the round early when all have answered. Multi-attempt games (Draw & Guess) answer wrong guesses straight away without storing them, and store only the first correct one |
+| `tickGame` | host, players | Advances a phase only once the server clock passes its deadline. With `event: true`, runs a due mid-round event instead (Draw & Guess letter hints), also only once the server clock agrees |
 | `controlGame` | host | `pause`, `resume`, `skip` (unscored), `next` (advance now) |
 | `closeRoom` | host | Expires the room and cleans it up immediately |
 | `onPresenceWritten` | RTDB trigger | Mirrors presence → Firestore, recomputes counts and expiry |
+| `onDrawingGameWritten` | Firestore trigger (`gameState/current`) | Draw & Guess: opens the current artist's canvas in RTDB, freezes it on reveal/pause, deletes old strokes |
 | `processExpirations` | every 5 min | Expires rooms, ages out players past the grace period, deletes stale pairing records |
 
 ## Display pairing
@@ -122,12 +123,17 @@ startGame ─▶ intro ──(timer | host "next")──▶ question ──(time
 |---|---|---|
 | `OpenedRound.eligibleIds` | server | Only these players may answer the round (one clue-giver per turn). Filtered to players still in the room. |
 | `OpenedRound.label` / `skippable` | server | Step name shown instead of "Round x of y" (`PublicGameState.roundLabel`); `false` stops the host skipping a round that decides the game. |
+| `OpenedRound.privateFor` / `setup` | server | Per-round secrets written to `private/{uid}.secret` (only the artist gets the prompt); state updated as a round opens (who has drawn). `openRound` also receives the players in the room. |
+| `OpenedRound.eventAtMs` / `roundEvent` | server | Timed changes during a round (Draw & Guess's letter hints). Published as `PublicGameState.eventAtMs`; devices call `tickGame({ event: true })` when it passes, and pause/resume shift it like the deadline. |
+| `check(answer, pub, secret)` / `showAnswerers` | server | Multi-attempt rounds: wrong attempts are rejected without being stored; correct answerers are named live in `PublicGameState.answeredBy` (names only). |
 | `ScoredRound.setup` / `totalRounds` / `revealMs` | server | Carry state between rounds (clues so far), add rounds (a revote), and size the reveal (`0` = until the host moves on). |
 | `privateInfo(setup, uid)` | server | Per-player secret written to `private/{uid}.secret` at game start (role, secret word). Only that player can read it. |
 | `hostAction(name, …)` / `blockAdvance` | server | Game-specific host buttons (`controlGame { action: "game", name }`) and a guard on "Next" (a tied vote must be settled). |
 | `validate(answer, pub, { playerId, setup })` | server | Per-player checks (no self-votes; the crew can't type the secret word). |
 | `PlayerSecret`, `PlayerReveal` | client views | A private card on the phone in every phase; a custom phone result screen. |
 | `hostControls(game)`, `showStandings` | client module | Rename or replace the host's main/skip buttons; hide the "Top scores" strip. |
+| `multipleAttempts` | client module | Keep the answer form up while an attempt is checked. |
+| `HostView` | client views | A live panel on the host's screen (Draw & Guess's drawing preview). |
 
 ### The Impostor
 
@@ -141,12 +147,34 @@ intro (peek at your role) ─▶ turn × players × clue rounds ─▶ vote ─�
 - **Clues:** the turn player says a word aloud and types it (one word, ≤ 24 characters). The crew can't submit the secret word; an impostor can (rejecting it would confirm their guess). The host's "Next turn" ends a turn without a typed clue ("said aloud"), and Skip passes a disconnected player. Turns time out after 30 s.
 - **Voting:** everyone votes at once (60 s, can't be skipped), never for themselves. Ballots are revealed only after the round closes. The most-voted player is accused: an impostor means the crew wins, anyone else means the impostor wins. A shared top spot waits for the host: **Revote** (tied players only) or **Reveal** (the impostor wins).
 
+### Draw & Guess
+
+```
+intro ─▶ draw (artist draws, others guess) ─┬─ everyone guessed ─┬─▶ reveal (answer, drawing, points) ─▶ next artist … ─▶ finalize
+                                            └─ timer / host ─────┘
+```
+
+- **Artists** rotate: each round picks someone in the room who has drawn the fewest times, never the previous artist when anyone else is there, at random among those. Prompts are chosen at game start from the host's categories, never repeat within the game and prefer ones the room hasn't seen (`room.usedContent`).
+- **Secrecy:** the prompt lives in `gameState` (server only) and the artist's `private/{uid}.secret`, written as the round opens. Public round data has only the artist, category, the prompt's shape (letters per word) and the strokes key. The host sees the answer only at the reveal. Wrong guesses are never stored or shown anywhere, so the artist can't see guesses.
+- **Letter hints:** every N seconds of drawing (host option: 10/15/20/30 s, default 20 s, or off) one more letter appears in the blanks, up to a third of the letters (never half). Which letters, and in what order, is chosen when the round opens and kept in the server-only round secret; each letter is published only when its time comes.
+- **Guesses:** case, accents, spacing, punctuation, a leading article and a plural *s* are ignored; prompts can list aliases. One typo away (two for long words) gets "So close!". Prompts: `functions/src/games/drawingContent.ts`.
+- **Live strokes** go over the Realtime Database, not Firestore or functions:
+
+  | Path | Written by | Read by |
+  |---|---|---|
+  | `drawings/{roomId}/access` `{ artistId, key }` | `onDrawingGameWritten` | any signed-in user (not secret) |
+  | `drawings/{roomId}/readers/{uid}` | `onDrawingGameWritten` (host, paired displays, the artist) | nobody |
+  | `drawings/{roomId}/strokes/{key}/{strokeId}` `{ c, w, e?, p: { 0: "x,y,…", 1: … } }` | only `access.artistId`, only under `access.key` | `readers` |
+
+  The artist's phone pushes each stroke as small point chunks every 50 ms (integer coordinates on a 1000×1000 square), so writes and listener updates carry only new points; the canvas image is never sent. Undo deletes a stroke, clear deletes the round's strokes. The trigger sets `artistId` while the round is drawing and not paused, clears it on reveal or pause (the canvas freezes but stays readable for the reveal), deletes the previous round's strokes and removes the whole node when the game ends. The room sweep deletes it too. A display paired mid-game can read strokes from the next phase change.
+
 | Game | Rounds | Scoring |
 |---|---|---|
 | Speed Quiz | 8–20 × 10/15/30 s or untimed (host options) | correct = 500 + up to 500 speed bonus (linear in time left) |
 | Guess the Majority | 6 × 20 s | 500 for picking a most-popular option (ties all count) |
 | Reflex Battle | 5 × (2–6 s wait + 3 s) | 500 / 350 / 250 for the fastest three, then 150; a tap before GO is a false start and scores 0 |
 | The Impostor | one 30 s turn per player per clue round, then a 60 s vote (+ revotes) | crew catches the impostor: 500 each; impostor survives: 1000 each; any crew member who voted for an impostor: +250 |
+| Draw & Guess | 2–20 × 45/60/80/100/120 s (host options; default 6 × 80 s); ends early when everyone has guessed | correct guesses by order: 100 / 80 / 60 / 40, then 20; artist +50 when anyone guesses (`DRAW_POINTS` in `shared/drawing.ts`) |
 
 Reflex timing uses the server's receive time, so network latency counts against everyone. GO is published at round start so screens can flip in sync, which means a scripted client could tap at the exact moment. That's acceptable for a party game, and the design notes record it.
 
@@ -154,9 +182,11 @@ Reflex timing uses the server's receive time, so network latency counts against 
 
 - `functions/src/expiry.test.ts`: expiry policy (pure).
 - `functions/src/games/games.test.ts`: scoring for Speed Quiz, Guess the Majority and Reflex Battle, content integrity, tie-aware placement points, and Firestore-safe payloads.
+- `functions/src/games/drawing.test.ts`: guess matching (case, accents, articles, plurals, aliases, near misses), 100/80/60/40/20 by time + artist bonus, prompt kept out of public data and given to the artist only, fair artist rotation, no repeated prompts, guess validation, Firestore-safe payloads.
 - `functions/src/games/impostor.test.ts`: roles and minority rule, turn order (never an impostor first), the word never in public data, clue validation, vote outcomes, tie → revote / reveal, Firestore-safe payloads.
 - `functions/src/maintenance.test.ts`: sweep against the emulators (cascade delete, code release, player grace).
 - `tests/rules/firestore.rules.test.mjs`: 14 rule checks covering role separation, expired rooms, private and authoritative data, pairing visibility and write denial.
+- `tests/e2e/drawing.mjs`: options, the prompt only on the artist's phone (never on the TV, host or other phones), live strokes on the TV and host preview (draw, undo, two-tap clear), wrong / close / right guesses, names-only live guessers, early close, reveal with 100/80/60 + 50, artist rotation, a round nobody guesses, pause freezing the canvas, skip, final results.
 - `tests/e2e/impostor.mjs`: options, private role cards, four clue turns (typed, said aloud, secret word rejected then retried), the word kept off the display, a tie → revote → outcome, per-phone win/lose, replay → tie → reveal.
 - `tests/e2e/gameplay.mjs`: real play of Speed Quiz, Guess the Majority and Reflex Battle (answers, live counts, early close, pause/resume, skip, false start, timer auto-advance, placement points, champion).
 - `tests/e2e/flow.mjs`: full multi-device flow (host tablet, 1080p TV, phones at 320/375/390px), including invalid and reused pairing codes, duplicate nicknames, kick, reconnects, a full tournament and a freestyle setup.

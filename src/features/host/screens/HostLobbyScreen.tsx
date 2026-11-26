@@ -21,6 +21,9 @@ import { useHostContext } from "../HostRoomLayout";
 import { clearLastHostedRoom } from "../hostSession";
 import { joinUrlLabel } from "@/utils/urls";
 import { roomPlayerCap } from "@shared/gameSettings";
+import type { PublicGameState } from "@shared/engine";
+import type { GameId } from "@shared/games";
+import { useGameViews } from "@/features/games/engine/useGameViews";
 
 export function HostLobbyScreen() {
   const { room } = useHostContext();
@@ -83,6 +86,7 @@ export function HostLobbyScreen() {
         {/* Lg+: players left, lineup right. Room code and display are in pop-ups (bottom bar). */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_26rem]">
           <div className="min-w-0 space-y-4 sm:space-y-5">
+            {live && display.data?.gameId && <HostLiveGame gameId={display.data.gameId} game={live} roomId={room.id} />}
             <PlayerListCard roomId={room.id} players={players.data} loading={players.status === "loading"} showScores={isTournament && room.currentGameIndex > 0} cap={roomPlayerCap(room)} />
           </div>
           <div className="min-w-0 space-y-4 sm:space-y-5">
@@ -135,6 +139,13 @@ export function HostLobbyScreen() {
       </Dialog>
     </Backdrop>
   );
+}
+
+/** A game's own live panel for the host (e.g. Draw & Guess's drawing preview), when it has one. */
+function HostLiveGame({ gameId, game, roomId }: { gameId: GameId; game: PublicGameState; roomId: string }) {
+  const views = useGameViews(gameId);
+  if (!views?.HostView) return null;
+  return <views.HostView game={game} roomId={roomId} />;
 }
 
 /** Small square button beside the main action ("row"), or an icon button in a live game's header. */

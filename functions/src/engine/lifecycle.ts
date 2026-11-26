@@ -96,7 +96,25 @@ export function placementPoints(standings: StandingEntry[], scoring?: ServerRoom
   return new Map(standings.map((s) => [s.playerId, table[(r.get(s.playerId) ?? 99) - 1] ?? other]));
 }
 
-function publicState(ctx: GameCtx, gs: GameStateDoc, extra: { submitted: number; reveal: unknown }): PublicGameState {
+/** Who has answered, in answer order (names only), for games that show it live. */
+export function answerers(players: EnginePlayer[], submissions: EngineSubmission[]): NonNullable<PublicGameState["answeredBy"]> {
+  const byId = new Map(players.map((p) => [p.playerId, p]));
+  return [...submissions]
+    .sort((a, b) => a.submittedAtMs - b.submittedAtMs || a.playerId.localeCompare(b.playerId))
+    .flatMap((s) => {
+      const p = byId.get(s.playerId);
+      return p ? [{ playerId: p.playerId, nickname: p.nickname, avatar: p.avatar, atMs: s.submittedAtMs }] : [];
+    });
+}
+
+interface DisplayExtra {
+  submitted: number;
+  reveal: unknown;
+  /** This round's submissions so far (for games that name answerers live). */
+  submissions?: EngineSubmission[];
+}
+
+function publicState(ctx: GameCtx, gs: GameStateDoc, extra: DisplayExtra): PublicGameState {
   return {
     phase: gs.phase,
     round: gs.round,
@@ -112,10 +130,12 @@ function publicState(ctx: GameCtx, gs: GameStateDoc, extra: { submitted: number;
     standings: standingsFrom(gs.scores, ctx.players).slice(0, 10),
     roundLabel: gs.phase === "intro" ? null : (gs.roundLabel ?? null),
     skippable: gs.skippable !== false,
+    ...(ctx.handler.roundEvent ? { eventAtMs: gs.phase === "question" && !gs.paused ? (gs.roundEventAtMs ?? null) : null } : {}),
+    ...(ctx.handler.showAnswerers ? { answeredBy: gs.phase === "question" ? answerers(ctx.players, extra.submissions ?? []) : [] } : {}),
   };
 }
 
-function writeDisplay(tx: Transaction, ctx: GameCtx, gs: GameStateDoc, extra: { submitted: number; reveal: unknown }) {
+function writeDisplay(tx: Transaction, ctx: GameCtx, gs: GameStateDoc, extra: DisplayExtra) {
   const isTournament = ctx.room.gameMode === "tournament";
   tx.set(displayRef(ctx.roomId), {
     currentScreen: "game",
@@ -179,9 +199,10 @@ export async function initGame(
 }
 
 function openRound(tx: Transaction, ctx: GameCtx, round: number, nowMs: number) {
-  const opened = ctx.handler.openRound(ctx.gs.setup, round, nowMs);
+  const opened = ctx.handler.openRound(ctx.gs.setup, round, nowMs, ctx.players);
   const gs: GameStateDoc = {
     ...ctx.gs,
+    ...(opened.setup !== undefined ? { setup: opened.setup } : {}),
     phase: "question",
     round,
     // No deadline for untimed rounds: they end when everyone has answered or the host ends them.
@@ -197,11 +218,16 @@ function openRound(tx: Transaction, ctx: GameCtx, round: number, nowMs: number) 
     lastReveal: null,
     roundLabel: opened.label ?? null,
     skippable: opened.skippable !== false,
+    roundEventAtMs: opened.eventAtMs ?? null,
   };
   tx.set(gameStateRef(ctx.roomId), gs);
   writeDisplay(tx, ctx, gs, { submitted: 0, reveal: null });
   for (const p of ctx.players) {
-    writePrivate(tx, ctx.roomId, p.playerId, { gameId: gs.gameId, round, phase: "question", answer: null, answered: false });
+    writePrivate(tx, ctx.roomId, p.playerId, {
+      gameId: gs.gameId, round, phase: "question", answer: null, answered: false,
+      // Per-round secrets (Draw & Guess's prompt goes to the artist only).
+      ...(opened.privateFor ? { secret: opened.privateFor[p.playerId] ?? null } : {}),
+    });
   }
 }
 
@@ -360,23 +386,40 @@ export function hostGameAction(tx: Transaction, ctx: GameCtx, name: string, subm
   tx.set(gameStateRef(ctx.roomId), updated);
 }
 
-export function pauseGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
+/**
+ * Run the round's due mid-round event (Draw & Guess's next letter). Idempotent: returns false
+ * unless an event is scheduled and the server clock has reached it (within `skewMs`).
+ */
+export function runRoundEvent(tx: Transaction, ctx: GameCtx, submissions: EngineSubmission[], nowMs: number, skewMs: number): boolean {
+  const { gs, handler } = ctx;
+  const dueAtMs = gs.roundEventAtMs;
+  if (!handler.roundEvent || gs.phase !== "question" || gs.paused || !dueAtMs || nowMs < dueAtMs - skewMs) return false;
+  const { pub, nextAtMs } = handler.roundEvent({ pub: gs.roundPublic, secret: gs.roundSecret, setup: gs.setup, dueAtMs });
+  // Nothing more after the round's end.
+  const next = nextAtMs !== null && (gs.phaseEndsAtMs === null || nextAtMs < gs.phaseEndsAtMs) ? nextAtMs : null;
+  const updated: GameStateDoc = { ...gs, roundPublic: pub, roundEventAtMs: next };
+  tx.set(gameStateRef(ctx.roomId), updated);
+  writeDisplay(tx, ctx, updated, { submitted: submissions.length, reveal: null, submissions });
+  return true;
+}
+
+export function pauseGame(tx: Transaction, ctx: GameCtx, submissions: EngineSubmission[], nowMs: number) {
   const { gs } = ctx;
   if (gs.paused) return;
   // Untimed rounds have no deadline to freeze; remainingMs stays null so resume keeps them untimed.
   const untimed = gs.phaseEndsAtMs === null;
   const next: GameStateDoc = { ...gs, paused: true, remainingMs: untimed ? null : Math.max(1000, gs.phaseEndsAtMs! - nowMs) };
   tx.set(gameStateRef(ctx.roomId), next);
-  writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });
+  writeDisplay(tx, ctx, next, { submitted: submissions.length, reveal: gs.lastReveal, submissions });
 }
 
-export function resumeGame(tx: Transaction, ctx: GameCtx, submittedCount: number, nowMs: number) {
+export function resumeGame(tx: Transaction, ctx: GameCtx, submissions: EngineSubmission[], nowMs: number) {
   const { gs } = ctx;
   if (!gs.paused) return;
   if (gs.remainingMs === null && gs.phaseDurationMs === 0) {
     const next: GameStateDoc = { ...gs, paused: false };
     tx.set(gameStateRef(ctx.roomId), next);
-    writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });
+    writeDisplay(tx, ctx, next, { submitted: submissions.length, reveal: gs.lastReveal, submissions });
     return;
   }
   const endsAt = nowMs + (gs.remainingMs ?? 5000);
@@ -394,9 +437,11 @@ export function resumeGame(tx: Transaction, ctx: GameCtx, submittedCount: number
     roundSecret,
     // Speed bonuses are measured from the open time; shift it so pausing doesn't cost points.
     roundOpenedAtMs: gs.roundOpenedAtMs !== null ? gs.roundOpenedAtMs + shift : null,
+    // Mid-round events (letter hints) keep their place in the round too.
+    roundEventAtMs: gs.roundEventAtMs ? gs.roundEventAtMs + shift : (gs.roundEventAtMs ?? null),
   };
   tx.set(gameStateRef(ctx.roomId), next);
-  writeDisplay(tx, ctx, next, { submitted: submittedCount, reveal: gs.lastReveal });
+  writeDisplay(tx, ctx, next, { submitted: submissions.length, reveal: gs.lastReveal, submissions });
 }
 
 export { db };

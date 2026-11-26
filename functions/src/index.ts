@@ -5,3 +5,4 @@ export { startGame, endGame } from "./game";
 export { submitAnswer, tickGame, controlGame } from "./engine/callables";
 export { onPresenceWritten } from "./presence";
 export { processExpirations } from "./maintenance";
+export { onDrawingGameWritten } from "./drawingSync";

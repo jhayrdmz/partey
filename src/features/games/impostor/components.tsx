@@ -273,7 +273,8 @@ export function PlayerOutcome({ r, mine }: { r: Extract<ImpostorReveal, { kind: 
 export function DisplayTurn({ pub }: { pub: Extract<ImpostorRound, { kind: "turn" }> }) {
   return (
     <div className="flex flex-1 flex-col justify-center gap-[calc(1.5rem*var(--fit-c,1))]">
-      <div className="flex flex-col items-center gap-3 text-center">
+      {/* One row on wide screens (category · player · turn); wraps on narrow ones. */}
+      <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-center lg:gap-x-12">
         <CategoryChip category={pub.category} className="text-base lg:text-xl" />
         <motion.div key={pub.turnPlayer.playerId} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 180, damping: 14 }} className="flex items-center gap-4">
           <AvatarBubble avatar={pub.turnPlayer.avatar} size="xl" className="max-sm:size-16 max-sm:text-3xl" />

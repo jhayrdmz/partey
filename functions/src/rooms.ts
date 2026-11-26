@@ -115,7 +115,7 @@ export const setLineup = onCall(opts, async (req) => {
 });
 
 /**
- * Host changes a game's options (Speed Quiz, The Impostor). Allowed between games; a running
+ * Host changes a game's options (Speed Quiz, The Impostor, Draw & Guess). Allowed between games; a running
  * game keeps the options it started with. Lowering the player limit never removes anyone.
  */
 export const setGameSettings = onCall(opts, async (req) => {
@@ -123,8 +123,9 @@ export const setGameSettings = onCall(opts, async (req) => {
   const data = v.asObject(req.data);
   const roomId = v.docId(data, "roomId");
   const gameId = data.gameId;
-  if (gameId !== "speed-quiz" && gameId !== "impostor") fail("invalid-argument", "This game has no options.");
-  const settings = gameId === "speed-quiz" ? v.speedQuizSettings(data.settings) : v.impostorSettings(data.settings);
+  if (gameId !== "speed-quiz" && gameId !== "impostor" && gameId !== "drawing") fail("invalid-argument", "This game has no options.");
+  const settings =
+    gameId === "speed-quiz" ? v.speedQuizSettings(data.settings) : gameId === "impostor" ? v.impostorSettings(data.settings) : v.drawingSettings(data.settings);
   // The Impostor's custom word stays off the room doc (players and displays can read that).
   const customWord = "customWord" in settings && settings.customWord ? v.impostorCustomWord(data) : null;
   await db.runTransaction(async (tx) => {

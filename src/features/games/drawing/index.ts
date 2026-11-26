@@ -8,5 +8,16 @@ export const module: GameModule = {
   icon: Brush,
   art: { from: "#ea580c", to: "#db2777", emoji: "🎨" },
   interactions: ["drawing", "text"],
-  howToPlay: ["One player gets a secret prompt to draw.", "Everyone else guesses on their phones.", "Faster guesses score more — for guesser and artist."],
+  multipleAttempts: true,
+  loadViews: () => import("./views").then((m) => m.views),
+  hostControls: (game) => {
+    if (game.phase === "intro") return { nextLabel: "Start drawing" };
+    if (game.phase === "question") return { nextLabel: "End round" };
+    return { nextLabel: game.round >= game.totalRounds ? "Show results" : "Next artist" };
+  },
+  howToPlay: [
+    "One player gets a secret prompt on their phone and draws it.",
+    "The drawing appears live on the big screen. Everyone else types guesses.",
+    "Faster correct guesses score more. The artist scores when anyone gets it.",
+  ],
 };

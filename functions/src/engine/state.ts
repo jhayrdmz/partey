@@ -26,5 +26,7 @@ export interface GameStateDoc {
   /** From OpenedRound: label instead of "Round x of y", and whether the host may skip. */
   roundLabel?: string | null;
   skippable?: boolean;
+  /** Next mid-round event (OpenedRound.eventAtMs / GameHandler.roundEvent); null = none. */
+  roundEventAtMs?: number | null;
   startedAtMs: number;
 }

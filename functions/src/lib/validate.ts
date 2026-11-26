@@ -2,7 +2,8 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
 
@@ -13,11 +14,16 @@ export function asObject(data: unknown): Data {
   return data as Data;
 }
 
+/** Strip control and invisible characters, collapse whitespace, trim. */
+export function cleanText(raw: string): string {
+  return raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
+}
+
 /** Trimmed, whitespace-collapsed text with no control characters. Length counts characters, not UTF-16 units. */
 export function text(data: Data, key: string, min: number, max: number, label: string): string {
   const raw = data[key];
   if (typeof raw !== "string") fail("invalid-argument", `${label} is required.`);
-  const value = raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, "").replace(/\s+/g, " ").trim();
+  const value = cleanText(raw);
   const length = [...value].length;
   if (length < min) fail("invalid-argument", min <= 1 ? `${label} is required.` : `${label} must be at least ${min} characters.`);
   if (length > max) fail("invalid-argument", `${label} must be at most ${max} characters.`);
@@ -113,4 +119,22 @@ export function impostorCustomWord(data: Data): string {
   const word = text(data, "customWord", min, max, "Custom word");
   if (!/^[\p{L}\p{N}]+(?:[ '’-][\p{L}\p{N}]+)*$/u.test(word)) fail("invalid-argument", "Use letters and numbers only (spaces, ' and - are fine between them).");
   return word;
+}
+
+/** Draw & Guess options from the lobby form. Every field is required. */
+export function drawingSettings(value: unknown): DrawingSettings {
+  const data = asObject(value);
+  const { rounds, drawSeconds, categories, maxPlayers } = data;
+  // Optional for clients from before hints existed.
+  const hintSeconds = data.hintSeconds ?? DRAWING_LIMITS.hintSeconds.default;
+  const L = DRAWING_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!(DRAW_SECONDS_OPTIONS as readonly unknown[]).includes(drawSeconds)) fail("invalid-argument", `Pick a drawing time: ${DRAW_SECONDS_OPTIONS.join(", ")} seconds.`);
+  if (!(HINT_SECONDS_OPTIONS as readonly unknown[]).includes(hintSeconds)) fail("invalid-argument", `Pick letter hints: off or every ${HINT_SECONDS_OPTIONS.filter(Boolean).join(", ")} seconds.`);
+  if (!Array.isArray(categories) || categories.length === 0) fail("invalid-argument", "Pick at least one category.");
+  if (categories.some((c) => !(DRAW_CATEGORIES as readonly unknown[]).includes(c))) fail("invalid-argument", "Unknown category.");
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  // Stored in the catalog's order, without duplicates.
+  const chosen = DRAW_CATEGORIES.filter((c) => (categories as unknown[]).includes(c)) as DrawCategory[];
+  return { rounds, drawSeconds: drawSeconds as DrawingSettings["drawSeconds"], hintSeconds: hintSeconds as DrawingSettings["hintSeconds"], categories: chosen, maxPlayers };
 }

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Hourglass, Lock, Pause, Trophy, XCircle } from "lucide-react";
+import { CheckCircle2, Hourglass, Lock, Trophy, XCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import type { PlayerPrivateDoc } from "@shared/engine";
+import type { PlayerPrivateDoc, SubmitAnswerResponse } from "@shared/engine";
 import type { DisplayStateDoc } from "@shared/types";
 import { useGameViews } from "@/features/games/engine/useGameViews";
 import { useAutoTick } from "@/features/games/engine/useAutoTick";
 import { TimerBar } from "@/features/games/shared/TimerBar";
+import { PausedOverlay } from "@/features/games/shared/PausedOverlay";
 import { getGame } from "@/features/games/registry";
 import { useLiveDoc } from "@/hooks/useFirestore";
 import { call, errorMessage, refs } from "@/services/firebase";
@@ -61,26 +62,34 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
       <div className="flex flex-1 flex-col gap-4">
         {secret}
         <GetReady state={state} />
+        <PausedOverlay paused={game.paused} />
       </div>
     );
   }
 
   const mine = me.data;
   const inRound = mine?.gameId === state.gameId && mine?.round === game.round;
-  const answered = (inRound && mine?.answered) || lockedRound.current === roundKey;
+  // Multi-attempt games (Draw & Guess) keep the form up while a guess is checked; only the server's
+  // "answered" (a correct guess) ends the round for this player.
+  const multi = state.gameId ? getGame(state.gameId).multipleAttempts === true : false;
+  const answered = (inRound && mine?.answered) || (!multi && lockedRound.current === roundKey);
 
-  async function submit(answer: unknown) {
-    if (lockedRound.current === roundKey || !game) return;
+  async function submit(answer: unknown): Promise<SubmitAnswerResponse | null> {
+    if (lockedRound.current === roundKey || !game) return null;
     lockedRound.current = roundKey;
     setSubmitting(true);
     if (navigator.vibrate) navigator.vibrate(30);
     try {
-      await call("submitAnswer", { roomId, round: game.round, answer });
+      const res = await call("submitAnswer", { roomId, round: game.round, answer });
+      // A wrong guess in a multi-attempt game (Draw & Guess): nothing was stored, keep guessing.
+      if (res.correct === false && lockedRound.current === roundKey) lockedRound.current = null;
+      return res;
     } catch (err) {
       // Rejected (e.g. "That's the secret word!"): unlock so the player can try again.
       // The server is idempotent, so a retry can never count twice.
       lockedRound.current = null;
       toast.error(errorMessage(err));
+      return null;
     } finally {
       setSubmitting(false);
     }
@@ -97,12 +106,6 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
         <TimerBar endsAtMs={game.phaseEndsAtMs} durationMs={game.phaseDurationMs} paused={game.paused} remainingMs={game.remainingMs} />
       )}
 
-      {game.paused && game.phase !== "question" && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <Pause className="size-16 text-mango" />
-          <p className="text-2xl font-black">Paused</p>
-        </div>
-      )}
 
       {game.phase === "question" && !views && <div className="flex-1" />}
       {game.phase === "question" && views && (
@@ -110,17 +113,19 @@ export function PlayerGameStage({ roomId, uid, state }: { roomId: string; uid: s
           <Waiting icon={Hourglass} title="You're in the next round" text="You joined mid-round. Hang tight!" />
         ) : answered ? (
           views.PlayerAnswered ? (
-            <views.PlayerAnswered game={game} me={mine} uid={uid} submit={submit} submitting={submitting} />
+            <views.PlayerAnswered game={game} me={mine} uid={uid} roomId={roomId} submit={submit} submitting={submitting} />
           ) : (
             <Waiting icon={Lock} title="Answer locked in!" text="Watch the big screen…" />
           )
         ) : (
-          <views.PlayerQuestion game={game} me={mine} uid={uid} submit={submit} submitting={submitting} />
+          <views.PlayerQuestion game={game} me={mine} uid={uid} roomId={roomId} submit={submit} submitting={submitting} />
         )
       )}
 
       {game.phase === "reveal" && !game.paused && mine &&
         (views?.PlayerReveal ? <views.PlayerReveal game={game} me={mine} uid={uid} /> : <RoundResult me={mine} totalRounds={game.totalRounds} />)}
+      {/* Same cover as the big screen, over the whole phone. */}
+      <PausedOverlay paused={game.paused} />
     </div>
   );
 }

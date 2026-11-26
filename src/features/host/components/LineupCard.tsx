@@ -1,30 +1,35 @@
 import { useState } from "react";
 import { CheckCircle2, ListOrdered, Pencil, PlayCircle, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router";
-import { categoryLabel, impostorSettings, speedQuizSettings } from "@shared/gameSettings";
+import { DRAW_CATEGORIES } from "@shared/engine";
+import { DRAW_CATEGORY_LABELS, categoryLabel, drawingSettings, impostorSettings, speedQuizSettings } from "@shared/gameSettings";
 import type { RoomDoc } from "@shared/types";
 import { GameArt } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/utils/cn";
+import { DrawingOptionsDialog } from "./DrawingOptionsDialog";
 import { ImpostorOptionsDialog } from "./ImpostorOptionsDialog";
 import { SpeedQuizOptionsDialog } from "./SpeedQuizOptionsDialog";
 
 /** Games with host options in the lobby. */
-const HAS_OPTIONS = new Set(["speed-quiz", "impostor"]);
+const HAS_OPTIONS = new Set(["speed-quiz", "impostor", "drawing"]);
+type OptionsGame = "speed-quiz" | "impostor" | "drawing";
 
 export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) {
   const isTournament = room.gameMode === "tournament";
   const editable = room.status === "waiting" && (!isTournament || room.currentGameIndex === 0);
   // Options can change between games, even mid-tournament; a running game keeps its own.
   const optionsEditable = room.status === "waiting";
-  const [optionsFor, setOptionsFor] = useState<"speed-quiz" | "impostor" | null>(null);
+  const [optionsFor, setOptionsFor] = useState<OptionsGame | null>(null);
   const quiz = speedQuizSettings(room.gameSettings?.["speed-quiz"]);
   const imp = impostorSettings(room.gameSettings?.impostor);
+  const draw = drawingSettings(room.gameSettings?.drawing);
   const summaries: Partial<Record<string, string>> = {
     "speed-quiz": `${quiz.questionSeconds === 0 ? "No time limit" : `${quiz.questionSeconds}s`} · ${quiz.rounds} questions · max ${quiz.maxPlayers} players`,
     impostor: `${imp.customWord ? `Custom word (${categoryLabel(imp.category)})` : categoryLabel(imp.category)} · ${imp.impostors} impostor${imp.impostors === 1 ? "" : "s"} · ${imp.clueRounds} clue round${imp.clueRounds === 1 ? "" : "s"} · max ${imp.maxPlayers} players`,
+    drawing: `${draw.rounds} rounds · ${draw.drawSeconds}s to draw · ${draw.hintSeconds ? `hint every ${draw.hintSeconds}s` : "no hints"} · ${draw.categories.length === DRAW_CATEGORIES.length ? "All categories" : draw.categories.length === 1 ? DRAW_CATEGORY_LABELS[draw.categories[0]] : `${draw.categories.length} categories`} · max ${draw.maxPlayers} players`,
   };
   return (
     <Card className="gap-3">
@@ -66,7 +71,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
                   size="sm"
                   variant="secondary"
                   className="shrink-0 rounded-md"
-                  onClick={() => setOptionsFor(entry.gameId as "speed-quiz" | "impostor")}
+                  onClick={() => setOptionsFor(entry.gameId as OptionsGame)}
                   aria-label={`${game.meta.name} options`}
                 >
                   <SlidersHorizontal className="size-4" /> <span className="hidden xs:inline">Options</span>
@@ -83,6 +88,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
       </ol>
       <SpeedQuizOptionsDialog room={room} roomId={roomId} open={optionsFor === "speed-quiz"} onOpenChange={(o) => setOptionsFor(o ? "speed-quiz" : null)} />
       <ImpostorOptionsDialog room={room} roomId={roomId} open={optionsFor === "impostor"} onOpenChange={(o) => setOptionsFor(o ? "impostor" : null)} />
+      <DrawingOptionsDialog room={room} roomId={roomId} open={optionsFor === "drawing"} onOpenChange={(o) => setOptionsFor(o ? "drawing" : null)} />
     </Card>
   );
 }

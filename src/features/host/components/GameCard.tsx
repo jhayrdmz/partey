@@ -56,9 +56,6 @@ export function GameCard({
         )}
       </span>
       {!playable && <Badge className="absolute top-3 left-3 bg-background/80 text-foreground">Coming soon</Badge>}
-      {game.meta.featured && (
-        <Badge className="absolute top-3 left-3 bg-mango text-black">Featured</Badge>
-      )}
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-lg font-extrabold leading-tight">{game.meta.name}</h3>

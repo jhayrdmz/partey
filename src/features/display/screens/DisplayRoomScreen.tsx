@@ -116,7 +116,7 @@ export function DisplayRoomScreen() {
           transition={{ duration: 0.35 }}
         >
           {current === "game" && state ? (
-            <DisplayGameStage state={state} />
+            <DisplayGameStage state={state} roomId={roomId!} />
           ) : (current === "results" || current === "leaderboard" || current === "champion") && state ? (
             <DisplayStandings state={state} roomCode={room.data.roomCode} />
           ) : (

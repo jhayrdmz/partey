@@ -7,7 +7,7 @@ import { assertHost } from "../lib/rooms";
 import * as v from "../lib/validate";
 import { REGION } from "../config";
 import {
-  advance, countSubmissions, gameStateRef, hostGameAction, loadGameCtx, loadSubmissions, pauseGame, resumeGame, skipRound, submissionRef, type GameCtx,
+  advance, countSubmissions, gameStateRef, hostGameAction, loadGameCtx, loadSubmissions, pauseGame, resumeGame, runRoundEvent, skipRound, submissionRef, type GameCtx,
 } from "./lifecycle";
 
 const opts = { region: REGION, cors: true } as const;
@@ -64,15 +64,26 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
     if (!gs.eligibleIds.includes(uid)) fail("permission-denied", gs.roundLabel ? "It's not your turn." : "You'll join from the next round.");
     if (gs.phaseEndsAtMs !== null && receivedAtMs > gs.phaseEndsAtMs + LATE_GRACE_MS) fail("deadline-exceeded", "Time's up!");
 
+    const { handler } = ctx!;
     const ref = submissionRef(roomId, gs.entryId, gs.round, uid);
+    // Already answered (for multi-attempt games: already guessed right). Never scores twice.
     if ((await tx.get(ref)).exists) return { accepted: false, entryId: gs.entryId, eligible: gs.eligibleIds.length };
-    const answer = ctx!.handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup });
+    const answer = handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup });
+    // Multi-attempt rounds: a wrong guess is answered right away and leaves no trace.
+    const verdict = handler.check?.(answer, gs.roundPublic, gs.roundSecret);
+    if (verdict && !verdict.correct) return { accepted: false, correct: false, close: verdict.close === true, entryId: gs.entryId, eligible: gs.eligibleIds.length };
 
     tx.create(ref, { entryId: gs.entryId, round: gs.round, playerId: uid, answer, submittedAtMs: receivedAtMs });
     tx.set(roomRef(roomId).collection("private").doc(uid), { answered: true, answer }, { merge: true });
-    // Blind increment: no read of displayState, so concurrent answers don't contend.
-    tx.update(roomRef(roomId).collection("displayState").doc("current"), { "game.submitted": FieldValue.increment(1) });
-    return { accepted: true, entryId: gs.entryId, eligible: gs.eligibleIds.length };
+    // Blind writes: no read of displayState, so concurrent answers don't contend.
+    const me = ctx!.players.find((p) => p.playerId === uid)!;
+    tx.update(roomRef(roomId).collection("displayState").doc("current"), {
+      "game.submitted": FieldValue.increment(1),
+      ...(handler.showAnswerers
+        ? { "game.answeredBy": FieldValue.arrayUnion({ playerId: uid, nickname: me.nickname, avatar: me.avatar, atMs: receivedAtMs }) }
+        : {}),
+    });
+    return { accepted: true, ...(verdict ? { correct: true } : {}), entryId: gs.entryId, eligible: gs.eligibleIds.length };
   });
 
   if (result.accepted) {
@@ -81,7 +92,11 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
       logger.error("Early round close failed", { roomId, round: roundNo, err }),
     );
   }
-  return { accepted: result.accepted };
+  return {
+    accepted: result.accepted,
+    ...("correct" in result ? { correct: result.correct } : {}),
+    ...("close" in result && result.close ? { close: true } : {}),
+  };
 });
 
 /**
@@ -94,6 +109,7 @@ export const tickGame = onCall(opts, async (req) => {
   const roomId = v.docId(data, "roomId");
   const expectedRound = round(data);
   const expectedPhase = phase(data);
+  const event = data.event === true;
 
   const advanced = await db.runTransaction(async (tx) => {
     const ctx = await loadGameCtx(tx, roomId);
@@ -101,6 +117,8 @@ export const tickGame = onCall(opts, async (req) => {
     if (ctx.room.hostId !== uid && !isActivePlayer(ctx, uid)) fail("permission-denied", "Not a member of this game.");
     const { gs } = ctx;
     if (gs.paused || gs.round !== expectedRound || gs.phase !== expectedPhase) return false; // someone else already advanced
+    // A mid-round event (letter hint), not the deadline. Only the server clock decides it's due.
+    if (event) return runRoundEvent(tx, ctx, await loadSubmissions(tx, ctx), Date.now(), DEADLINE_SKEW_MS);
     if (gs.phaseEndsAtMs === null || Date.now() < gs.phaseEndsAtMs - DEADLINE_SKEW_MS) return false;
     const subs = await loadSubmissions(tx, ctx);
     advance(tx, ctx, subs, Date.now());
@@ -126,9 +144,9 @@ export const controlGame = onCall(opts, async (req) => {
     const now = Date.now();
     switch (action) {
       case "pause":
-        return pauseGame(tx, ctx, subs.length, now);
+        return pauseGame(tx, ctx, subs, now);
       case "resume":
-        return resumeGame(tx, ctx, subs.length, now);
+        return resumeGame(tx, ctx, subs, now);
       case "skip":
         if (ctx.gs.paused) fail("failed-precondition", "Resume the game first.");
         return skipRound(tx, ctx, now);

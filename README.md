@@ -99,7 +99,7 @@ Open three browser windows (or devices on your LAN):
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
 | `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
-| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, and a full game of The Impostor (emulators + dev server running) |
+| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, a full game of The Impostor, and a full game of Draw & Guess (emulators + dev server running) |
 
 To run the function integration tests against running emulators:
 
@@ -183,7 +183,7 @@ Files are cached for a year, so upload a changed track under a new key rather th
 
 ```
 shared/                 Types, constants, game catalog, expiry policy shared by web + functions
-functions/src/          Cloud Functions (callables, RTDB presence trigger, scheduled expiry sweep)
+functions/src/          Cloud Functions (callables, RTDB presence trigger, Draw & Guess canvas trigger, scheduled expiry sweep)
 firestore.rules         Firestore security rules (clients are read-only)
 database.rules.json     Realtime Database rules (presence)
 src/
@@ -225,6 +225,6 @@ Background music: Otomusu (https://otomusu.com/). Royalty-free under the [Otomus
 - *Rejoin as host* is only offered for rooms that still exist and that you still own.
 - Server-authoritative room lifecycle, display pairing (display shows the code, host enters it; single-use, expiring, rate-limited), presence/reconnection, room expiration with cleanup, and Firestore + RTDB security rules.
 - **Game engine:** intro → question → reveal rounds with server-clock timers, live answer counts, early close when everyone has answered, pause/resume, skip round, reveal now, end game, automatic advance on timer expiry, idempotent submissions, per-player private results, and tournament placement points (100 / 60 / 30 / 10, ties shared) or freestyle per-game scoring.
-- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd), Reflex Battle (5 rounds, false-start detection) and The Impostor (secret roles, one-word clue turns, voting with revotes on a tie; the host picks the category or types their own single-use secret word, 1–3 impostors, clue rounds and max players). The other four games show as *Coming soon*.
+- **Playable games:** Speed Quiz (speed bonus; the host sets 10s/15s/30s or no time limit, 8–20 questions and up to 100 players), Guess the Majority (6 prompts, match the crowd), Reflex Battle (5 rounds, false-start detection) The Impostor (secret roles, one-word clue turns, voting with revotes on a tie; the host picks the category or types their own single-use secret word, 1–3 impostors, clue rounds and max players) and Draw & Guess (one artist per round draws a secret prompt on their phone, live on the big screen; everyone else races to type the answer; letter hints appear every few seconds; the host sets rounds, drawing time, hint interval, prompt categories and max players). The other three games show as *Coming soon*.
 
-**Next:** Draw & Guess, Word Scramble, Picture Reveal and Survey Showdown (text, voting, drawing and private-clue interactions); host-editable scoring; PWA; App Check.
+**Next:** Word Scramble, Picture Reveal and Survey Showdown; host-editable scoring; PWA; App Check.

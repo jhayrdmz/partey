@@ -78,10 +78,11 @@ export const GAMES: Record<GameId, GameMeta> = {
     description: "Draw the prompt on your phone while everyone races to guess what it is on the big screen.",
     category: "creative",
     minPlayers: 3,
-    maxPlayers: 12,
+    // Host-adjustable in game options (default 12).
+    maxPlayers: 24,
     durationMin: 15,
     featured: false,
-    playable: false,
+    playable: true,
   },
   "word-scramble": {
     id: "word-scramble",

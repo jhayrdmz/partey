@@ -3,7 +3,7 @@
  * Cloud Functions (validation, game setup, join cap). Keep free of runtime dependencies.
  */
 import { LIMITS } from "./constants";
-import { IMPOSTOR_CATEGORIES, type ImpostorCategory } from "./engine";
+import { DRAW_CATEGORIES, IMPOSTOR_CATEGORIES, type DrawCategory, type ImpostorCategory } from "./engine";
 import type { GameId } from "./games";
 import type { GameMode, LineupEntry } from "./types";
 
@@ -97,10 +97,67 @@ export function categoryLabel(category: ImpostorCategory | ImpostorCategoryOptio
   return IMPOSTOR_CATEGORY_LABELS[category];
 }
 
+/* ─── Draw & Guess ─────────────────────────────────────────────────────── */
+
+/** Seconds the artist gets to draw. */
+export const DRAW_SECONDS_OPTIONS = [45, 60, 80, 100, 120] as const;
+export type DrawSeconds = (typeof DRAW_SECONDS_OPTIONS)[number];
+
+/** Reveal a letter of the prompt every N seconds while drawing; 0 = no hints. */
+export const HINT_SECONDS_OPTIONS = [0, 10, 15, 20, 30] as const;
+export type HintSeconds = (typeof HINT_SECONDS_OPTIONS)[number];
+
+export interface DrawingSettings {
+  /** Drawing turns in the game (artists rotate so everyone draws before anyone draws twice). */
+  rounds: number;
+  drawSeconds: DrawSeconds;
+  /** A letter hint every this many seconds (0 = off). Never reveals more than a third of the letters. */
+  hintSeconds: HintSeconds;
+  /** Prompts come from these categories (at least one). */
+  categories: DrawCategory[];
+  /** New players can't join while Draw & Guess is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const DRAWING_LIMITS = {
+  rounds: { min: 2, max: 20, default: 6 },
+  drawSeconds: { default: 80 as DrawSeconds },
+  hintSeconds: { default: 20 as HintSeconds },
+  maxPlayers: { min: 3, max: 24, default: 12 },
+  minPlayers: 3,
+} as const;
+
+export const DEFAULT_DRAWING_SETTINGS: DrawingSettings = {
+  rounds: DRAWING_LIMITS.rounds.default,
+  drawSeconds: DRAWING_LIMITS.drawSeconds.default,
+  hintSeconds: DRAWING_LIMITS.hintSeconds.default,
+  categories: [...DRAW_CATEGORIES],
+  maxPlayers: DRAWING_LIMITS.maxPlayers.default,
+};
+
+export function drawingSettings(stored?: Partial<DrawingSettings> | null): DrawingSettings {
+  const merged = { ...DEFAULT_DRAWING_SETTINGS, ...stored };
+  // Never end up with no prompts (e.g. a category removed in a later version).
+  const categories = merged.categories.filter((c) => (DRAW_CATEGORIES as readonly string[]).includes(c));
+  return { ...merged, categories: categories.length ? categories : [...DRAW_CATEGORIES] };
+}
+
+export const DRAW_CATEGORY_LABELS: Record<DrawCategory, string> = {
+  animals: "Animals",
+  food: "Food & Drinks",
+  objects: "Everyday Objects",
+  places: "Places",
+  movies: "Movies & Entertainment",
+  sports: "Sports",
+  school: "School & Education",
+  filipino: "Filipino Culture",
+};
+
 /** Settings stored on the room, keyed by game. */
 export interface GameSettingsMap {
   "speed-quiz"?: SpeedQuizSettings;
   impostor?: ImpostorSettings;
+  drawing?: DrawingSettings;
 }
 
 /** Settings with defaults filled in (rooms created before options existed have none). */
@@ -127,6 +184,7 @@ export function roomPlayerCap(room: {
   const upcoming = upcomingGameId(room);
   if (upcoming === "speed-quiz") return speedQuizSettings(room.gameSettings?.["speed-quiz"]).maxPlayers;
   if (upcoming === "impostor") return impostorSettings(room.gameSettings?.impostor).maxPlayers;
+  if (upcoming === "drawing") return drawingSettings(room.gameSettings?.drawing).maxPlayers;
   return LIMITS.maxPlayersPerRoom;
 }
 

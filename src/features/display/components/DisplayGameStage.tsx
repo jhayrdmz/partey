@@ -1,4 +1,4 @@
-import { Pause, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { DisplayStateDoc } from "@shared/types";
 import type { PublicGameState } from "@shared/engine";
@@ -6,6 +6,7 @@ import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { useGameViews } from "@/features/games/engine/useGameViews";
 import { getGame } from "@/features/games/registry";
 import { TimerBar } from "@/features/games/shared/TimerBar";
+import { PausedOverlay } from "@/features/games/shared/PausedOverlay";
 import { useServerCountdown } from "@/hooks/useServerClock";
 import { DisplayGameIntro } from "./DisplayGameIntro";
 import { FitToScreen } from "./FitToScreen";
@@ -65,7 +66,7 @@ function StandingsStrip({ game }: { game: PublicGameState }) {
 }
 
 /** Big-screen game presentation: intro → question → reveal, driven by public state only. */
-export function DisplayGameStage({ state }: { state: DisplayStateDoc }) {
+export function DisplayGameStage({ state, roomId }: { state: DisplayStateDoc; roomId: string }) {
   const game = state.game;
   const views = useGameViews(state.gameId);
   if (!game) return null;
@@ -85,7 +86,7 @@ export function DisplayGameStage({ state }: { state: DisplayStateDoc }) {
           className="flex min-h-0 flex-1 flex-col"
         >
           <FitToScreen watch={game.reveal}>
-            {views ? game.phase === "question" ? <views.DisplayQuestion game={game} /> : <views.DisplayReveal game={game} /> : null}
+            {views ? game.phase === "question" ? <views.DisplayQuestion game={game} roomId={roomId} /> : <views.DisplayReveal game={game} roomId={roomId} /> : null}
           </FitToScreen>
         </motion.div>
       </AnimatePresence>
@@ -106,15 +107,7 @@ export function DisplayGameStage({ state }: { state: DisplayStateDoc }) {
           </motion.div>
         )}
       </AnimatePresence>
-      {game.paused && (
-        <div className="fixed inset-0 z-30 grid place-items-center bg-background/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4">
-            <Pause className="size-16 text-mango sm:size-24" />
-            <p className="text-4xl font-black sm:text-6xl">Paused</p>
-            <p className="px-6 text-center text-lg text-muted-foreground sm:text-2xl">The host will resume the game shortly.</p>
-          </div>
-        </div>
-      )}
+      <PausedOverlay paused={game.paused} />
     </div>
   );
 }

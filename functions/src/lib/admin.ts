@@ -14,7 +14,16 @@ export const db = getFirestore(app);
  * RTDB_URL (functions/.env) is required for databases outside us-central1, whose
  * *.firebasedatabase.app URL isn't derivable from the project id.
  */
-export const rtdb = () => (process.env.RTDB_URL ? getDatabaseWithUrl(process.env.RTDB_URL, app) : getDatabase(app));
+export const rtdb = () => {
+  if (process.env.RTDB_URL) return getDatabaseWithUrl(process.env.RTDB_URL, app);
+  // Emulator: the Admin SDK's default namespace is "<project>", but the web app's default database
+  // URL is "<project>-default-rtdb". Use the app's, so server writes (Draw & Guess access,
+  // cleanup) land where clients read.
+  const emulator = process.env.FIREBASE_DATABASE_EMULATOR_HOST;
+  const project = process.env.GCLOUD_PROJECT;
+  if (emulator && project) return getDatabaseWithUrl(`http://${emulator}?ns=${project}-default-rtdb`, app);
+  return getDatabase(app);
+};
 
 export { FieldValue, Timestamp };
 

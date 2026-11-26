@@ -6,3 +6,4 @@ export * from "./api";
 export * from "./expiry";
 export * from "./engine";
 export * from "./gameSettings";
+export * from "./drawing";

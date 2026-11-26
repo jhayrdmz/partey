@@ -16,7 +16,7 @@
     "test:rules": "node --test tests/rules/*.test.mjs",
     "deploy": "npm run build && firebase deploy --project prod --only firestore,database,functions,hosting",
     "deploy:hosting": "npm run build && firebase deploy --project prod --only hosting",
-    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/gameplay.mjs && node tests/e2e/impostor.mjs && node tests/e2e/impostor-custom-word.mjs"
+    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/gameplay.mjs && node tests/e2e/impostor.mjs && node tests/e2e/impostor-custom-word.mjs && node tests/e2e/drawing.mjs"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

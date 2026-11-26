@@ -41,6 +41,7 @@ export async function cleanupRoom(roomId: string): Promise<void> {
   }
   await batch.commit();
   await rtdb().ref(`presence/${roomId}`).remove();
+  await rtdb().ref(`drawings/${roomId}`).remove();
 }
 
 /** Runs the whole sweep once; exported for tests and manual invocation. */

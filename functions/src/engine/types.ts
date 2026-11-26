@@ -27,6 +27,23 @@ export interface OpenedRound<Pub = unknown, Sec = unknown> {
   label?: string;
   /** False = the host can't skip this round (it decides the game). Default true. */
   skippable?: boolean;
+  /**
+   * Per-player secrets for this round, written to private/{uid}.secret (players not listed get null).
+   * E.g. only Draw & Guess's artist gets the prompt. Absent = leave private secrets as they are.
+   */
+  privateFor?: Record<string, unknown>;
+  /** Replaces the game's setup when the round opens (e.g. who has drawn so far). */
+  setup?: unknown;
+  /** Server-clock ms of the first mid-round event (see GameHandler.roundEvent). */
+  eventAtMs?: number | null;
+}
+
+/** A multi-attempt game's verdict on one attempt (see GameHandler.check). */
+export interface AttemptVerdict {
+  /** True = stored as this player's answer for the round; false = rejected, nothing stored. */
+  correct: boolean;
+  /** Nearly right ("So close!"). */
+  close?: boolean;
 }
 
 export interface ScoredRound {
@@ -75,7 +92,8 @@ export interface GameHandler<Setup = unknown, Pub = unknown, Sec = unknown> {
    * `hostSecret` = the host-only options doc (rooms/{id}/hostSecrets/{gameId}), if any.
    */
   setup(players: EnginePlayer[], used: ReadonlySet<string>, settings?: unknown, hostSecret?: unknown): { setup: Setup; rounds: number; contentIds: string[] };
-  openRound(setup: Setup, round: number, nowMs: number): OpenedRound<Pub, Sec>;
+  /** `players` = everyone currently in the room (e.g. to choose who draws). */
+  openRound(setup: Setup, round: number, nowMs: number, players: EnginePlayer[]): OpenedRound<Pub, Sec>;
   /** Normalize/validate a raw answer; throw HttpsError("invalid-argument") when invalid. */
   validate(answer: unknown, pub: Pub, ctx: ValidateCtx<Setup>): unknown;
   score(args: {
@@ -91,6 +109,20 @@ export interface GameHandler<Setup = unknown, Pub = unknown, Sec = unknown> {
     openedAtMs: number;
     durationMs: number;
   }): ScoredRound;
+  /**
+   * Multi-attempt rounds (Draw & Guess): judge each validated attempt. Only a correct one is stored
+   * (once per player per round); a wrong one returns to the player to try again. Absent = the first
+   * valid answer is final.
+   */
+  check?(answer: unknown, pub: Pub, secret: Sec): AttemptVerdict;
+  /** Publish who has answered so far (names only) in PublicGameState.answeredBy. */
+  showAnswerers?: boolean;
+  /**
+   * A timed change during a round (Draw & Guess reveals a letter). Runs once `dueAtMs` (the
+   * scheduled time) passes on the server clock; returns the new public payload and when the next
+   * event is due (null = no more). Scheduling shifts with pauses like the deadline.
+   */
+  roundEvent?(args: { pub: Pub; secret: Sec; setup: Setup; dueAtMs: number }): { pub: Pub; nextAtMs: number | null };
   /** Shift absolute times in the round payload after a pause (e.g. Reflex's go time). */
   shiftTimes?(pub: Pub, secret: Sec, deltaMs: number): { pub: Pub; secret: Sec };
   /** Private info for one player, written to private/{uid}.secret when the game starts (roles, secret words). */

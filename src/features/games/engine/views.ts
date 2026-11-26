@@ -1,8 +1,9 @@
 import type { ComponentType } from "react";
-import type { PlayerPrivateDoc, PublicGameState } from "@shared/engine";
+import type { PlayerPrivateDoc, PublicGameState, SubmitAnswerResponse } from "@shared/engine";
 
 export interface DisplayViewProps {
   game: PublicGameState;
+  roomId: string;
 }
 
 export interface PlayerQuestionProps {
@@ -10,7 +11,12 @@ export interface PlayerQuestionProps {
   me: PlayerPrivateDoc | null;
   /** This player's uid (e.g. to tell whose turn it is). */
   uid: string;
-  submit: (answer: unknown) => void;
+  roomId: string;
+  /**
+   * Send an answer. Resolves with the server's verdict (null if the call failed; the error is
+   * toasted). A wrong attempt in a multi-attempt game ({ correct: false }) leaves the round open.
+   */
+  submit: (answer: unknown) => Promise<SubmitAnswerResponse | null>;
   submitting: boolean;
 }
 
@@ -25,4 +31,6 @@ export interface GameViews {
   PlayerSecret?: ComponentType<{ game: PublicGameState; me: PlayerPrivateDoc | null }>;
   /** Optional replacement for the phone's round result screen. */
   PlayerReveal?: ComponentType<{ game: PublicGameState; me: PlayerPrivateDoc; uid: string }>;
+  /** Optional live panel on the host's screen during the game (e.g. a preview of the drawing). */
+  HostView?: ComponentType<DisplayViewProps>;
 }

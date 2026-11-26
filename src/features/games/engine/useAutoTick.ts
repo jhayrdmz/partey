@@ -35,4 +35,28 @@ export function useAutoTick(roomId: string | undefined, game: PublicGameState | 
       window.clearTimeout(timer);
     };
   }, [roomId, phase, round, endsAt, paused, enabled]);
+
+  // Mid-round events (Draw & Guess letter hints): same idea, at game.eventAtMs.
+  const eventAt = game?.eventAtMs;
+  useEffect(() => {
+    if (!enabled || !roomId || phase !== "question" || round === undefined || !eventAt || paused) return;
+    startServerClock();
+    let cancelled = false;
+    let timer: number | undefined;
+    let attempts = 0;
+    const fire = () => {
+      if (cancelled) return;
+      attempts++;
+      call("tickGame", { roomId, round, phase, event: true })
+        .catch(() => undefined)
+        .finally(() => {
+          if (!cancelled && attempts < 4) timer = window.setTimeout(fire, 700 * attempts);
+        });
+    };
+    timer = window.setTimeout(fire, Math.max(0, eventAt - serverNow()) + 100 + Math.random() * 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [roomId, phase, round, eventAt, paused, enabled]);
 }

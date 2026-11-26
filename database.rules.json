@@ -14,6 +14,29 @@
           "$other": { ".validate": false }
         }
       }
+    },
+    "drawings": {
+      "$roomId": {
+        "access": {
+          ".read": "auth != null"
+        },
+        "strokes": {
+          ".read": "auth != null && root.child('drawings').child($roomId).child('readers').child(auth.uid).val() === true",
+          "$key": {
+            ".write": "auth != null && root.child('drawings').child($roomId).child('access/artistId').val() === auth.uid && root.child('drawings').child($roomId).child('access/key').val() === $key",
+            "$strokeId": {
+              ".validate": "$strokeId.matches(/^[A-Za-z0-9_-]{1,32}$/) && newData.hasChildren(['c', 'w'])",
+              "c": { ".validate": "newData.isString() && newData.val().matches(/^#[0-9a-f]{6}$/)" },
+              "w": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 120" },
+              "e": { ".validate": "newData.isBoolean()" },
+              "p": {
+                "$n": { ".validate": "$n.matches(/^[0-9]{1,4}$/) && newData.isString() && newData.val().length <= 2400 && newData.val().matches(/^[0-9,]*$/)" }
+              },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      }
     }
   }
 }

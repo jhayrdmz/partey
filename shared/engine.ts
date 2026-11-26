@@ -45,6 +45,16 @@ export interface PublicGameState {
   roundLabel?: string | null;
   /** False when the host can't skip this round (e.g. The Impostor's vote). */
   skippable?: boolean;
+  /**
+   * Players who have answered this round, in answer order (games that name them live, e.g.
+   * Draw & Guess's correct guessers). Only names: never the answers themselves.
+   */
+  answeredBy?: (PlayerPick & { atMs: number })[];
+  /**
+   * Server-clock ms of the next mid-round event (e.g. Draw & Guess's next letter hint); null when
+   * none is due or the game is paused. Devices call tickGame({ event: true }) when it passes.
+   */
+  eventAtMs?: number | null;
 }
 
 /** rooms/{roomId}/private/{uid} — what one player needs, readable only by them. */
@@ -169,6 +179,43 @@ export interface ImpostorSecret {
 
 export type ImpostorAnswer = { clue: string } | { vote: string };
 
+/* ─── Draw & Guess ─────────────────────────────────────────────────────── */
+
+export const DRAW_CATEGORIES = ["animals", "food", "objects", "places", "movies", "sports", "school", "filipino"] as const;
+export type DrawCategory = (typeof DRAW_CATEGORIES)[number];
+
+/** Public round data. Never contains the prompt: only its shape (letters per word). */
+export interface DrawRound {
+  artist: PlayerPick;
+  category: DrawCategory;
+  /** Letters per word, e.g. [5, 4] for "Ice cream". */
+  hint: number[];
+  /**
+   * Letter hints revealed so far. `index` counts letters only, across all words (0 = the first
+   * letter of the first word). Grows during the round; never the whole word.
+   */
+  revealed: { index: number; letter: string }[];
+  /** RTDB key of this round's strokes: drawings/{roomId}/strokes/{drawingKey}. */
+  drawingKey: string;
+}
+
+export interface DrawReveal {
+  word: string;
+  category: DrawCategory;
+  artist: PlayerPick;
+  /** Correct guessers, fastest first. */
+  guessers: (PlayerPick & { ms: number; points: number })[];
+  artistPoints: number;
+  /** How many could guess (everyone but the artist). */
+  eligible: number;
+  drawingKey: string;
+}
+
+/** Private, per player, per round (private/{uid}.secret). Only the artist gets the prompt. */
+export type DrawSecret = { role: "artist"; word: string; category: DrawCategory } | { role: "guesser" };
+
+export type DrawAnswer = { guess: string };
+
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
 export type ChoiceAnswer = { choice: number };
@@ -181,12 +228,21 @@ export interface SubmitAnswerRequest {
 }
 export interface SubmitAnswerResponse {
   accepted: boolean;
+  /**
+   * Games that allow several attempts (Draw & Guess): false = a wrong guess, nothing stored, try again.
+   * Absent for one-shot games.
+   */
+  correct?: boolean;
+  /** A wrong guess that was nearly right ("So close!"). */
+  close?: boolean;
 }
 
 export interface TickGameRequest {
   roomId: string;
   round: number;
   phase: GamePhase;
+  /** A mid-round event is due (PublicGameState.eventAtMs), not the phase deadline. */
+  event?: boolean;
 }
 
 /** "game" runs a game-specific host action named by `name` (e.g. The Impostor's "revote"). */
