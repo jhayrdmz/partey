@@ -12,6 +12,7 @@ export const GAME_IDS = [
   "survey-showdown",
   "perfectly-hold",
   "number-rush",
+  "cup-shuffle",
 ] as const;
 
 export type GameId = (typeof GAME_IDS)[number];
@@ -145,6 +146,17 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 6,
+    playable: false,
+  },
+  "cup-shuffle": {
+    id: "cup-shuffle",
+    name: "Cup Shuffle",
+    tagline: "Watch closely. Guess wisely.",
+    description: "Keep your eyes on the ball as the cups shuffle on the big screen, then pick where it's hiding.",
+    category: "action",
+    minPlayers: 1,
+    maxPlayers: 24,
+    durationMin: 5,
     playable: false,
   },
 };
