@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { DoorOpen, Home, Loader2, LogOut, SearchX, UserX } from "lucide-react";
+import { Home, Loader2, LogOut, SearchX, UserX } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import type { LookupRoomResponse } from "@shared/api";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { useLiveDoc } from "@/hooks/useFirestore";
 import { usePresence } from "@/hooks/usePresence";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useDisplayState, useRoom } from "@/hooks/useRoomData";
 import { call, errorCode, errorMessage, refs } from "@/services/firebase";
 import { playSound } from "@/utils/sound";
@@ -120,6 +121,8 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
   const lostAccess = useAccessCheck(roomCode, room.status === "error");
   const display = useDisplayState(roomId, active);
   const realtimeConnected = usePresence(roomId, uid, "player", active);
+  // Players using the app count as lobby activity too.
+  useActivityHeartbeat(roomId, active);
   const [leaving, setLeaving] = useState(false);
 
   async function leave() {
@@ -133,23 +136,23 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
     }
   }
 
+  // The room ended (host closed it, it expired, or the host's slot expired): back to the code screen.
+  const kicked = me.data?.status === "kicked" || lostAccess === "kicked";
+  const ended =
+    !kicked &&
+    me.status !== "loading" &&
+    lostAccess !== "checking" &&
+    (me.status === "error" || room.status === "error" || !me.data || me.data.status === "left" || room.data?.status === "expired");
+  useEffect(() => {
+    if (!ended) return;
+    toast("This room has ended", { id: "room-ended", description: "Enter a code to join another room." });
+    navigate("/play", { replace: true });
+  }, [ended, navigate]);
+
   if (me.status === "loading" || lostAccess === "checking") return <LoadingScreen label="Rejoining…" />;
   if (me.data?.status === "kicked" || lostAccess === "kicked") return <KickedScreen />;
-  if (me.status === "error" || room.status === "error" || !me.data || me.data.status === "left") {
-    return (
-      <ScreenState
-        icon={DoorOpen}
-        title="This game has ended"
-        message="The room is closed or expired. Thanks for playing!"
-        action={
-          <Button asChild size="lg">
-            <Link to="/play">Join another room</Link>
-          </Button>
-        }
-      />
-    );
-  }
-  if (room.status === "loading" || !room.data) return <LoadingScreen label="Rejoining…" />;
+  if (ended) return <LoadingScreen label="This room has ended…" />;
+  if (room.status === "loading" || !room.data || !me.data) return <LoadingScreen label="Rejoining…" />;
 
   const screen = display.data?.currentScreen ?? "lobby";
   const showResults = (screen === "results" || screen === "leaderboard" || screen === "champion") && display.data;

@@ -20,6 +20,7 @@ interface CallableMap {
   startGame: [Api.StartGameRequest, { ok: true }];
   endGame: [Api.EndGameRequest, { ok: true }];
   closeRoom: [Api.CloseRoomRequest, { ok: true }];
+  keepAlive: [Api.KeepAliveRequest, { ok: true }];
   submitAnswer: [Engine.SubmitAnswerRequest, Engine.SubmitAnswerResponse];
   tickGame: [Engine.TickGameRequest, { advanced: boolean }];
   controlGame: [Engine.ControlGameRequest, { ok: true }];
@@ -41,6 +42,11 @@ export function errorMessage(err: unknown, fallback = "Something went wrong. Ple
   }
   if (err instanceof Error && err.message) return err.message;
   return fallback;
+}
+
+/** Extra info a callable attached to its error (e.g. which limit was hit). */
+export function errorDetails<T = unknown>(err: unknown): T | null {
+  return err instanceof FunctionsError ? ((err.details as T | undefined) ?? null) : null;
 }
 
 export function errorCode(err: unknown): string | null {

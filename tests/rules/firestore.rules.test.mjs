@@ -56,6 +56,8 @@ before(async () => {
   await ref.collection("submissions").doc("s1").set({ playerId: player.uid, answer: "x" });
   await ref.collection("hostSecrets").doc("impostor").set({ word: "pizza" });
   await admin.collection("roomCodes").doc("TEST").set({ roomId });
+  await admin.collection("hosts").doc(host.uid).set({ tier: "free", status: "active" });
+  await admin.collection("system").doc("hostSlots").set({ lastClaimBy: host.uid });
   await admin.collection("displayPairings").doc("p1").set({ roomId, hostId: host.uid, requesterUid: display.uid, status: "approved", expiresAt: future });
   // A code still showing on a display: no room or host yet.
   await admin.collection("displayPairings").doc("p-open").set({ code: "482913", roomId: null, hostId: null, requesterUid: display.uid, status: "open", expiresAt: future });
@@ -145,6 +147,12 @@ describe("separation of public, private and authoritative data", () => {
 });
 
 describe("lookup tables and pairing", () => {
+  test("host slots, the paid tag and system docs are server-only (even for that host)", async () => {
+    assert.equal(await allowed(getDoc(doc(host.db, "hosts", host.uid))), false);
+    assert.equal(await allowed(setDoc(doc(host.db, "hosts", host.uid), { tier: "paid" })), false);
+    assert.equal(await allowed(getDocs(collection(stranger.db, "hosts"))), false);
+    assert.equal(await allowed(getDoc(doc(stranger.db, "system", "hostSlots"))), false);
+  });
   test("room codes and pairing codes cannot be enumerated", async () => {
     assert.equal(await allowed(getDoc(doc(stranger.db, "roomCodes", "TEST"))), false);
     assert.equal(await allowed(getDocs(collection(stranger.db, "pairingCodes"))), false);

@@ -1,18 +1,23 @@
 import { onCall } from "firebase-functions/v2/https";
-import { DEFAULT_OTHER_PLACEMENT_POINTS, DEFAULT_PLACEMENT_POINTS, LIMITS } from "../../shared/constants";
+import { DEFAULT_OTHER_PLACEMENT_POINTS, DEFAULT_PLACEMENT_POINTS, KEEPALIVE_WRITE_MIN_MS, LIMITS } from "../../shared/constants";
 import type { CreateRoomResponse, LookupRoomResponse } from "../../shared/api";
-import type { LineupEntry } from "../../shared/types";
+import type { HostLimitDetails, LineupEntry } from "../../shared/types";
 import { db, ROOMS, ROOM_CODES, Timestamp, hostSecretRef, roomRef } from "./lib/admin";
+import { activeFreeHostsQuery, activeHostFields, hasActiveSlot, hostRef, hostSlotLockRef, isPaid, readHost, touchHostTx } from "./lib/hosts";
 import { generateId, generateRoomCode } from "./lib/codes";
 import { fail, requireUid } from "./lib/errors";
-import { assertHost, expiryFields, getLiveRoomTx, readLiveRoom, touchRoomTx, type ServerRoom } from "./lib/rooms";
+import { assertHost, expiryFields, getLiveRoomTx, isRoomLive, readLiveRoom, touchRoomTx, type ServerRoom } from "./lib/rooms";
 import * as v from "./lib/validate";
-import { REGION } from "./config";
+import { REGION, hostLimitContactUrl, maxActiveHosts, maxRoomsPerHost } from "./config";
 import { cleanupRoom } from "./maintenance";
 
 const opts = { region: REGION, cors: true } as const;
 
-/** Create a room with a unique player room code. Host = caller. */
+/**
+ * Create a room with a unique player room code. Host = caller.
+ * Free hosts: at most MAX_ROOMS_PER_HOST open rooms, and a new host needs one of MAX_ACTIVE_HOSTS
+ * slots (resource-exhausted with HostLimitDetails otherwise). Paid hosts skip both.
+ */
 export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> => {
   const uid = requireUid(req);
   const data = v.asObject(req.data);
@@ -30,7 +35,35 @@ export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> 
         const room = roomSnap.data() as ServerRoom | undefined;
         if (room && room.status !== "expired" && (!room.expiresAt || room.expiresAt.toMillis() > Date.now())) return false;
       }
-      const now = Timestamp.now();
+
+      // Free-tier limits (reads before any write).
+      const nowMs = Date.now();
+      const host = readHost(await tx.get(hostRef(uid)));
+      let claimSlot = !hasActiveSlot(host, nowMs);
+      if (!isPaid(host)) {
+        const mine = await tx.get(db.collection(ROOMS).where("hostId", "==", uid).limit(100));
+        const open = mine.docs.filter((d) => {
+          const r = d.data() as ServerRoom;
+          return (r.status === "waiting" || r.status === "playing") && isRoomLive(r, nowMs);
+        }).length;
+        const maxRooms = maxRoomsPerHost.value();
+        if (open >= maxRooms) {
+          const details: HostLimitDetails = { reason: "room-limit", max: maxRooms };
+          fail("resource-exhausted", `You can have up to ${maxRooms} rooms open at a time. Close one first, or wait for an idle one to expire.`, details);
+        }
+        if (claimSlot) {
+          await tx.get(hostSlotLockRef()); // serializes concurrent claims
+          const active = await tx.get(activeFreeHostsQuery(Timestamp.fromMillis(nowMs)).count());
+          if (active.data().count >= maxActiveHosts.value()) {
+            const details: HostLimitDetails = { reason: "host-limit", contactUrl: hostLimitContactUrl.value().trim() || null };
+            fail("resource-exhausted", "We're limiting the number of hosts for free tiers. Please contact us on our page for more information.", details);
+          }
+        }
+      } else {
+        claimSlot = false;
+      }
+
+      const now = Timestamp.fromMillis(nowMs);
       const room: ServerRoom = {
         roomCode,
         hostId: uid,
@@ -58,6 +91,9 @@ export const createRoom = onCall(opts, async (req): Promise<CreateRoomResponse> 
       };
       Object.assign(room, expiryFields(room, {}, now.toMillis()));
       tx.set(ref, room);
+      // Creating a room is host activity: (re)activate the slot.
+      tx.set(hostRef(uid), { ...activeHostFields(host?.tier ?? "free", nowMs), createdAt: host?.createdAt ?? now }, { merge: true });
+      if (claimSlot) tx.set(hostSlotLockRef(), { lastClaimAt: now, lastClaimBy: uid });
       tx.set(codeRef, { roomId: ref.id, createdAt: now });
       tx.set(ref.collection("displayState").doc("current"), {
         currentScreen: "lobby",
@@ -185,3 +221,28 @@ export const closeRoom = onCall(opts, async (req) => {
 });
 
 
+
+/**
+ * "Someone is using this room." Sent by the host's and players' devices after a real interaction
+ * (at most every KEEPALIVE_INTERVAL_MS, only while the page is visible), so a lobby that's in use
+ * never runs out its inactivity window. Extends the room and, for the host, their host slot.
+ * Throttled to one write per KEEPALIVE_WRITE_MIN_MS per room / host.
+ */
+export const keepAlive = onCall(opts, async (req) => {
+  const uid = requireUid(req);
+  const roomId = v.docId(v.asObject(req.data), "roomId");
+  return db.runTransaction(async (tx) => {
+    const room = await getLiveRoomTx(tx, roomId);
+    const isHost = room.hostId === uid;
+    const [playerSnap, hostSnap] = await Promise.all([
+      isHost ? Promise.resolve(null) : tx.get(roomRef(roomId).collection("players").doc(uid)),
+      isHost ? tx.get(hostRef(uid)) : Promise.resolve(null),
+    ]);
+    const status = playerSnap?.get("status");
+    if (!isHost && status !== "online" && status !== "offline") fail("permission-denied", "Not a member of this room.");
+    const nowMs = Date.now();
+    if (nowMs - room.lastActivityAt.toMillis() >= KEEPALIVE_WRITE_MIN_MS) touchRoomTx(tx, roomId, room, {});
+    if (hostSnap) touchHostTx(tx, uid, readHost(hostSnap), nowMs);
+    return { ok: true };
+  });
+});

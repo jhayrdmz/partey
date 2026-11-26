@@ -1,6 +1,7 @@
 /** Room access checks and the bookkeeping every room mutation shares (activity + expiry). */
 import type { DocumentSnapshot, Transaction } from "firebase-admin/firestore";
-import { EXPIRY } from "../../../shared/constants";
+import { EXPIRY, MINUTE_MS } from "../../../shared/constants";
+import { roomInactivityMinutes } from "../config";
 import { computeExpiresAtMs } from "../../../shared/expiry";
 import type { RoomDoc } from "../../../shared/types";
 import { Timestamp, roomRef } from "./admin";
@@ -55,6 +56,7 @@ export function expiryFields(room: ServerRoom, patch: Partial<ServerRoom>, nowMs
     connectedOthers: (r.connectedPlayerCount ?? 0) + (r.connectedDisplayCount ?? 0),
     allDisconnectedAtMs: r.allDisconnectedAt?.toMillis() ?? null,
     finishedAtMs: r.finishedAt?.toMillis() ?? null,
+    waitingInactivityMs: roomInactivityMinutes.value() * MINUTE_MS,
   });
   if (expiresAtMs === null) return { expiresAt: null, ttlAt: null };
   return { expiresAt: Timestamp.fromMillis(expiresAtMs), ttlAt: Timestamp.fromMillis(expiresAtMs + EXPIRY.ttlBufferMs) };

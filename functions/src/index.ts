@@ -1,4 +1,4 @@
-export { createRoom, setGameMode, setLineup, setGameSettings, lookupRoom, closeRoom } from "./rooms";
+export { createRoom, setGameMode, setLineup, setGameSettings, lookupRoom, closeRoom, keepAlive } from "./rooms";
 export { joinRoom, leaveRoom, kickPlayer } from "./players";
 export { createDisplayCode, claimDisplayPairing, revokeDisplay } from "./display";
 export { startGame, endGame } from "./game";

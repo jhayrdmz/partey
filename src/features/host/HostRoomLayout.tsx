@@ -8,6 +8,7 @@ import { ConnectionBanner } from "@/components/shared/ConnectionBanner";
 import { LoadingScreen, ScreenState } from "@/components/shared/ScreenState";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { usePresence } from "@/hooks/usePresence";
+import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useRoom } from "@/hooks/useRoomData";
 import type { WithId } from "@/services/firebase";
 import { forgetHostedRoom, saveLastHostedRoom } from "./hostSession";
@@ -31,6 +32,8 @@ export function HostRoomLayout() {
   const room = useRoom(roomId, Boolean(user));
   const isHost = Boolean(user && room.data && room.data.hostId === user.uid);
   const realtimeConnected = usePresence(roomId, user?.uid, "host", isHost);
+  // The host using the app keeps the lobby and their host slot from expiring.
+  useActivityHeartbeat(roomId, isHost);
   const location = useLocation();
   const navigate = useNavigate();
 

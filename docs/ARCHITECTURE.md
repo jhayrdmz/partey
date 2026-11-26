@@ -20,6 +20,8 @@
    | `rooms/{id}/submissions/*` | nobody (server only) | raw answers until a reveal is published |
    | `rooms/{id}/displaySessions/{uid}` | host; the display itself | paired display sessions |
    | `rooms/{id}/hostSecrets/{gameId}` | host only | host-only game options (The Impostor's custom word) |
+   | `hosts/{uid}` | nobody (server, admins) | a host's free-tier slot and the `tier: "paid"` tag (see "Free-tier limits") |
+   | `system/hostSlots` | nobody | lock that serializes host-slot claims |
    | `displayPairings/{id}` | host who created it; display that requested it | pairing handshake |
    | `roomCodes/*`, `pairingCodes/*`, `rateLimits/*` | nobody | server lookup tables |
 
@@ -46,9 +48,10 @@
 | `tickGame` | host, players | Advances a phase only once the server clock passes its deadline. With `event: true`, runs a due mid-round event instead (Draw & Guess letter hints), also only once the server clock agrees |
 | `controlGame` | host | `pause`, `resume`, `skip` (unscored), `next` (advance now) |
 | `closeRoom` | host | Expires the room and cleans it up immediately |
+| `keepAlive` | host, players | "Someone is using this room": sent after a real interaction (tap, key, scroll) while the page is visible, at most every 2 min. Refreshes the room's activity (and the host's slot), written at most once a minute. Displays never send it |
 | `onPresenceWritten` | RTDB trigger | Mirrors presence → Firestore, recomputes counts and expiry |
 | `onDrawingGameWritten` | Firestore trigger (`gameState/current`) | Draw & Guess: opens the current artist's canvas in RTDB, freezes it on reveal/pause, deletes old strokes |
-| `processExpirations` | every 5 min | Expires rooms, ages out players past the grace period, deletes stale pairing records |
+| `processExpirations` | every 5 min | Expires idle free hosts (and ends their rooms), expires rooms, ages out players past the grace period, deletes stale pairing records |
 
 ## Display pairing
 
@@ -83,17 +86,34 @@ The policy lives in `shared/expiry.ts` as a pure, unit-tested function:
 
 | Situation | Expires |
 |---|---|
-| Waiting room, no activity | 30 min after last activity |
+| Waiting room, no activity | 1 h after last activity (`ROOM_INACTIVITY_MINUTES`) |
+| Free host inactive | 3 h after the host's last activity (`HOST_INACTIVITY_MINUTES`): all their rooms end |
 | Host disconnected during a game | 8 h after the host dropped |
 | Individual player disconnected | Player becomes `left` after 8 h (score kept); room unaffected |
 | Everyone disconnected | 8 h after the last person left |
 | Finished | 15 min after finishing |
 | Active game with anyone connected | never automatically |
 
-- Every mutation and presence change recomputes `expiresAt`. Reconnecting resets the applicable timer.
+- **Activity** = any room mutation (join, settings, game actions…), a presence change (connecting, reconnecting), or a `keepAlive` from the host's or a player's device after a real interaction. Each recomputes `expiresAt`, so a lobby that's in use never expires; one left untouched (even with a TV still showing it) expires after the inactivity window.
+- **When a room ends** (closed, expired, or its host's slot expired), its data is deleted. Players' phones go back to the room-code screen and displays go back to the pairing screen (with a fresh code), each with a short "This room has ended" note.
 - **Expired rooms are inaccessible immediately.** The rules check `status != 'expired' && request.time < expiresAt`, and the functions check the same condition, so access ends even before the sweep runs.
 - `processExpirations` tombstones expired rooms (`status: expired`, `ttlAt`). It also explicitly deletes every subcollection with `recursiveDelete` (TTL does not cascade), frees the room code, deletes pairings, and removes RTDB presence.
 - Firestore TTL policies on `rooms.ttlAt`, `displayPairings.expiresAt`, `pairingCodes.expiresAt` and `rateLimits.expireAt` handle eventual physical deletion. See the README for the `gcloud` commands.
+
+## Free-tier limits
+
+Server-side, in `createRoom` and the sweep. Defaults in `shared/constants.ts` (`HOST_LIMITS`), values from `functions/.env`:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `MAX_ACTIVE_HOSTS` | 30 | Free hosts active at once. A new host past it gets `resource-exhausted` with `{ reason: "host-limit", contactUrl }`; the create screen shows "We're limiting the number of hosts for free tiers…" with a link (new tab) |
+| `MAX_ROOMS_PER_HOST` | 3 | Rooms (waiting or playing) one free host can have open. Past it: `{ reason: "room-limit", max }`, shown as a message |
+| `HOST_INACTIVITY_MINUTES` | 180 | A free host's slot expires after this long without activity; the sweep frees it and ends all their rooms |
+| `HOST_LIMIT_CONTACT_URL` | (empty) | The link in the host-limit message; empty = no link |
+| `ROOM_INACTIVITY_MINUTES` | 60 | A lobby with no activity expires after this long |
+
+- A **host** is a Firebase uid (anonymous, persisted on the device). Creating a room claims a slot in `hosts/{uid}` (`status: active`, `expiresAt` = last activity + `HOST_INACTIVITY_MINUTES`). Host activity (`createRoom`, the host's `keepAlive`, the host reconnecting) extends it. Slot claims read and write `system/hostSlots` in the same transaction, so concurrent new hosts can't overshoot the limit.
+- **Paid hosts:** set `tier: "paid"` on `hosts/{uid}` (Firebase console for now; an admin dashboard later). They skip both limits, their slot never expires (`expiresAt: null`), and they don't count toward `MAX_ACTIVE_HOSTS`. Their rooms still expire when idle like everyone's. The uid is per device and browser, so a paid host on a new device is a new uid until it's tagged too.
 
 ## Game engine
 
@@ -186,7 +206,8 @@ Reflex timing uses the server's receive time, so network latency counts against 
 - `functions/src/games/games.test.ts`: scoring for Speed Quiz, Guess the Majority and Reflex Battle, content integrity, tie-aware placement points, and Firestore-safe payloads.
 - `functions/src/games/drawing.test.ts`: guess matching (case, accents, articles, plurals, aliases, near misses), 100/80/60/40/20 by time + artist bonus, prompt kept out of public data and given to the artist only, fair artist rotation, no repeated prompts, guess validation, Firestore-safe payloads.
 - `functions/src/games/impostor.test.ts`: roles and minority rule, turn order (never an impostor first), the word never in public data, clue validation, vote outcomes, tie → revote / reveal, Firestore-safe payloads.
-- `functions/src/maintenance.test.ts`: sweep against the emulators (cascade delete, code release, player grace).
+- `functions/src/maintenance.test.ts`: sweep against the emulators (cascade delete, code release, player grace, idle free hosts expire with their rooms while paid and active hosts don't).
+- `tests/e2e/host-limits.mjs`: room limit per host, `keepAlive` pushing an almost-idle lobby's expiry back a full hour (non-members refused), the host limit (message + contact link, existing hosts unaffected), paid hosts over both limits, the host-limit pop-up with its new-tab link, and a room ending sending a player to the code screen and the TV back to pairing.
 - `tests/rules/firestore.rules.test.mjs`: 14 rule checks covering role separation, expired rooms, private and authoritative data, pairing visibility and write denial.
 - `tests/e2e/drawing.mjs`: options, the prompt only on the artist's phone (never on the TV, host or other phones), live strokes on the TV and host preview (draw, undo, two-tap clear), wrong / close / right guesses, names-only live guessers, early close, reveal with 100/80/60 + 50, artist rotation, a round nobody guesses, pause freezing the canvas, skip, final results.
 - `tests/e2e/impostor.mjs`: options, private role cards, four clue turns (typed, said aloud, secret word rejected then retried), the word kept off the display, a tie → revote → outcome, per-phone win/lose, replay → tie → reveal.

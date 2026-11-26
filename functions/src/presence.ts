@@ -2,6 +2,7 @@ import { onValueWritten } from "firebase-functions/v2/database";
 import { logger } from "firebase-functions";
 import { db, Timestamp, roomRef } from "./lib/admin";
 import { expiryFields, isRoomLive, type ServerRoom } from "./lib/rooms";
+import { hostRef, readHost, touchHostTx } from "./lib/hosts";
 import { DATABASE_REGION } from "./config";
 
 /**
@@ -24,11 +25,12 @@ export const onPresenceWritten = onValueWritten({ ref: "/presence/{roomId}/{uid}
 
     const playerRef = roomRef(roomId).collection("players").doc(uid);
     const displayRef = roomRef(roomId).collection("displaySessions").doc(uid);
-    const [playerSnap, displaySnap, onlinePlayers, connectedDisplays] = await Promise.all([
+    const [playerSnap, displaySnap, onlinePlayers, connectedDisplays, hostSnap] = await Promise.all([
       tx.get(playerRef),
       tx.get(displayRef),
       tx.get(roomRef(roomId).collection("players").where("status", "==", "online")),
       tx.get(roomRef(roomId).collection("displaySessions").where("connected", "==", true)),
+      room.hostId === uid ? tx.get(hostRef(uid)) : Promise.resolve(null),
     ]);
     const now = Timestamp.now();
     const patch: Partial<ServerRoom> = {};
@@ -37,6 +39,8 @@ export const onPresenceWritten = onValueWritten({ ref: "/presence/{roomId}/{uid}
     const displayIds = new Set(connectedDisplays.docs.filter((d) => d.get("revoked") !== true).map((d) => d.id));
 
     if (room.hostId === uid) {
+      // The host coming back is host activity: keep their slot alive.
+      if (online && hostSnap) touchHostTx(tx, uid, readHost(hostSnap), now.toMillis());
       if (room.hostConnected !== online) {
         patch.hostConnected = online;
         patch.hostDisconnectedAt = online ? null : now;

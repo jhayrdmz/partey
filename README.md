@@ -97,7 +97,7 @@ Open three browser windows (or devices on your LAN):
 | `npm run build:functions` | Compile Cloud Functions (`functions/lib`) |
 | `npm run test:functions` | Unit tests (expiry policy, game scoring, payload safety) + emulator integration tests (expiry sweep) |
 | `npm run test:rules` | Firestore security-rules tests (emulators must be running) |
-| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, a full game of The Impostor, and a full game of Draw & Guess (emulators + dev server running) |
+| `npm run test:e2e` | Multi-device Playwright flows: room/pairing flow, full gameplay of Speed Quiz / Guess the Majority / Reflex Battle, a full game of The Impostor, a full game of Draw & Guess, and the free-tier host limits (emulators + dev server running) |
 
 To run the function integration tests against running emulators:
 
@@ -114,7 +114,7 @@ Production is the Firebase project **`partey-21c76`** (alias `prod` in `.firebas
 | File | Used for |
 |---|---|
 | `.env` | Web app Firebase config and `VITE_MEDIA_BASE_URL` (R2 media), baked into `dist/` by `npm run build` |
-| `functions/.env` | `PAIRING_CODE_TTL_SECONDS` (default 180) and `RTDB_URL` (the RTDB instance is in `asia-southeast1`) |
+| `functions/.env` | `PAIRING_CODE_TTL_SECONDS` (default 180), `RTDB_URL` (the RTDB instance is in `asia-southeast1`), lobby expiry `ROOM_INACTIVITY_MINUTES` (60) and the free-tier host limits `MAX_ACTIVE_HOSTS` (30), `MAX_ROOMS_PER_HOST` (3), `HOST_INACTIVITY_MINUTES` (180) and `HOST_LIMIT_CONTACT_URL`. See `functions/.env.example`; paid hosts are tagged `tier: "paid"` in Firestore `hosts/{uid}` (docs/ARCHITECTURE.md → "Free-tier limits") |
 
 Everything runs in **`asia-southeast1` (Singapore)**: Firestore, the Realtime Database and all Cloud Functions. The functions region is set in `functions/src/config.ts` and must match `VITE_FIREBASE_FUNCTIONS_REGION` in `.env`.
 
@@ -135,7 +135,7 @@ npx firebase deploy --project prod --only functions                  # Cloud Fun
 
 If a deploy reports functions that exist in the cloud but not in the code (e.g. after a rename), it asks before deleting them; add `--force` to accept non-interactively.
 
-Live at **https://partey-21c76.web.app**.
+Live at **https://joinpartey.com/**.
 
 ### One-time setup (already done for `partey-21c76`)
 

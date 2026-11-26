@@ -96,6 +96,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Host slots and the paid tag (free-tier limits): server and admins only.
+    match /hosts/{uid} { allow read, write: if false; }
+    match /system/{doc} { allow read, write: if false; }
+
     // Server-only lookup tables.
     match /roomCodes/{code} { allow read, write: if false; }
     match /pairingCodes/{code} { allow read, write: if false; }

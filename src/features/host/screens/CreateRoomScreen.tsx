@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, History, Loader2, PartyPopper } from "lucide-react";
+import { ArrowRight, History, Loader2, PartyPopper, ExternalLink } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { LIMITS, cleanName, finishName } from "@shared/constants";
+import type { HostLimitDetails } from "@shared/types";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Backdrop } from "@/components/shared/Backdrop";
 import { BottomBar } from "@/components/shared/BottomBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuthUser } from "@/hooks/useAuthUser";
-import { call, errorMessage } from "@/services/firebase";
+import { call, errorCode, errorDetails, errorMessage } from "@/services/firebase";
 import { HostHeader } from "../components/HostHeader";
 import { saveLastHostedRoom, verifyLastHostedRoom, type LastHostedRoom } from "../hostSession";
 
@@ -17,6 +19,7 @@ const SUGGESTIONS = ["Friday Game Night", "Barkada Showdown", "Noche Buena Games
 
 export function CreateRoomScreen() {
   const [roomName, setRoomName] = useState("");
+  const [hostLimit, setHostLimit] = useState<{ message: string; contactUrl: string | null } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuthUser();
@@ -42,7 +45,10 @@ export function CreateRoomScreen() {
       saveLastHostedRoom({ roomId, roomCode, roomName: trimmed });
       navigate(`/host/${roomId}/mode`);
     } catch (err) {
-      toast.error(errorMessage(err));
+      // Free-tier host limit: explain it in a pop-up with a link. Other errors (incl. too many rooms): a toast.
+      const details = errorDetails<HostLimitDetails>(err);
+      if (errorCode(err) === "resource-exhausted" && details?.reason === "host-limit") setHostLimit({ message: errorMessage(err), contactUrl: details.contactUrl });
+      else toast.error(errorMessage(err));
       setSubmitting(false);
     }
   }
@@ -110,6 +116,26 @@ export function CreateRoomScreen() {
           </BottomBar>
         </form>
       </main>
+      <Dialog open={hostLimit !== null} onOpenChange={(open) => !open && setHostLimit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Host limit reached</DialogTitle>
+            <DialogDescription>{hostLimit?.message}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHostLimit(null)}>
+              OK
+            </Button>
+            {hostLimit?.contactUrl && (
+              <Button asChild>
+                <a href={hostLimit.contactUrl} target="_blank" rel="noopener noreferrer">
+                  Contact us <ExternalLink />
+                </a>
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Backdrop>
   );
 }

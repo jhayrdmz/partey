@@ -60,4 +60,38 @@ describe.skipIf(!hasEmulators)("runExpirySweep", () => {
     expect((await ref.get()).get("playerCount")).toBe(1);
     expect((await ref.get()).get("status")).toBe("playing"); // one player leaving never expires the room
   });
+
+  it("expires idle free hosts with all their rooms; paid and active hosts are untouched", async () => {
+    const { db, Timestamp } = admin;
+    const past = Timestamp.fromMillis(Date.now() - 1000);
+    const future = Timestamp.fromMillis(Date.now() + 3600_000);
+    const id = () => `h${Math.floor(Math.random() * 1e9)}`;
+    const idle = id(), paid = id(), busy = id();
+    await db.collection("hosts").doc(idle).set({ tier: "free", status: "active", expiresAt: past, lastActiveAt: past });
+    await db.collection("hosts").doc(paid).set({ tier: "paid", status: "active", expiresAt: null, lastActiveAt: past });
+    await db.collection("hosts").doc(busy).set({ tier: "free", status: "active", expiresAt: future, lastActiveAt: past });
+    const room = async (hostId: string, status = "waiting") => {
+      const ref = db.collection("rooms").doc();
+      await ref.set({ roomCode: `R${Math.floor(Math.random() * 1e6)}`, hostId, status, expiresAt: status === "waiting" ? future : null });
+      await ref.collection("players").doc("p1").set({ nickname: "A", status: "online" });
+      return ref;
+    };
+    const idleLobby = await room(idle);
+    const idleGame = await room(idle, "playing");
+    const paidLobby = await room(paid);
+    const busyLobby = await room(busy);
+
+    const result = await mod.runExpirySweep();
+    expect(result.hosts).toBeGreaterThanOrEqual(1);
+
+    expect((await db.collection("hosts").doc(idle).get()).get("status")).toBe("expired");
+    for (const r of [idleLobby, idleGame]) {
+      expect((await r.get()).get("status")).toBe("expired"); // even a game in progress ends
+      expect((await r.collection("players").get()).empty).toBe(true); // players are disconnected
+    }
+    expect((await db.collection("hosts").doc(paid).get()).get("status")).toBe("active");
+    expect((await paidLobby.get()).get("status")).toBe("waiting");
+    expect((await db.collection("hosts").doc(busy).get()).get("status")).toBe("active");
+    expect((await busyLobby.get()).get("status")).toBe("waiting");
+  });
 });

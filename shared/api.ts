@@ -48,6 +48,8 @@ export interface RevokeDisplayRequest { roomId: string; displayId: string }
 export interface StartGameRequest { roomId: string; /** Freestyle only: replay or choose a game. */ gameId?: GameId }
 export interface EndGameRequest { roomId: string }
 export interface CloseRoomRequest { roomId: string }
+/** "Someone is using this room": a host's or player's device after a real interaction. */
+export interface KeepAliveRequest { roomId: string }
 
 export type CallableName =
   | "createRoom"
@@ -63,4 +65,5 @@ export type CallableName =
   | "revokeDisplay"
   | "startGame"
   | "endGame"
-  | "closeRoom";
+  | "closeRoom"
+  | "keepAlive";

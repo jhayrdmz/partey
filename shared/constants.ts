@@ -8,8 +8,8 @@ export const HOUR_MS = 60 * MINUTE_MS;
 
 /** Room expiration policy (see docs/ARCHITECTURE.md → "Room expiration"). */
 export const EXPIRY = {
-  /** Waiting room with no activity. */
-  waitingInactivityMs: 30 * MINUTE_MS,
+  /** Waiting room with no activity (default; the server reads ROOM_INACTIVITY_MINUTES). */
+  waitingInactivityMs: 60 * MINUTE_MS,
   /** Host disconnected: reconnection grace period. */
   hostGraceMs: 8 * HOUR_MS,
   /** Individual player disconnected: reconnection grace period. */
@@ -79,3 +79,24 @@ export function cleanName(raw: string, max: number): string {
 export function finishName(name: string): string {
   return name.replace(/[ -]+$/, "");
 }
+
+/**
+ * Free-tier host limits. Defaults only: the server reads MAX_ACTIVE_HOSTS, MAX_ROOMS_PER_HOST and
+ * HOST_INACTIVITY_MINUTES from functions/.env. Hosts tagged `tier: "paid"` (hosts/{uid}) skip all of them.
+ */
+export const HOST_LIMITS = {
+  /** Free hosts active at the same time. */
+  maxActiveHosts: 30,
+  /** Rooms one host can have open at once. */
+  maxRoomsPerHost: 3,
+  /** A host's slot frees up after this long without activity, and their rooms end. */
+  hostInactivityMinutes: 180,
+} as const;
+
+/**
+ * Activity heartbeat: while the page is visible, a host's or player's device sends `keepAlive`
+ * after a real interaction, at most this often. The server writes at most once per
+ * KEEPALIVE_WRITE_MIN_MS per room/host, so busy rooms stay cheap.
+ */
+export const KEEPALIVE_INTERVAL_MS = 2 * MINUTE_MS;
+export const KEEPALIVE_WRITE_MIN_MS = MINUTE_MS;

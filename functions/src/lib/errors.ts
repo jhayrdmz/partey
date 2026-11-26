@@ -1,8 +1,9 @@
 /** Callable error helpers. Messages are shown to users as-is, so keep them friendly. */
 import { HttpsError, type CallableRequest, type FunctionsErrorCode } from "firebase-functions/v2/https";
 
-export function fail(code: FunctionsErrorCode, message: string): never {
-  throw new HttpsError(code, message);
+/** `details` reaches the client as FunctionsError.details (e.g. which limit was hit). */
+export function fail(code: FunctionsErrorCode, message: string, details?: unknown): never {
+  throw new HttpsError(code, message, details);
 }
 
 /**

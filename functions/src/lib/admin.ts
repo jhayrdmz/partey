@@ -38,6 +38,10 @@ export const PAIRINGS = "displayPairings";
 export const PAIRING_CODES = "pairingCodes";
 /** rateLimits/{key} */
 export const RATE_LIMITS = "rateLimits";
+/** hosts/{uid}: free-tier host slots and the paid tag (server-only). */
+export const HOSTS = "hosts";
+/** system/{doc}: server bookkeeping (e.g. the host-slot lock). */
+export const SYSTEM = "system";
 
 /** Every subcollection under rooms/{roomId}; deleted explicitly on cleanup (TTL doesn't cascade). */
 export const ROOM_SUBCOLLECTIONS = [

@@ -1,7 +1,7 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { logger } from "firebase-functions";
 import { EXPIRY } from "../../shared/constants";
-import { db, rtdb, FieldValue, PAIRINGS, PAIRING_CODES, ROOMS, ROOM_CODES, ROOM_SUBCOLLECTIONS, Timestamp, roomRef } from "./lib/admin";
+import { db, rtdb, FieldValue, HOSTS, PAIRINGS, PAIRING_CODES, ROOMS, ROOM_CODES, ROOM_SUBCOLLECTIONS, Timestamp, roomRef } from "./lib/admin";
 import { REGION } from "./config";
 
 /**
@@ -45,9 +45,28 @@ export async function cleanupRoom(roomId: string): Promise<void> {
 }
 
 /** Runs the whole sweep once; exported for tests and manual invocation. */
-export async function runExpirySweep(nowMs = Date.now()): Promise<{ rooms: number; players: number; pairings: number }> {
+export async function runExpirySweep(nowMs = Date.now()): Promise<{ rooms: number; players: number; pairings: number; hosts: number }> {
   const now = Timestamp.fromMillis(nowMs);
-  const result = { rooms: 0, players: 0, pairings: 0 };
+  const result = { rooms: 0, players: 0, pairings: 0, hosts: 0 };
+
+  // 0. Free hosts inactive past HOST_INACTIVITY_MINUTES: free the slot and end their rooms
+  //    (players and displays are sent back to the join / pairing screens). Paid hosts have
+  //    expiresAt null, so they never match.
+  const idleHosts = await db.collection(HOSTS).where("status", "==", "active").where("expiresAt", "<=", now).limit(100).get();
+  for (const host of idleHosts.docs) {
+    try {
+      await host.ref.update({ status: "expired", expiredAt: now });
+      const rooms = await db.collection(ROOMS).where("hostId", "==", host.id).limit(100).get();
+      for (const room of rooms.docs) {
+        if (room.get("status") === "expired") continue;
+        await cleanupRoom(room.id);
+        result.rooms++;
+      }
+      result.hosts++;
+    } catch (err) {
+      logger.error("Host expiry failed", { hostId: host.id, err });
+    }
+  }
 
   // 1. Rooms past their logical expiry.
   const expired = await db.collection(ROOMS).where("expiresAt", "<=", now).limit(100).get();

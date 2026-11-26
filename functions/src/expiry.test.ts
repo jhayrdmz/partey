@@ -15,8 +15,15 @@ const base: ExpiryInput = {
 };
 
 describe("computeExpiresAtMs", () => {
-  it("expires an idle waiting room after 30 minutes of no activity", () => {
+  it("expires an idle waiting room after 1 hour of no activity (default)", () => {
+    expect(EXPIRY.waitingInactivityMs).toBe(60 * 60_000);
     expect(computeExpiresAtMs(base)).toBe(NOW + EXPIRY.waitingInactivityMs);
+  });
+
+  it("uses the configured inactivity window (ROOM_INACTIVITY_MINUTES)", () => {
+    expect(computeExpiresAtMs({ ...base, waitingInactivityMs: 15 * 60_000 })).toBe(NOW + 15 * 60_000);
+    // Activity moves the deadline: a lobby touched 50 min ago has 10 min left, not 0.
+    expect(computeExpiresAtMs({ ...base, lastActivityAtMs: NOW - 50 * 60_000 })).toBe(NOW + 10 * 60_000);
   });
 
   it("does not expire an active, connected game", () => {

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { MonitorX, Tv } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { Backdrop } from "@/components/shared/Backdrop";
 import { ConnectionBanner } from "@/components/shared/ConnectionBanner";
 import { LoadingScreen, ScreenState } from "@/components/shared/ScreenState";
@@ -41,11 +42,30 @@ export function DisplayRoomScreen() {
 
   // If room access is lost, re-read our session once to tell "revoked" from "room ended".
   const [revokedOnServer, setRevokedOnServer] = useState(false);
+  const [accessChecked, setAccessChecked] = useState(false);
   const roomDenied = room.status === "error";
   useEffect(() => {
     if (!roomDenied || !user || !roomId) return;
-    void fetchDoc(refs.displaySession(roomId, user.uid)).then((s) => setRevokedOnServer(Boolean(s?.revoked)));
+    void fetchDoc(refs.displaySession(roomId, user.uid)).then((s) => {
+      setRevokedOnServer(Boolean(s?.revoked));
+      setAccessChecked(true);
+    });
   }, [roomDenied, user, roomId]);
+
+  // The room ended (closed, expired, or the host's slot expired): its data, our session included,
+  // is deleted. Go back to the pairing screen for a new code. A revoked display keeps its own screen.
+  const navigate = useNavigate();
+  const wasAuthorised = useRef(false);
+  if (authorised) wasAuthorised.current = true;
+  const sessionGone = wasAuthorised.current && session.status === "ready" && !session.data;
+  const roomEnded =
+    !session.data?.revoked && !revokedOnServer && (sessionGone || (roomDenied && accessChecked) || room.data?.status === "expired");
+  useEffect(() => {
+    if (!roomEnded) return;
+    forgetDisplayRoom();
+    toast("This room has ended", { id: "display-room-ended", description: "Pair this screen with a new room." });
+    navigate("/display", { replace: true });
+  }, [roomEnded, navigate]);
 
   // Sound cues: player joined, game started, champion crowned.
   const prevCount = useRef<number | null>(null);
@@ -78,6 +98,7 @@ export function DisplayRoomScreen() {
 
   if (authStatus === "error") return <ScreenState tone="error" title="Couldn't connect" message={authError} />;
   if (!user || session.status === "loading") return <LoadingScreen label="Connecting display…" />;
+  if (roomEnded) return <LoadingScreen label="This room has ended…" />;
 
   if (!authorised || room.status === "error") {
     const revoked = session.data?.revoked || revokedOnServer;

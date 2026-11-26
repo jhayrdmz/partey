@@ -137,3 +137,24 @@ export interface PresenceNode {
   role: PresenceRole;
   lastChanged: number | object;
 }
+
+/**
+ * hosts/{uid}: one per host (anonymous Firebase uid), server-only. Holds the host's free-tier slot.
+ * `tier: "paid"` is set by an admin (Firebase console now; an admin dashboard later) and exempts the
+ * host from every host limit and from host expiry.
+ */
+export type HostTier = "free" | "paid";
+export interface HostDoc {
+  tier: HostTier;
+  /** "expired" frees the slot; the next room this uid creates claims a new one. */
+  status: "active" | "expired";
+  createdAt: TimestampLike;
+  lastActiveAt: TimestampLike;
+  /** Free hosts: lastActiveAt + HOST_INACTIVITY_MINUTES. Paid hosts: null (never expire). */
+  expiresAt: TimestampLike | null;
+  /** Optional admin note (who this paid host is). */
+  note?: string;
+}
+
+/** `details` of createRoom's resource-exhausted errors, so the client can explain them. */
+export type HostLimitDetails = { reason: "host-limit"; contactUrl: string | null } | { reason: "room-limit"; max: number };
