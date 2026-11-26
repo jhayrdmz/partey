@@ -26,8 +26,6 @@ export interface GameMeta {
   maxPlayers: number;
   /** Rough duration in minutes, for the host's planning. */
   durationMin: number;
-  /** Highlighted in the library (first wave of mini-games). */
-  featured: boolean;
   /** A game engine handler exists, so the game can be started. */
   playable: boolean;
 }
@@ -43,7 +41,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     // Host-adjustable in game options (default 24).
     maxPlayers: 100,
     durationMin: 8,
-    featured: true,
     playable: true,
   },
   impostor: {
@@ -56,7 +53,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     // Host-adjustable in game options (default 12).
     maxPlayers: 24,
     durationMin: 12,
-    featured: false,
     playable: true,
   },
   majority: {
@@ -68,7 +64,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 3,
     maxPlayers: 24,
     durationMin: 8,
-    featured: true,
     playable: true,
   },
   drawing: {
@@ -81,7 +76,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     // Host-adjustable in game options (default 12).
     maxPlayers: 24,
     durationMin: 15,
-    featured: false,
     playable: true,
   },
   "word-scramble": {
@@ -93,7 +87,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 6,
-    featured: false,
     playable: false,
   },
   "picture-reveal": {
@@ -105,7 +98,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 8,
-    featured: false,
     playable: false,
   },
   "reflex-battle": {
@@ -117,7 +109,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 2,
     maxPlayers: 24,
     durationMin: 5,
-    featured: true,
     playable: true,
   },
   "survey-showdown": {
@@ -129,7 +120,6 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 2,
     maxPlayers: 24,
     durationMin: 10,
-    featured: false,
     playable: false,
   },
 };
