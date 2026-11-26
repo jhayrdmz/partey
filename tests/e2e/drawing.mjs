@@ -93,9 +93,28 @@ const code = (await host.getByRole("dialog").getByLabel(/^Room code /).first().g
 await host.keyboard.press("Escape");
 for (const [i, p] of players.entries()) { await p.goto(`${BASE}/play/${code}`); await p.getByLabel("Nickname").fill(NAMES[i]); await p.getByRole("button", { name: "Join the party" }).click(); }
 await host.getByText("4/12").waitFor({ timeout: 20000 });
+// Waiting for the host: the status is pinned to the bottom of each phone.
+{
+  const P = byName[NAMES[0]];
+  await P.getByText("Waiting for the host to start…").waitFor({ timeout: 10000 });
+  const bar = await P.getByText("Waiting for the host to start…").boundingBox();
+  expect(bar.y > 844 - 120, `waiting status sticks to the bottom of the screen (y=${Math.round(bar.y)})`);
+  await shot(P, "0-phone-waiting");
+}
 
 await host.getByRole("button", { name: /Start/ }).last().click();
 await tv.getByText("Draw & Guess").first().waitFor({ timeout: 20000 });
+// Intro: the countdown is pinned to the bottom of every phone, even while reading the rules.
+{
+  const P = byName[NAMES[0]];
+  await P.getByText("Get ready! Starting in…").waitFor({ timeout: 20000 });
+  await P.setViewportSize({ width: 375, height: 667 });
+  await P.waitForTimeout(300);
+  const timer = await P.getByRole("timer").boundingBox();
+  expect(timer && timer.y + timer.height <= 667 && timer.y > 667 - 140, `intro countdown sticks to the bottom of the screen (y=${timer && Math.round(timer.y)})`);
+  await shot(P, "0-phone-intro");
+  await P.setViewportSize({ width: 390, height: 844 });
+}
 await host.getByRole("button", { name: "Start drawing" }).click({ timeout: 20000 });
 
 /** The round's artist (from the TV's round label) and their prompt (only on their phone). */
@@ -144,6 +163,12 @@ await until(async () => (await inked(tv, "drawing")) > 500, 10000, "strokes on t
 expect(true, "the artist's stroke appears on the TV");
 await until(async () => (await inked(host, "Preview")) > 100, 10000, "strokes on the host preview");
 expect(true, "the host sees a live preview");
+{
+  const G = byName[r1.guessers[0]];
+  await until(async () => (await inked(G, "drawing")) > 100, 10000, "strokes on a guesser's phone");
+  const box = await G.getByRole("img", { name: `${r1.artist}'s drawing` }).boundingBox();
+  expect(box.width >= 390 * 0.4 && box.width <= 390 * 0.55, `guessers see a small live copy (${Math.round(box.width)}px of 390)`);
+}
 await pickColor(A, "Red");
 expect((await A.getByRole("button", { name: "Brush color: Red" }).count()) === 1, "the colour button shows the picked colour");
 await A.getByRole("button", { name: /^Brush size: / }).click();
@@ -303,6 +328,13 @@ await tv.getByText(/wins|Champion|Results/i).first().waitFor({ timeout: 20000 })
 await shot(tv, "9-display-final");
 const final = await text(tv);
 expect(final.includes(g1), "final standings on the TV");
+{
+  const P = byName[g1];
+  await P.getByText("Waiting for the host to continue…").waitFor({ timeout: 15000 });
+  const bar = await P.getByText("Waiting for the host to continue…").boundingBox();
+  expect(bar.y > 844 - 120, `game over: "waiting for the host" sticks to the bottom (y=${Math.round(bar.y)})`);
+  await shot(P, "11-phone-game-over");
+}
 await host.getByRole("button", { name: /Replay/ }).waitFor({ timeout: 15000 });
 expect(true, "host can replay or choose another game");
 await shot(host, "10-host-final");

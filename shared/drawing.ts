@@ -2,7 +2,7 @@
  * Draw & Guess live strokes, in the Realtime Database (low latency, small deltas):
  *
  *   drawings/{roomId}/access              { artistId, key }   server-written; who may draw, and where
- *   drawings/{roomId}/readers/{uid}       true                server-written; host, displays, the artist
+ *   drawings/{roomId}/readers/{uid}       true                server-written; host, displays, players
  *   drawings/{roomId}/strokes/{key}/{id}  Stroke              written only by the current artist
  *
  * `key` is the round's DrawRound.drawingKey. A stroke's points arrive in chunks while it's drawn

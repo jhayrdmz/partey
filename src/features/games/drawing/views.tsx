@@ -12,7 +12,7 @@ export const views: GameViews = {
   PlayerQuestion: ({ game, me, uid, roomId, submit, submitting }) => {
     const pub = game.round_data as DrawRound | null;
     if (!pub) return null;
-    if (pub.artist.playerId !== uid) return <GuessPad game={game} pub={pub} submit={submit} submitting={submitting} paused={game.paused} />;
+    if (pub.artist.playerId !== uid) return <GuessPad roomId={roomId} game={game} pub={pub} submit={submit} submitting={submitting} paused={game.paused} />;
     // The artist: the prompt arrives in their private doc with the round.
     const secret = secretOf(me?.secret);
     if (secret?.role !== "artist" || me?.round !== game.round) {

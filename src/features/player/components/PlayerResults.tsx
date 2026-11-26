@@ -2,6 +2,7 @@ import { Crown, Medal } from "lucide-react";
 import type { DisplayStateDoc } from "@shared/types";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { cn } from "@/utils/cn";
+import { WaitingBar } from "./WaitingBar";
 
 import type { StandingEntry as Standing } from "@shared/engine";
 
@@ -37,7 +38,7 @@ export function PlayerResults({ state, playerId }: { state: DisplayStateDoc; pla
           </li>
         ))}
       </ol>
-      <p className="mt-auto text-sm text-muted-foreground">{champion ? "Thanks for playing! Salamat!" : "Waiting for the host to continue…"}</p>
+      <WaitingBar label={champion ? "Thanks for playing! Salamat!" : "Waiting for the host to continue…"} waiting={!champion} />
     </div>
   );
 }

@@ -13,8 +13,8 @@ import { REGION } from "./config";
  *   next round            → the previous round's strokes are deleted
  *   game over             → the whole drawings/{roomId} node is deleted
  *
- * `readers` (host, paired displays, the artist) is refreshed on every change, so only room
- * members can watch. Strokes go straight from the artist to the database: no function runs
+ * `readers` (host, paired displays, players in the room) is refreshed on every change, so only
+ * room members can watch. Strokes go straight from the artist to the database: no function runs
  * per stroke. Rules: database.rules.json.
  */
 export const onDrawingGameWritten = onDocumentWritten({ document: "rooms/{roomId}/gameState/current", region: REGION }, async (event) => {
@@ -24,10 +24,11 @@ export const onDrawingGameWritten = onDocumentWritten({ document: "rooms/{roomId
   if (before?.gameId !== "drawing" && after?.gameId !== "drawing") return;
 
   // Triggers can arrive out of order: act on the latest state, not the event's.
-  const [gsSnap, roomSnap, displays] = await Promise.all([
+  const [gsSnap, roomSnap, displays, players] = await Promise.all([
     roomRef(roomId).collection("gameState").doc("current").get(),
     roomRef(roomId).get(),
     roomRef(roomId).collection("displaySessions").where("revoked", "==", false).get(),
+    roomRef(roomId).collection("players").where("status", "in", ["online", "offline"]).get(),
   ]);
   const gs = gsSnap.data() as GameStateDoc | undefined;
   const node = rtdb().ref(drawingPath(roomId));
@@ -43,6 +44,8 @@ export const onDrawingGameWritten = onDocumentWritten({ document: "rooms/{roomId
 
   const readers: Record<string, true> = { [roomSnap.get("hostId") as string]: true };
   for (const d of displays.docs) readers[d.id] = true;
+  // Players watch a small live copy on their phones too (the drawing is public anyway: it's on the TV).
+  for (const p of players.docs) readers[p.id] = true;
   if (pub) readers[pub.artist.playerId] = true;
 
   const access: DrawAccess = { artistId, key };

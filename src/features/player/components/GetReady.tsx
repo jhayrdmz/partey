@@ -1,6 +1,8 @@
 import { motion } from "motion/react";
 import type { DisplayStateDoc } from "@shared/types";
+import { BottomBar } from "@/components/shared/BottomBar";
 import { GameArt } from "@/features/games/GameArt";
+import { TimerBar } from "@/features/games/shared/TimerBar";
 import { getGame } from "@/features/games/registry";
 import { useServerCountdown } from "@/hooks/useServerClock";
 
@@ -37,9 +39,13 @@ export function GetReady({ state }: { state: DisplayStateDoc }) {
           </motion.li>
         ))}
       </ol>
-      <p className="mt-auto text-center font-bold text-mango">
-        {left !== null ? (g?.paused ? "Paused — hang tight" : `Starting in ${Math.ceil(left / 1000)}…`) : "Get ready — the game is about to begin!"}
-      </p>
+      {/* Pinned to the bottom so the countdown stays in view while players read the rules. */}
+      <BottomBar always className="mt-auto space-y-2 sm:-mx-4 sm:px-4">
+        <p className="text-center font-bold text-mango">
+          {left === null ? "Get ready — the game is about to begin!" : g?.paused ? "Paused — hang tight" : "Get ready! Starting in…"}
+        </p>
+        {g && left !== null && <TimerBar endsAtMs={g.phaseEndsAtMs} durationMs={g.phaseDurationMs} paused={g.paused} remainingMs={g.remainingMs} />}
+      </BottomBar>
     </div>
   );
 }

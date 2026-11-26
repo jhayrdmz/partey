@@ -163,10 +163,10 @@ intro ─▶ draw (artist draws, others guess) ─┬─ everyone guessed ─┬
   | Path | Written by | Read by |
   |---|---|---|
   | `drawings/{roomId}/access` `{ artistId, key }` | `onDrawingGameWritten` | any signed-in user (not secret) |
-  | `drawings/{roomId}/readers/{uid}` | `onDrawingGameWritten` (host, paired displays, the artist) | nobody |
+  | `drawings/{roomId}/readers/{uid}` | `onDrawingGameWritten` (host, paired displays, players in the room) | nobody |
   | `drawings/{roomId}/strokes/{key}/{strokeId}` `{ c, w, e?, p: { 0: "x,y,…", 1: … } }` | only `access.artistId`, only under `access.key` | `readers` |
 
-  The artist's phone pushes each stroke as small point chunks every 50 ms (integer coordinates on a 1000×1000 square), so writes and listener updates carry only new points; the canvas image is never sent. Undo deletes a stroke, clear deletes the round's strokes. The trigger sets `artistId` while the round is drawing and not paused, clears it on reveal or pause (the canvas freezes but stays readable for the reveal), deletes the previous round's strokes and removes the whole node when the game ends. The room sweep deletes it too. A display paired mid-game can read strokes from the next phase change.
+  The artist's phone pushes each stroke as small point chunks every 50 ms (integer coordinates on a 1000×1000 square), so writes and listener updates carry only new points; the canvas image is never sent. Undo deletes a stroke, clear deletes the round's strokes. The trigger sets `artistId` while the round is drawing and not paused, clears it on reveal or pause (the canvas freezes but stays readable for the reveal), deletes the previous round's strokes and removes the whole node when the game ends. The room sweep deletes it too. A display paired, or a player joined, mid-game can read strokes from the next phase change.
 
 | Game | Rounds | Scoring |
 |---|---|---|

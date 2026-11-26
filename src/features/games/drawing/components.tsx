@@ -487,7 +487,7 @@ interface Attempt {
 }
 
 /** Guess as often as you like until you get it (or time runs out). The artist never sees guesses. */
-export function GuessPad({ game, pub, submit, submitting, paused }: { game: PublicGameState; pub: DrawRound; submit: (a: unknown) => Promise<SubmitAnswerResponse | null>; submitting: boolean; paused: boolean }) {
+export function GuessPad({ roomId, game, pub, submit, submitting, paused }: { roomId: string; game: PublicGameState; pub: DrawRound; submit: (a: unknown) => Promise<SubmitAnswerResponse | null>; submitting: boolean; paused: boolean }) {
   const [text, setText] = useState("");
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -508,14 +508,23 @@ export function GuessPad({ game, pub, submit, submitting, paused }: { game: Publ
 
   return (
     <form className="flex flex-1 flex-col gap-3" onSubmit={send}>
-      <div className="flex flex-col items-center gap-2 rounded-3xl bg-card/60 px-4 py-4 text-center">
-        <span className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
-          <AvatarBubble avatar={pub.artist.avatar} size="xs" /> {pub.artist.nickname} is drawing
-        </span>
+      <div className="flex flex-col gap-3 rounded-3xl bg-card/60 p-3">
+        <div className="flex items-start gap-3">
+          {/* A small live copy of the big screen: half the phone's width, so the rest still fits. */}
+          <LiveDrawing key={pub.drawingKey} roomId={roomId} drawingKey={pub.drawingKey} className="w-1/2 shrink-0 rounded-xl" label={`${pub.artist.nickname}'s drawing`} />
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-2 py-1">
+            <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
+              <AvatarBubble avatar={pub.artist.avatar} size="xs" />
+              <span className="min-w-0 truncate">{pub.artist.nickname}</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-xs font-bold text-mango">
+              <Paintbrush className="size-3.5" /> is drawing…
+            </span>
+            <CategoryChip category={pub.category} className="px-2 text-xs" />
+            <NextHint game={game} className="text-xs" />
+          </div>
+        </div>
         <WordHint hint={pub.hint} revealed={pub.revealed} className="text-2xl font-black" />
-        <CategoryChip category={pub.category} className="text-xs" />
-        <NextHint game={game} className="text-xs" />
-        <p className="text-sm text-muted-foreground">Watch the big screen and guess!</p>
       </div>
 
       <div>
