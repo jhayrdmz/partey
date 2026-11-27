@@ -151,7 +151,7 @@ export const setLineup = onCall(opts, async (req) => {
 });
 
 /**
- * Host changes a game's options (Speed Quiz, The Impostor, Draw & Guess, Word Scramble, Perfectly Hold). Allowed between games; a running
+ * Host changes a game's options (Speed Quiz, The Impostor, Draw & Guess, Word Scramble, Perfectly Hold, Cup Shuffle, Number Rush). Allowed between games; a running
  * game keeps the options it started with. Lowering the player limit never removes anyone.
  */
 export const setGameSettings = onCall(opts, async (req) => {
@@ -159,7 +159,7 @@ export const setGameSettings = onCall(opts, async (req) => {
   const data = v.asObject(req.data);
   const roomId = v.docId(data, "roomId");
   const gameId = data.gameId;
-  if (gameId !== "speed-quiz" && gameId !== "impostor" && gameId !== "drawing" && gameId !== "word-scramble" && gameId !== "perfectly-hold") fail("invalid-argument", "This game has no options.");
+  if (gameId !== "speed-quiz" && gameId !== "impostor" && gameId !== "drawing" && gameId !== "word-scramble" && gameId !== "perfectly-hold" && gameId !== "cup-shuffle" && gameId !== "number-rush") fail("invalid-argument", "This game has no options.");
   const settings =
     gameId === "speed-quiz"
       ? v.speedQuizSettings(data.settings)
@@ -169,7 +169,11 @@ export const setGameSettings = onCall(opts, async (req) => {
           ? v.drawingSettings(data.settings)
           : gameId === "word-scramble"
             ? v.scrambleSettings(data.settings)
-            : v.holdSettings(data.settings);
+            : gameId === "perfectly-hold"
+              ? v.holdSettings(data.settings)
+              : gameId === "cup-shuffle"
+                ? v.cupSettings(data.settings)
+                : v.rushSettings(data.settings);
   // The Impostor's custom word stays off the room doc (players and displays can read that).
   const customWord = "customWord" in settings && settings.customWord ? v.impostorCustomWord(data) : null;
   await db.runTransaction(async (tx) => {

@@ -2,7 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, NAME_PATTERN, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { HOLD_LIMITS, HOLD_RANGE_OPTIONS, type HoldSettings, DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { RUSH_LIMITS, RUSH_SECONDS_OPTIONS, type RushSettings, CUP_LIMITS, type CupSettings, HOLD_LIMITS, HOLD_RANGE_OPTIONS, type HoldSettings, DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
@@ -186,4 +186,23 @@ export function holdSettings(value: unknown): HoldSettings {
   if (!(HOLD_RANGE_OPTIONS as readonly unknown[]).includes(range)) fail("invalid-argument", "Pick a target range.");
   if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
   return { rounds, range: range as HoldSettings["range"], maxPlayers };
+}
+
+/** Cup Shuffle options from the lobby form. Every field is required. */
+export function cupSettings(value: unknown): CupSettings {
+  const { rounds, maxPlayers } = asObject(value);
+  const L = CUP_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  return { rounds, maxPlayers };
+}
+
+/** Number Rush options from the lobby form. Every field is required. */
+export function rushSettings(value: unknown): RushSettings {
+  const { rounds, seconds, maxPlayers } = asObject(value);
+  const L = RUSH_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!(RUSH_SECONDS_OPTIONS as readonly unknown[]).includes(seconds)) fail("invalid-argument", "Pick a time per round.");
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  return { rounds, seconds: seconds as RushSettings["seconds"], maxPlayers };
 }

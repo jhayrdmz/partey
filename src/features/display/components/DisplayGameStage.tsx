@@ -1,7 +1,7 @@
 import { Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { DisplayStateDoc } from "@shared/types";
-import type { PublicGameState } from "@shared/engine";
+import { sharedPlaces, type PublicGameState } from "@shared/engine";
 import { AvatarBubble } from "@/components/shared/AvatarBubble";
 import { useGameViews } from "@/features/games/engine/useGameViews";
 import { GameThumb } from "@/features/games/GameArt";
@@ -48,9 +48,9 @@ function StandingsStrip({ game }: { game: PublicGameState }) {
     <footer className="glass flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border px-4 py-3 sm:gap-y-3 sm:px-6 sm:py-4 short:py-2">
       <span className="text-base font-extrabold text-muted-foreground sm:text-xl short:text-base">Top scores</span>
       <ol className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-2">
-        {game.standings.slice(0, 5).map((s, i) => (
+        {game.standings.slice(0, 5).map((s, i, top) => (
           <motion.li layout key={s.playerId} className="flex items-center gap-2 text-base sm:text-xl short:text-base">
-            <span className="font-black text-muted-foreground">{i + 1}</span>
+            <span className="font-black text-muted-foreground">{sharedPlaces(top)[i]}</span>
             <AvatarBubble avatar={s.avatar} size="xs" />
             <span className="font-bold">{s.nickname}</span>
             <span className="font-black text-mango tabular-nums">{s.score}</span>

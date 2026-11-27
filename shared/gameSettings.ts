@@ -321,6 +321,135 @@ export function formatHold(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
 
+/* ─── Cup Shuffle ──────────────────────────────────────────────────────── */
+
+export const CUP_ROUND_PRESETS = [3, 5, 8, 10] as const;
+
+export interface CupSettings {
+  rounds: number;
+  /** New players can't join while Cup Shuffle is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const CUP_LIMITS = {
+  rounds: { min: 1, max: 15, default: 5 },
+  maxPlayers: { min: 1, max: 24, default: 24 },
+  /** "Round x": the cups appear before the ball is shown. */
+  announceMs: 1_500,
+  /** The cup stays up this long showing the ball. */
+  peekMs: 2_500,
+  /** The cup is back down; a beat before the first swap. */
+  settleMs: 700,
+  /** After the last swap, before phones may pick. */
+  stopMs: 400,
+  /** Time to pick a cup. */
+  guessMs: 10_000,
+  /** Allowance for device clock drift on "the cups were still moving". */
+  skewMs: 500,
+  /**
+   * One swap's duration. The shuffle speeds up once 30%, 60% and 80% of the game's rounds are done
+   * (`from` = share of rounds played before this one).
+   */
+  speedTiers: [
+    { from: 0, swapMs: 650 },
+    { from: 0.3, swapMs: 500 },
+    { from: 0.6, swapMs: 380 },
+    { from: 0.8, swapMs: 280 },
+  ],
+} as const;
+
+/** Right cup 100. A streak of right picks in a row adds 25 per round after the first (2nd +25, 3rd +50…), up to +100. */
+export const CUP_POINTS = { correct: 100, streakStep: 25, streakMax: 100 } as const;
+
+/** Bonus for the `streak`-th right pick in a row (1 = no bonus). */
+export function cupStreakBonus(streak: number): number {
+  return Math.min(CUP_POINTS.streakMax, CUP_POINTS.streakStep * Math.max(0, streak - 1));
+}
+
+export const DEFAULT_CUP_SETTINGS: CupSettings = { rounds: CUP_LIMITS.rounds.default, maxPlayers: CUP_LIMITS.maxPlayers.default };
+
+export function cupSettings(stored?: Partial<CupSettings> | null): CupSettings {
+  return { ...DEFAULT_CUP_SETTINGS, ...stored };
+}
+
+/** How many swaps round `round` (1-based) has: 3–5, 6–8, 9–11, 12–14, 15–17, then 18–20 and one more each round (max 30). */
+export function cupSwapRange(round: number): { min: number; max: number } {
+  if (round <= 5) return { min: 3 * round, max: 3 * round + 2 };
+  const extra = Math.min(round - 6, 10);
+  return { min: 18 + extra, max: 20 + extra };
+}
+
+/** Speed tier (0–3) for round `round` (1-based) of `totalRounds`. */
+export function cupSpeedTier(round: number, totalRounds: number): number {
+  const played = (round - 1) / Math.max(1, totalRounds);
+  let tier = 0;
+  CUP_LIMITS.speedTiers.forEach((t, i) => {
+    if (played >= t.from - 1e-9) tier = i;
+  });
+  return tier;
+}
+
+export function cupSwapMs(round: number, totalRounds: number): number {
+  return CUP_LIMITS.speedTiers[cupSpeedTier(round, totalRounds)].swapMs;
+}
+
+export const CUP_SLOT_LABELS = ["Left", "Middle", "Right"] as const;
+
+/* ─── Number Rush ──────────────────────────────────────────────────────── */
+
+export const RUSH_ROUND_PRESETS = [5, 10, 15, 20] as const;
+export const RUSH_SECONDS_OPTIONS = [5, 8, 10, 15] as const;
+export type RushSeconds = (typeof RUSH_SECONDS_OPTIONS)[number];
+
+export interface RushSettings {
+  rounds: number;
+  /** Time to predict each round. */
+  seconds: RushSeconds;
+  /** New players can't join while Number Rush is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const RUSH_LIMITS = {
+  rounds: { min: 1, max: 30, default: 10 },
+  maxPlayers: { min: 1, max: 24, default: 24 },
+  /** Numbers are always three digits. */
+  min: 100,
+  max: 999,
+} as const;
+
+/** Streak multipliers: right predictions in a row (this one included) → multiplier on 10 base points. */
+export const RUSH_POINTS = {
+  base: 10,
+  tiers: [
+    { from: 6, multiplier: 2 },
+    { from: 4, multiplier: 1.5 },
+    { from: 2, multiplier: 1.25 },
+    { from: 1, multiplier: 1 },
+  ],
+} as const;
+
+export const DEFAULT_RUSH_SETTINGS: RushSettings = { rounds: RUSH_LIMITS.rounds.default, seconds: 10, maxPlayers: RUSH_LIMITS.maxPlayers.default };
+
+export function rushSettings(stored?: Partial<RushSettings> | null): RushSettings {
+  return { ...DEFAULT_RUSH_SETTINGS, ...stored };
+}
+
+/** Multiplier for the `streak`-th right prediction in a row: 1x, 1.25x (2–3), 1.5x (4–5), 2x (6+). 0 = no streak. */
+export function rushMultiplier(streak: number): number {
+  if (streak < 1) return 0;
+  return RUSH_POINTS.tiers.find((t) => streak >= t.from)!.multiplier;
+}
+
+/** Points for the `streak`-th right prediction in a row: 10, 13, 13, 15, 15, 20… (rounded). */
+export function rushPoints(streak: number): number {
+  return Math.round(RUSH_POINTS.base * rushMultiplier(streak));
+}
+
+/** Which predictions make sense for a number: nothing is above 999 or below 100. */
+export function rushAllowed(current: number): { higher: boolean; lower: boolean } {
+  return { higher: current < RUSH_LIMITS.max, lower: current > RUSH_LIMITS.min };
+}
+
 /** Settings stored on the room, keyed by game. */
 export interface GameSettingsMap {
   "speed-quiz"?: SpeedQuizSettings;
@@ -328,6 +457,8 @@ export interface GameSettingsMap {
   drawing?: DrawingSettings;
   "word-scramble"?: ScrambleSettings;
   "perfectly-hold"?: HoldSettings;
+  "cup-shuffle"?: CupSettings;
+  "number-rush"?: RushSettings;
 }
 
 /** Settings with defaults filled in (rooms created before options existed have none). */
@@ -357,6 +488,8 @@ export function roomPlayerCap(room: {
   if (upcoming === "drawing") return drawingSettings(room.gameSettings?.drawing).maxPlayers;
   if (upcoming === "word-scramble") return scrambleSettings(room.gameSettings?.["word-scramble"]).maxPlayers;
   if (upcoming === "perfectly-hold") return holdSettings(room.gameSettings?.["perfectly-hold"]).maxPlayers;
+  if (upcoming === "cup-shuffle") return cupSettings(room.gameSettings?.["cup-shuffle"]).maxPlayers;
+  if (upcoming === "number-rush") return rushSettings(room.gameSettings?.["number-rush"]).maxPlayers;
   return LIMITS.maxPlayersPerRoom;
 }
 

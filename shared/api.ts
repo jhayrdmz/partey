@@ -1,6 +1,6 @@
 /** Request/response contracts for callable Cloud Functions. */
 import type { GameId } from "./games";
-import type { DrawingSettings, HoldSettings, ImpostorSettings, ScrambleSettings, SpeedQuizSettings } from "./gameSettings";
+import type { CupSettings, RushSettings, DrawingSettings, HoldSettings, ImpostorSettings, ScrambleSettings, SpeedQuizSettings } from "./gameSettings";
 import type { GameMode, RoomStatus } from "./types";
 
 export interface CreateRoomRequest { roomName: string }
@@ -17,7 +17,9 @@ export type SetGameSettingsRequest =
   | { roomId: string; gameId: "impostor"; settings: ImpostorSettings; customWord?: string }
   | { roomId: string; gameId: "drawing"; settings: DrawingSettings }
   | { roomId: string; gameId: "word-scramble"; settings: ScrambleSettings }
-  | { roomId: string; gameId: "perfectly-hold"; settings: HoldSettings };
+  | { roomId: string; gameId: "perfectly-hold"; settings: HoldSettings }
+  | { roomId: string; gameId: "cup-shuffle"; settings: CupSettings }
+  | { roomId: string; gameId: "number-rush"; settings: RushSettings };
 
 export interface LookupRoomRequest { roomCode: string }
 export interface LookupRoomResponse {

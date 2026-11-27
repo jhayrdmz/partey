@@ -8,11 +8,11 @@ export const GAME_IDS = [
   "word-scramble",
   "reflex-battle",
   "perfectly-hold",
+  "cup-shuffle",
+  "number-rush",
   // Coming soon: keep last in the library.
   "picture-reveal",
   "survey-showdown",
-  "number-rush",
-  "cup-shuffle",
   "beer-pressure",
 ] as const;
 
@@ -142,12 +142,12 @@ export const GAMES: Record<GameId, GameMeta> = {
     id: "number-rush",
     name: "Number Rush",
     tagline: "Predict the move. Master the numbers!",
-    description: "Higher or lower? Call the next number card before time runs out and build the longest streak.",
+    description: "Higher or lower? Predict the next three-digit number before time runs out and build the longest streak.",
     category: "action",
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 6,
-    playable: false,
+    playable: true,
   },
   "cup-shuffle": {
     id: "cup-shuffle",
@@ -158,7 +158,7 @@ export const GAMES: Record<GameId, GameMeta> = {
     minPlayers: 1,
     maxPlayers: 24,
     durationMin: 5,
-    playable: false,
+    playable: true,
   },
   "beer-pressure": {
     id: "beer-pressure",

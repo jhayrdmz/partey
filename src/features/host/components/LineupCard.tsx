@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, ListOrdered, Pencil, PlayCircle, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router";
 import { DRAW_CATEGORIES } from "@shared/engine";
-import { HOLD_RANGES, HOLD_RANGE_LABELS, holdSettings, DRAW_CATEGORY_LABELS, SCRAMBLE_CATEGORY_LABELS, SCRAMBLE_DIFFICULTY_LABELS, categoryLabel, drawingSettings, impostorSettings, scrambleSettings, speedQuizSettings } from "@shared/gameSettings";
+import { HOLD_RANGES, HOLD_RANGE_LABELS, cupSettings, holdSettings, rushSettings, DRAW_CATEGORY_LABELS, SCRAMBLE_CATEGORY_LABELS, SCRAMBLE_DIFFICULTY_LABELS, categoryLabel, drawingSettings, impostorSettings, scrambleSettings, speedQuizSettings } from "@shared/gameSettings";
 import type { RoomDoc } from "@shared/types";
 import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
@@ -12,12 +12,14 @@ import { cn } from "@/utils/cn";
 import { DrawingOptionsDialog } from "./DrawingOptionsDialog";
 import { ScrambleOptionsDialog } from "./ScrambleOptionsDialog";
 import { HoldOptionsDialog } from "./HoldOptionsDialog";
+import { CupOptionsDialog } from "./CupOptionsDialog";
+import { RushOptionsDialog } from "./RushOptionsDialog";
 import { ImpostorOptionsDialog } from "./ImpostorOptionsDialog";
 import { SpeedQuizOptionsDialog } from "./SpeedQuizOptionsDialog";
 
 /** Games with host options in the lobby. */
-const HAS_OPTIONS = new Set(["speed-quiz", "impostor", "drawing", "word-scramble", "perfectly-hold"]);
-type OptionsGame = "speed-quiz" | "impostor" | "drawing" | "word-scramble" | "perfectly-hold";
+const HAS_OPTIONS = new Set(["speed-quiz", "impostor", "drawing", "word-scramble", "perfectly-hold", "cup-shuffle", "number-rush"]);
+type OptionsGame = "speed-quiz" | "impostor" | "drawing" | "word-scramble" | "perfectly-hold" | "cup-shuffle" | "number-rush";
 
 export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) {
   const isTournament = room.gameMode === "tournament";
@@ -30,12 +32,16 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
   const draw = drawingSettings(room.gameSettings?.drawing);
   const scr = scrambleSettings(room.gameSettings?.["word-scramble"]);
   const hold = holdSettings(room.gameSettings?.["perfectly-hold"]);
+  const cups = cupSettings(room.gameSettings?.["cup-shuffle"]);
+  const rush = rushSettings(room.gameSettings?.["number-rush"]);
   const summaries: Partial<Record<string, string>> = {
     "speed-quiz": `${quiz.questionSeconds === 0 ? "No time limit" : `${quiz.questionSeconds}s`} · ${quiz.rounds} questions · max ${quiz.maxPlayers} players`,
     impostor: `${imp.customWord ? `Custom word (${categoryLabel(imp.category)})` : categoryLabel(imp.category)} · ${imp.impostors} impostor${imp.impostors === 1 ? "" : "s"} · ${imp.clueRounds} clue round${imp.clueRounds === 1 ? "" : "s"} · max ${imp.maxPlayers} players`,
     drawing: `${draw.rounds} rounds · ${draw.drawSeconds}s to draw · ${draw.hintSeconds ? `hint every ${draw.hintSeconds}s` : "no hints"} · ${draw.categories.length === DRAW_CATEGORIES.length ? "All categories" : draw.categories.length === 1 ? DRAW_CATEGORY_LABELS[draw.categories[0]] : `${draw.categories.length} categories`} · max ${draw.maxPlayers} players`,
     "word-scramble": `${scr.rounds} words · ${scr.roundSeconds}s each · ${SCRAMBLE_DIFFICULTY_LABELS[scr.difficulty]} · ${SCRAMBLE_CATEGORY_LABELS[scr.category]}${scr.hints ? " · hints" : ""}${scr.speedBonus ? " · speed bonus" : ""}`,
     "perfectly-hold": `${hold.rounds} rounds · ${HOLD_RANGE_LABELS[hold.range]} targets (${HOLD_RANGES[hold.range].min}–${HOLD_RANGES[hold.range].max}s) · max ${hold.maxPlayers} players`,
+    "cup-shuffle": `${cups.rounds} rounds · max ${cups.maxPlayers} players`,
+    "number-rush": `${rush.rounds} rounds · ${rush.seconds}s to predict · max ${rush.maxPlayers} players`,
   };
   return (
     <Card className="gap-3">
@@ -97,6 +103,8 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
       <DrawingOptionsDialog room={room} roomId={roomId} open={optionsFor === "drawing"} onOpenChange={(o) => setOptionsFor(o ? "drawing" : null)} />
       <ScrambleOptionsDialog room={room} roomId={roomId} open={optionsFor === "word-scramble"} onOpenChange={(o) => setOptionsFor(o ? "word-scramble" : null)} />
       <HoldOptionsDialog room={room} roomId={roomId} open={optionsFor === "perfectly-hold"} onOpenChange={(o) => setOptionsFor(o ? "perfectly-hold" : null)} />
+      <CupOptionsDialog room={room} roomId={roomId} open={optionsFor === "cup-shuffle"} onOpenChange={(o) => setOptionsFor(o ? "cup-shuffle" : null)} />
+      <RushOptionsDialog room={room} roomId={roomId} open={optionsFor === "number-rush"} onOpenChange={(o) => setOptionsFor(o ? "number-rush" : null)} />
     </Card>
   );
 }

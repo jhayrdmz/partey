@@ -13,6 +13,13 @@ import type { GameId } from "./games";
 
 export type GamePhase = "intro" | "question" | "reveal";
 
+/** Places for entries sorted by score (highest first): ties share a place (1, 2, 2, 4), like the phones' ranks. */
+export function sharedPlaces(sorted: readonly { score: number }[]): number[] {
+  const out: number[] = [];
+  sorted.forEach((s, i) => out.push(i > 0 && sorted[i - 1].score === s.score ? out[i - 1] : i + 1));
+  return out;
+}
+
 export interface StandingEntry {
   playerId: string;
   nickname: string;
@@ -273,6 +280,85 @@ export interface HoldReveal {
 }
 
 export type HoldAnswer = { holdMs: number };
+
+/* ─── Cup Shuffle ──────────────────────────────────────────────────────── */
+
+/**
+ * Public round data: the whole shuffle, so every screen plays the same animation from the server
+ * clock. The ball's start cup is public (the big screen shows it); where it ends up is never stored
+ * here or sent to phones until the reveal. Slots are 0 (left), 1 (middle), 2 (right).
+ */
+export interface CupSwap {
+  a: number;
+  b: number;
+}
+
+export interface CupRound {
+  /** Slot of the cup lifted to show the ball. */
+  ballStart: number;
+  /** Server-clock ms: the cup lifts to show the ball. */
+  peekAtMs: number;
+  /** Server-clock ms: the first swap starts (swaps run back to back). */
+  shuffleAtMs: number;
+  /** One swap's duration (shorter once 30%, 60% and 80% of the rounds are played). */
+  swapMs: number;
+  /** 0–3: how many times the shuffle has sped up (for "Faster!" on screen). */
+  speedTier: number;
+  /** Each swap exchanges the cups in slots a and b (a passes in front). Objects: Firestore can't nest arrays. */
+  swaps: CupSwap[];
+  /** Server-clock ms: the cups stop and phones may pick. */
+  guessAtMs: number;
+}
+
+export interface CupReveal {
+  /** Where the ball is. */
+  ballSlot: number;
+  /** Picks per slot. */
+  counts: [number, number, number];
+  /** Everyone in the round, right answers first; choice null = no pick. */
+  results: (PlayerPick & {
+    choice: number | null;
+    correct: boolean;
+    /** Right picks in a row, this one included (0 after a miss). */
+    streak: number;
+    /** Streak bonus included in `points`. */
+    bonus: number;
+    points: number;
+  })[];
+}
+
+export type CupAnswer = { choice: number };
+
+/* ─── Number Rush ──────────────────────────────────────────────────────── */
+
+export type RushChoice = "higher" | "lower";
+
+/** Public round data: the number on screen. The next one is server-only until the reveal. */
+export interface RushRound {
+  current: number;
+  /** Players on a streak going into this round, longest first (for streak badges on every screen). */
+  onStreak: (PlayerPick & { streak: number })[];
+}
+
+export interface RushReveal {
+  previous: number;
+  next: number;
+  direction: RushChoice;
+  /** Everyone in the round, most points this round first. choice null = no prediction. */
+  results: (PlayerPick & {
+    choice: RushChoice | null;
+    correct: boolean;
+    /** Right predictions in a row after this round (0 = reset). */
+    streak: number;
+    /** Multiplier applied this round (0 when wrong or missed). */
+    multiplier: number;
+    points: number;
+    /** This game's total after this round (before = total − points), for the leaderboard's moves. */
+    total: number;
+  })[];
+}
+
+export type RushAnswer = { choice: RushChoice };
 
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
