@@ -2,7 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, NAME_PATTERN, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { HOLD_LIMITS, HOLD_RANGE_OPTIONS, type HoldSettings, DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
@@ -176,4 +176,14 @@ export function scrambleSettings(value: unknown): ScrambleSettings {
     speedBonus,
     maxPlayers,
   };
+}
+
+/** Perfectly Hold options from the lobby form. Every field is required. */
+export function holdSettings(value: unknown): HoldSettings {
+  const { rounds, range, maxPlayers } = asObject(value);
+  const L = HOLD_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!(HOLD_RANGE_OPTIONS as readonly unknown[]).includes(range)) fail("invalid-argument", "Pick a target range.");
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  return { rounds, range: range as HoldSettings["range"], maxPlayers };
 }

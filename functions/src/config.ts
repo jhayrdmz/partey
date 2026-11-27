@@ -10,8 +10,11 @@ export const pairingTtlSeconds = defineInt("PAIRING_CODE_TTL_SECONDS", {
 /** Singapore: same region as Firestore and the Realtime Database, so function → database calls stay local. */
 export const REGION = "asia-southeast1";
 
-/** Realtime Database triggers must run in the database's own region. */
-export const DATABASE_REGION = "asia-southeast1";
+/**
+ * Realtime Database triggers must run in the database's own region. The local emulator's database
+ * is in us-central1, and it skips triggers declared for any other region (presence would never update).
+ */
+export const DATABASE_REGION = process.env.FUNCTIONS_EMULATOR === "true" ? "us-central1" : "asia-southeast1";
 
 /* ─── Expiry and free-tier limits (functions/.env; see functions/.env.example) ─── */
 
@@ -39,8 +42,8 @@ export const maxRoomsPerHost = defineInt("MAX_ROOMS_PER_HOST", {
   description: "How many rooms a free host can have open at once.",
 });
 
-/** Shown (as a link, opened in a new tab) when the host limit is reached. Empty = no link. */
+/** Shown (as a link, opened in a new tab) when the host limit is reached. Set it empty for no link. */
 export const hostLimitContactUrl = defineString("HOST_LIMIT_CONTACT_URL", {
-  default: "",
+  default: "https://www.facebook.com/JoinPartey",
   description: "Page to contact for more hosts (shown when the free host limit is reached).",
 });

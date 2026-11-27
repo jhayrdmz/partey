@@ -1,6 +1,6 @@
 /** Request/response contracts for callable Cloud Functions. */
 import type { GameId } from "./games";
-import type { DrawingSettings, ImpostorSettings, ScrambleSettings, SpeedQuizSettings } from "./gameSettings";
+import type { DrawingSettings, HoldSettings, ImpostorSettings, ScrambleSettings, SpeedQuizSettings } from "./gameSettings";
 import type { GameMode, RoomStatus } from "./types";
 
 export interface CreateRoomRequest { roomName: string }
@@ -16,7 +16,8 @@ export type SetGameSettingsRequest =
   /** `customWord` is required when `settings.customWord` is on; it's stored host-only, never on the room. */
   | { roomId: string; gameId: "impostor"; settings: ImpostorSettings; customWord?: string }
   | { roomId: string; gameId: "drawing"; settings: DrawingSettings }
-  | { roomId: string; gameId: "word-scramble"; settings: ScrambleSettings };
+  | { roomId: string; gameId: "word-scramble"; settings: ScrambleSettings }
+  | { roomId: string; gameId: "perfectly-hold"; settings: HoldSettings };
 
 export interface LookupRoomRequest { roomCode: string }
 export interface LookupRoomResponse {

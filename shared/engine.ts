@@ -250,6 +250,30 @@ export interface ScrambleReveal {
 
 export type ScrambleAnswer = { guess: string };
 
+/* ─── Perfectly Hold ───────────────────────────────────────────────────── */
+
+/**
+ * Public round data. The target is public (it's on the big screen); the phone never shows it or a
+ * running clock while holding. Each phone measures its own hold with performance.now().
+ */
+export interface HoldRound {
+  targetMs: number;
+  /** Server-clock ms when holding may start (after the target announcement and 3, 2, 1). */
+  goAtMs: number;
+  /** Longest hold accepted; phones let go by themselves here. */
+  maxHoldMs: number;
+  /** Who plays this round, for the display's Waiting / Locked in board. */
+  players: PlayerPick[];
+}
+
+export interface HoldReveal {
+  targetMs: number;
+  /** Closest first (ties share a rank), then players who didn't hold (holdMs null). */
+  results: (PlayerPick & { holdMs: number | null; diffMs: number | null; rank: number | null; points: number })[];
+}
+
+export type HoldAnswer = { holdMs: number };
+
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
 export type ChoiceAnswer = { choice: number };

@@ -118,7 +118,9 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
   const me = useLiveDoc(refs.player(roomId, uid), `me:${roomId}:${uid}`);
   const active = me.data?.status === "online" || me.data?.status === "offline";
   const room = useRoom(roomId, active);
-  const lostAccess = useAccessCheck(roomCode, room.status === "error");
+  // Losing read access means removed or the room ended: only the server's answer tells which.
+  const denied = room.status === "error" || me.status === "error";
+  const lostAccess = useAccessCheck(roomCode, denied);
   const display = useDisplayState(roomId, active);
   const realtimeConnected = usePresence(roomId, uid, "player", active);
   // Players using the app count as lobby activity too.
@@ -141,8 +143,7 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
   const ended =
     !kicked &&
     me.status !== "loading" &&
-    lostAccess !== "checking" &&
-    (me.status === "error" || room.status === "error" || !me.data || me.data.status === "left" || room.data?.status === "expired");
+    (denied ? lostAccess === "ended" : !me.data || me.data.status === "left" || room.data?.status === "expired");
   useEffect(() => {
     if (!ended) return;
     toast("This room has ended", { id: "room-ended", description: "Enter a code to join another room." });
@@ -190,11 +191,11 @@ function PlayerSession({ roomId, roomCode, uid }: { roomId: string; roomCode: st
  * may not arrive once membership is revoked, so don't rely on them.)
  */
 function useAccessCheck(roomCode: string, denied: boolean): "ok" | "checking" | "kicked" | "ended" {
-  const [result, setResult] = useState<"ok" | "checking" | "kicked" | "ended">("ok");
+  // "checking" from the very render access is lost, so nothing reads it as "the room ended" meanwhile.
+  const [result, setResult] = useState<"ok" | "kicked" | "ended" | null>(null);
   useEffect(() => {
     if (!denied) return;
     let cancelled = false;
-    setResult("checking");
     call("lookupRoom", { roomCode })
       .then((r) => !cancelled && setResult(r.kicked ? "kicked" : r.alreadyJoined ? "ok" : "ended"))
       .catch(() => !cancelled && setResult("ended"));
@@ -202,5 +203,5 @@ function useAccessCheck(roomCode: string, denied: boolean): "ok" | "checking" | 
       cancelled = true;
     };
   }, [denied, roomCode]);
-  return result;
+  return denied ? (result ?? "checking") : "ok";
 }

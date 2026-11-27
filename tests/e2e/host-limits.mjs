@@ -45,6 +45,10 @@ async function clearHosts() {
 let n = 0;
 const createRoom = (user) => callable("createRoom", user, { roomName: `Limit test ${++n}` });
 
+// Hosts from earlier test files can still be touched by their last presence updates for a moment
+// (presence → host activity), so clear, let those settle, and clear again.
+await clearHosts();
+await new Promise((r) => setTimeout(r, 3000));
 await clearHosts();
 
 // ── Rooms per host ──────────────────────────────────────────────────────

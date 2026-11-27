@@ -1,9 +1,9 @@
-import { initializeApp, type FirebaseApp } from "firebase/app";
+import type { FirebaseApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, initializeFirestore, type Firestore } from "firebase/firestore";
 import { connectDatabaseEmulator, getDatabase, type Database } from "firebase/database";
 import { connectFunctionsEmulator, getFunctions, type Functions } from "firebase/functions";
-import { emulatorHost, firebaseConfig, functionsRegion, isFirebaseConfigured, useEmulators } from "./config";
+import { emulatorHost, firebaseApp, functionsRegion, isFirebaseConfigured, useEmulators } from "./config";
 
 interface FirebaseServices {
   app: FirebaseApp;
@@ -20,7 +20,7 @@ export function firebase(): FirebaseServices {
   if (services) return services;
   if (!isFirebaseConfigured) throw new Error("Firebase is not configured. See .env.example.");
 
-  const app = initializeApp(firebaseConfig);
+  const app = firebaseApp();
   const auth = getAuth(app);
   // Long-polling auto-detection keeps listeners alive behind restrictive TV/corporate networks.
   const firestore = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });

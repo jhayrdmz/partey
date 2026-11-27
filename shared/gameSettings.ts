@@ -241,12 +241,93 @@ export function scrambleSpeedBonus(elapsedMs: number, durationMs: number): numbe
   return Math.round(SCRAMBLE_POINTS.speedBonusMax * left);
 }
 
+/* ─── Perfectly Hold ───────────────────────────────────────────────────── */
+
+export const HOLD_ROUND_PRESETS = [3, 5, 8, 10] as const;
+export const HOLD_RANGE_OPTIONS = ["short", "medium", "long", "mixed"] as const;
+export type HoldRange = (typeof HOLD_RANGE_OPTIONS)[number];
+
+/** Target durations per range, whole seconds (inclusive). */
+export const HOLD_RANGES: Record<HoldRange, { min: number; max: number }> = {
+  short: { min: 5, max: 8 },
+  medium: { min: 8, max: 12 },
+  long: { min: 12, max: 15 },
+  mixed: { min: 5, max: 15 },
+};
+
+export const HOLD_RANGE_LABELS: Record<HoldRange, string> = { short: "Short", medium: "Medium", long: "Long", mixed: "Mixed" };
+
+export interface HoldSettings {
+  rounds: number;
+  /** Each round's target is a random whole number of seconds in this range. */
+  range: HoldRange;
+  /** New players can't join while Perfectly Hold is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const HOLD_LIMITS = {
+  rounds: { min: 1, max: 15, default: 5 },
+  maxPlayers: { min: 2, max: 24, default: 24 },
+  /** The big screen shows the target this long before the countdown. */
+  announceMs: 2_500,
+  /** 3, 2, 1, then GO. */
+  countdownMs: 3_000,
+  /** After GO, this long to press. */
+  pressWindowMs: 5_000,
+  /** A hold can run this far past the target; then the phone lets go by itself. */
+  overtimeMs: 10_000,
+  /** Holds are rounded to this (hundredths of a second, as shown on the results). */
+  precisionMs: 10,
+  /** Shorter holds are taken as a slip and rejected. */
+  minHoldMs: 100,
+  /** Allowance for device clock drift when checking a hold couldn't have started before GO. */
+  skewMs: 1_500,
+} as const;
+
+/** Points by closeness rank (ties share a rank), then everyone else who held. No hold: 0. */
+export const HOLD_POINTS = { byRank: [100, 75, 50], rest: 25 } as const;
+
+export const DEFAULT_HOLD_SETTINGS: HoldSettings = { rounds: HOLD_LIMITS.rounds.default, range: "mixed", maxPlayers: HOLD_LIMITS.maxPlayers.default };
+
+export function holdSettings(stored?: Partial<HoldSettings> | null): HoldSettings {
+  return { ...DEFAULT_HOLD_SETTINGS, ...stored };
+}
+
+export function holdPoints(rank: number): number {
+  return HOLD_POINTS.byRank[rank - 1] ?? HOLD_POINTS.rest;
+}
+
+export type HoldVerdict = "perfect" | "almost" | "good" | "early" | "late";
+
+/** How close a hold was. Same labels on the big screen and the phone. */
+export function holdVerdict(holdMs: number, targetMs: number): HoldVerdict {
+  const diff = Math.abs(holdMs - targetMs);
+  if (diff <= 100) return "perfect";
+  if (diff <= 500) return "almost";
+  if (diff <= 1_500) return "good";
+  return holdMs < targetMs ? "early" : "late";
+}
+
+export const HOLD_VERDICT_LABELS: Record<HoldVerdict, string> = {
+  perfect: "Perfect!",
+  almost: "Almost there",
+  good: "Good try",
+  early: "Too early",
+  late: "Too late",
+};
+
+/** 9.98s */
+export function formatHold(ms: number): string {
+  return `${(ms / 1000).toFixed(2)}s`;
+}
+
 /** Settings stored on the room, keyed by game. */
 export interface GameSettingsMap {
   "speed-quiz"?: SpeedQuizSettings;
   impostor?: ImpostorSettings;
   drawing?: DrawingSettings;
   "word-scramble"?: ScrambleSettings;
+  "perfectly-hold"?: HoldSettings;
 }
 
 /** Settings with defaults filled in (rooms created before options existed have none). */
@@ -275,6 +356,7 @@ export function roomPlayerCap(room: {
   if (upcoming === "impostor") return impostorSettings(room.gameSettings?.impostor).maxPlayers;
   if (upcoming === "drawing") return drawingSettings(room.gameSettings?.drawing).maxPlayers;
   if (upcoming === "word-scramble") return scrambleSettings(room.gameSettings?.["word-scramble"]).maxPlayers;
+  if (upcoming === "perfectly-hold") return holdSettings(room.gameSettings?.["perfectly-hold"]).maxPlayers;
   return LIMITS.maxPlayersPerRoom;
 }
 

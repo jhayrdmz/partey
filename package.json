@@ -20,7 +20,7 @@
     "build:staging": "node scripts/check-staging-env.mjs && tsc -b && vite build --mode staging",
     "deploy:preview": "npm run build:staging && firebase deploy --project preview --only firestore,database,functions,hosting",
     "deploy:preview:hosting": "npm run build:staging && firebase deploy --project preview --only hosting",
-    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/gameplay.mjs && node tests/e2e/impostor.mjs && node tests/e2e/impostor-custom-word.mjs && node tests/e2e/drawing.mjs && node tests/e2e/host-limits.mjs && node tests/e2e/word-scramble.mjs"
+    "test:e2e": "node tests/e2e/flow.mjs && node tests/e2e/gameplay.mjs && node tests/e2e/impostor.mjs && node tests/e2e/impostor-custom-word.mjs && node tests/e2e/drawing.mjs && node tests/e2e/host-limits.mjs && node tests/e2e/word-scramble.mjs && node tests/e2e/perfectly-hold.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

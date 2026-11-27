@@ -68,7 +68,7 @@ export const submitAnswer = onCall(opts, async (req): Promise<SubmitAnswerRespon
     const ref = submissionRef(roomId, gs.entryId, gs.round, uid);
     // Already answered (for multi-attempt games: already guessed right). Never scores twice.
     if ((await tx.get(ref)).exists) return { accepted: false, entryId: gs.entryId, eligible: gs.eligibleIds.length };
-    const answer = handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup });
+    const answer = handler.validate(data.answer, gs.roundPublic, { playerId: uid, setup: gs.setup, nowMs: receivedAtMs });
     // Guess cooldown (per player, per round), checked here so a client can't skip it.
     const cooldown = handler.attemptCooldownMs ?? 0;
     let retryAtMs: number | undefined;

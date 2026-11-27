@@ -75,6 +75,8 @@ export interface HostActionResult<Setup = unknown> {
 export interface ValidateCtx<Setup = unknown> {
   playerId: string;
   setup: Setup;
+  /** Server-clock ms when the answer arrived (Perfectly Hold: a hold can't be longer than time since GO). */
+  nowMs?: number;
 }
 
 /**

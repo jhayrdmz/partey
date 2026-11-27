@@ -10,9 +10,17 @@ export const module: GameModule = {
   icon: Hand,
   art: { from: "#ff8a3d", cover, thumb },
   interactions: ["reaction"],
+  // A running round clock would give the game away: players must count in their heads.
+  showTimer: false,
+  loadViews: () => import("./views").then((m) => m.views),
+  hostControls: (game) => {
+    if (game.phase === "intro") return { nextLabel: "Start round 1" };
+    if (game.phase === "question") return { nextLabel: "Reveal results" };
+    return { nextLabel: game.round >= game.totalRounds ? "Show results" : "Next round" };
+  },
   howToPlay: [
-    "Press and hold the button on your phone while the meter fills.",
-    "Let go when it hits the target zone. Too late and you bust.",
-    "The closer your release, the more you score.",
+    "The big screen shows a target time, like 10 seconds.",
+    "On GO, press and hold the button on your phone. There's no clock: count in your head.",
+    "Let go when you think time's up. Closest to the target scores 100, then 75, 50, and 25 for everyone else.",
   ],
 };

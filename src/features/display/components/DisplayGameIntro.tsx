@@ -32,7 +32,11 @@ export function DisplayGameIntro({ state }: { state: DisplayStateDoc }) {
               Game {state.gameNumber} of {state.totalGames}
             </p>
           )}
-          <h1 className="text-4xl font-extrabold leading-none sm:text-6xl lg:text-8xl">{game.meta.name}</h1>
+          {/* One line (longest: "Guess the Majority"): sized to the screen, half of it on wide layouts. */}
+          <h1 className="text-[min(8vw,3.75rem)] leading-none font-extrabold whitespace-nowrap lg:text-[min(4.2vw,6rem)]">
+            {game.meta.name}
+            <span className="text-guava">.</span>
+          </h1>
           <p className="mt-2 text-xl text-mango sm:mt-3 sm:text-2xl lg:text-3xl">{game.meta.tagline}</p>
         </motion.div>
         <ol className="space-y-2.5 sm:space-y-4">

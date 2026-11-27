@@ -219,7 +219,10 @@ function LiveGameControls({
               </span>
             )}
           </div>
-          <TimerBar endsAtMs={live.phaseEndsAtMs} durationMs={live.phaseDurationMs} paused={live.paused} remainingMs={live.remainingMs} />
+          {/* Games that hide the round clock from players (Perfectly Hold) hide it here too: the host's screen is often in view. */}
+          {!(live.phase === "question" && getGame(gameId).showTimer === false) && (
+            <TimerBar endsAtMs={live.phaseEndsAtMs} durationMs={live.phaseDurationMs} paused={live.paused} remainingMs={live.remainingMs} />
+          )}
         </div>
       )}
       {/* End · Pause · Skip as small buttons, then the main action. Skip stays in place

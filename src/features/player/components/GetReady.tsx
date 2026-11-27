@@ -22,7 +22,11 @@ export function GetReady({ state }: { state: DisplayStateDoc }) {
             Game {state.gameNumber} of {state.totalGames}
           </p>
         )}
-        <h1 className="text-3xl font-extrabold">{game.meta.name}</h1>
+        {/* One line on any phone (longest: "Guess the Majority"), with the logo's dot. */}
+        <h1 className="text-[min(7.5vw,1.875rem)] font-extrabold whitespace-nowrap">
+          {game.meta.name}
+          <span className="text-guava">.</span>
+        </h1>
         <p className="text-muted-foreground">{game.meta.tagline}</p>
       </div>
       <ol className="space-y-3">

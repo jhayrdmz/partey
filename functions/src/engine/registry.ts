@@ -6,6 +6,7 @@ import { reflex } from "../games/reflex";
 import { impostor } from "../games/impostor";
 import { drawing } from "../games/drawing";
 import { wordScramble } from "../games/wordScramble";
+import { perfectlyHold } from "../games/perfectlyHold";
 
 /** Server game handlers. Games without a handler can't be started yet. */
 const HANDLERS: Partial<Record<GameId, GameHandler>> = {
@@ -15,6 +16,7 @@ const HANDLERS: Partial<Record<GameId, GameHandler>> = {
   impostor: impostor as GameHandler,
   drawing: drawing as GameHandler,
   "word-scramble": wordScramble as GameHandler,
+  "perfectly-hold": perfectlyHold as GameHandler,
 };
 
 export function getHandler(id: GameId): GameHandler | undefined {

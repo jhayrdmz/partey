@@ -31,6 +31,10 @@ if (missing.length) fail(`.env.staging must set ${missing.join(", ")} (else prod
 if (web.VITE_USE_FIREBASE_EMULATORS !== "false") fail(".env.staging must set VITE_USE_FIREBASE_EMULATORS=false.");
 if (web.VITE_FIREBASE_PROJECT_ID !== staging) fail(`.env.staging is for ${web.VITE_FIREBASE_PROJECT_ID}, but the "preview" alias is ${staging}.`);
 if (web.VITE_FIREBASE_PROJECT_ID === projects.prod) fail(".env.staging points at production.");
+// Analytics: an unset key would inherit production's ID from .env and mix staging traffic in.
+const prodWeb = fs.existsSync(".env") ? parse(".env") : {};
+if (!("VITE_FIREBASE_MEASUREMENT_ID" in web)) fail(".env.staging must set VITE_FIREBASE_MEASUREMENT_ID (empty turns Analytics off), else production's is used.");
+if (web.VITE_FIREBASE_MEASUREMENT_ID && web.VITE_FIREBASE_MEASUREMENT_ID === prodWeb.VITE_FIREBASE_MEASUREMENT_ID) fail(".env.staging's VITE_FIREBASE_MEASUREMENT_ID is production's.");
 
 const fn = parse("functions/.env.preview");
 const prodFn = fs.existsSync("functions/.env") ? parse("functions/.env") : {};

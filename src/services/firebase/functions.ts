@@ -3,6 +3,7 @@ import type * as Api from "@shared/api";
 import type * as Engine from "@shared/engine";
 import { firebase } from "./app";
 import { ensureSignedIn } from "./auth";
+import { track } from "./analytics";
 
 /** Request/response map for every callable. Keeps call sites fully typed. */
 interface CallableMap {
@@ -26,10 +27,19 @@ interface CallableMap {
   controlGame: [Engine.ControlGameRequest, { ok: true }];
 }
 
+/** Callables worth counting in Google Analytics (on success), by GA event name. */
+const TRACKED: Partial<Record<keyof CallableMap, string>> = {
+  createRoom: "room_created",
+  joinRoom: "player_joined",
+  startGame: "game_started",
+};
+
 export async function call<K extends keyof CallableMap>(name: K, data: CallableMap[K][0]): Promise<CallableMap[K][1]> {
   await ensureSignedIn();
   const fn = httpsCallable<CallableMap[K][0], CallableMap[K][1]>(firebase().functions, name);
   const result = await fn(data);
+  const event = TRACKED[name];
+  if (event) track(event);
   return result.data;
 }
 

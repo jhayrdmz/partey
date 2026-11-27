@@ -3,6 +3,8 @@
  * With VITE_USE_FIREBASE_EMULATORS=true and a "demo-*" project id, no real
  * credentials are needed — everything runs against the local Emulator Suite.
  */
+import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+
 const env = import.meta.env;
 
 export const useEmulators = env.VITE_USE_FIREBASE_EMULATORS === "true";
@@ -17,6 +19,8 @@ export const firebaseConfig = {
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: env.VITE_FIREBASE_APP_ID,
   databaseURL: env.VITE_FIREBASE_DATABASE_URL ?? (projectId ? `https://${projectId}-default-rtdb.firebaseio.com` : undefined),
+  // Google Analytics (optional): Project settings → Your apps → Web app → measurementId.
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || undefined,
 };
 
 export const functionsRegion = env.VITE_FIREBASE_FUNCTIONS_REGION ?? "asia-southeast1";
@@ -26,3 +30,6 @@ export const emulatorHost = env.VITE_EMULATOR_HOST ?? (typeof window !== "undefi
 
 export const missingConfigKeys = (["apiKey", "projectId", "databaseURL"] as const).filter((k) => !firebaseConfig[k]);
 export const isFirebaseConfigured = missingConfigKeys.length === 0;
+
+/** The one Firebase app instance, shared by services and analytics. */
+export const firebaseApp = (): FirebaseApp => (getApps().length ? getApp() : initializeApp(firebaseConfig));
