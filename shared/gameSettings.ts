@@ -3,7 +3,7 @@
  * Cloud Functions (validation, game setup, join cap). Keep free of runtime dependencies.
  */
 import { LIMITS } from "./constants";
-import { DRAW_CATEGORIES, IMPOSTOR_CATEGORIES, SCRAMBLE_CATEGORIES, type DrawCategory, type ImpostorCategory } from "./engine";
+import { DRAW_CATEGORIES, IMPOSTOR_CATEGORIES, SCRAMBLE_CATEGORIES, type AuthorCategory, type DrawCategory, type ImpostorCategory } from "./engine";
 import type { GameId } from "./games";
 import type { GameMode, LineupEntry } from "./types";
 
@@ -450,6 +450,61 @@ export function rushAllowed(current: number): { higher: boolean; lower: boolean 
   return { higher: current < RUSH_LIMITS.max, lower: current > RUSH_LIMITS.min };
 }
 
+/* ─── The Author ───────────────────────────────────────────────────────── */
+
+export const AUTHOR_CATEGORIES = ["funny", "embarrassing", "deep", "childhood", "relationships", "wildcard"] as const satisfies readonly AuthorCategory[];
+export const AUTHOR_CATEGORY_OPTIONS = ["random", ...AUTHOR_CATEGORIES] as const;
+export type AuthorCategoryOption = (typeof AUTHOR_CATEGORY_OPTIONS)[number];
+export const AUTHOR_CATEGORY_LABELS: Record<AuthorCategoryOption, string> = {
+  random: "Random",
+  funny: "Funny",
+  embarrassing: "Embarrassing",
+  deep: "Deep",
+  childhood: "Childhood",
+  relationships: "Relationships",
+  wildcard: "Wildcard",
+};
+export const AUTHOR_ROUND_PRESETS = [1, 2, 3] as const;
+export const AUTHOR_WRITE_SECONDS_OPTIONS = [45, 60, 90, 120] as const;
+export const AUTHOR_GUESS_SECONDS_OPTIONS = [15, 20, 30] as const;
+
+export interface AuthorSettings {
+  /** Rounds in the game: one question each, with one answer per player to guess. */
+  rounds: number;
+  /** One category, or "random" (each question from any category). */
+  category: AuthorCategoryOption;
+  writeSeconds: (typeof AUTHOR_WRITE_SECONDS_OPTIONS)[number];
+  guessSeconds: (typeof AUTHOR_GUESS_SECONDS_OPTIONS)[number];
+  /** New players can't join while The Author is the selected/next game and the room has this many. */
+  maxPlayers: number;
+}
+
+export const AUTHOR_LIMITS = {
+  rounds: { min: 1, max: 3, default: 3 },
+  maxPlayers: { min: 3, max: 16, default: 16 },
+  /** Characters per answer. */
+  answerMax: 120,
+} as const;
+
+/** 100 per right guess, plus 50 for each right guess in a row before it: 100, 150, 200, 250… */
+export const AUTHOR_POINTS = { base: 100, streakStep: 50 } as const;
+
+export function authorBonus(streak: number): number {
+  return AUTHOR_POINTS.streakStep * Math.max(0, streak - 1);
+}
+
+export const DEFAULT_AUTHOR_SETTINGS: AuthorSettings = {
+  rounds: AUTHOR_LIMITS.rounds.default,
+  category: "random",
+  writeSeconds: 60,
+  guessSeconds: 20,
+  maxPlayers: AUTHOR_LIMITS.maxPlayers.default,
+};
+
+export function authorSettings(stored?: Partial<AuthorSettings> | null): AuthorSettings {
+  return { ...DEFAULT_AUTHOR_SETTINGS, ...stored };
+}
+
 /** Settings stored on the room, keyed by game. */
 export interface GameSettingsMap {
   "speed-quiz"?: SpeedQuizSettings;
@@ -459,6 +514,7 @@ export interface GameSettingsMap {
   "perfectly-hold"?: HoldSettings;
   "cup-shuffle"?: CupSettings;
   "number-rush"?: RushSettings;
+  "the-author"?: AuthorSettings;
 }
 
 /** Settings with defaults filled in (rooms created before options existed have none). */
@@ -490,6 +546,7 @@ export function roomPlayerCap(room: {
   if (upcoming === "perfectly-hold") return holdSettings(room.gameSettings?.["perfectly-hold"]).maxPlayers;
   if (upcoming === "cup-shuffle") return cupSettings(room.gameSettings?.["cup-shuffle"]).maxPlayers;
   if (upcoming === "number-rush") return rushSettings(room.gameSettings?.["number-rush"]).maxPlayers;
+  if (upcoming === "the-author") return authorSettings(room.gameSettings?.["the-author"]).maxPlayers;
   return LIMITS.maxPlayersPerRoom;
 }
 

@@ -360,6 +360,97 @@ export interface RushReveal {
 
 export type RushAnswer = { choice: RushChoice };
 
+/* ─── The Author ───────────────────────────────────────────────────────── */
+
+export type AuthorCategory = "funny" | "embarrassing" | "deep" | "childhood" | "relationships" | "wildcard";
+
+/** Everyone writes an answer to the prompt. */
+export interface AuthorWriteRound {
+  kind: "write";
+  prompt: string;
+  category: AuthorCategory;
+  /** 1-based question number, and how many questions the game has. */
+  question: number;
+  questions: number;
+  /** Right guesses in a row per player going into this round (absent = 0). */
+  streaks: Record<string, number>;
+}
+
+/**
+ * One anonymous answer to guess. The author is never in here (server-only until the reveal);
+ * `card` is a random number, not the submission order.
+ */
+export interface AuthorGuessRound {
+  kind: "guess";
+  prompt: string;
+  category: AuthorCategory;
+  question: number;
+  questions: number;
+  streaks: Record<string, number>;
+  card: number;
+  answer: string;
+  /** This answer's place among the question's answers (1-based), and how many there are. */
+  index: number;
+  count: number;
+  /** Everyone who wrote an answer to this question (phones hide the viewer themselves). */
+  candidates: PlayerPick[];
+}
+
+export type AuthorRound = AuthorWriteRound | AuthorGuessRound;
+
+export interface AuthorGuessResult extends PlayerPick {
+  /** Who they picked (playerId), null = no guess. */
+  guess: string | null;
+  correct: boolean;
+  /** Right guesses in a row after this one (0 = reset). */
+  streak: number;
+  base: number;
+  bonus: number;
+  points: number;
+}
+
+/** End-of-game awards. Ties share an award (everyone tied is listed); null = nobody qualifies. */
+export interface AuthorAwards {
+  /** Most correct guesses (at least 1). */
+  bestDetective: { players: PlayerPick[]; correct: number } | null;
+  /** The answer(s) most people traced to their author (at least 1). */
+  mostObvious: { answers: { answer: string; author: PlayerPick; guessers: number }[]; found: number } | null;
+  /** Longest run of right guesses in a row (at least 2). */
+  longestStreak: { players: PlayerPick[]; streak: number } | null;
+}
+
+export type AuthorReveal =
+  | {
+      kind: "collected";
+      prompt: string;
+      /** How many answers are in the pool (no names). */
+      count: number;
+      /** Fun stats, on the game's last reveal. */
+      awards: AuthorAwards | null;
+    }
+  | {
+      kind: "author";
+      prompt: string;
+      card: number;
+      answer: string;
+      author: PlayerPick;
+      /** The most-picked player (before the real author is shown); tied = several shared the top. */
+      mostGuessed: { player: PlayerPick; votes: number; tied: boolean } | null;
+      /** Guesses per candidate. */
+      votes: { playerId: string; votes: number }[];
+      correctCount: number;
+      /** How many could guess (everyone but the author). */
+      guessers: number;
+      /** Guessers, right ones first. */
+      results: AuthorGuessResult[];
+      awards: AuthorAwards | null;
+    };
+
+export type AuthorAnswer = { text: string } | { author: string };
+
+/** private/{uid}.secret during a guess: only the author's phone learns it's theirs. */
+export type AuthorSecret = { yourAnswer: true } | null;
+
 /* ─── Submissions ────────────────────────────────────────────────────── */
 
 export type ChoiceAnswer = { choice: number };

@@ -2,7 +2,7 @@
 import { AVATAR_IDS } from "../../../shared/avatars";
 import { LIMITS, NAME_PATTERN, PAIRING_CODE_LENGTH, ROOM_CODE_ALPHABET, ROOM_CODE_LENGTH } from "../../../shared/constants";
 import { GAME_IDS, type GameId } from "../../../shared/games";
-import { RUSH_LIMITS, RUSH_SECONDS_OPTIONS, type RushSettings, CUP_LIMITS, type CupSettings, HOLD_LIMITS, HOLD_RANGE_OPTIONS, type HoldSettings, DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
+import { AUTHOR_CATEGORY_OPTIONS, AUTHOR_GUESS_SECONDS_OPTIONS, AUTHOR_LIMITS, AUTHOR_WRITE_SECONDS_OPTIONS, type AuthorSettings, RUSH_LIMITS, RUSH_SECONDS_OPTIONS, type RushSettings, CUP_LIMITS, type CupSettings, HOLD_LIMITS, HOLD_RANGE_OPTIONS, type HoldSettings, DRAWING_LIMITS, DRAW_SECONDS_OPTIONS, HINT_SECONDS_OPTIONS, SCRAMBLE_CATEGORY_OPTIONS, SCRAMBLE_DIFFICULTY_OPTIONS, SCRAMBLE_LIMITS, SCRAMBLE_SECONDS_OPTIONS, type ScrambleSettings, IMPOSTOR_CATEGORY_OPTIONS, IMPOSTOR_LIMITS, QUESTION_SECONDS_OPTIONS, SPEED_QUIZ_LIMITS, isWholeIn, type DrawingSettings, type ImpostorSettings, type SpeedQuizSettings } from "../../../shared/gameSettings";
 import { DRAW_CATEGORIES, type DrawCategory } from "../../../shared/engine";
 import type { GameMode } from "../../../shared/types";
 import { fail } from "./errors";
@@ -205,4 +205,22 @@ export function rushSettings(value: unknown): RushSettings {
   if (!(RUSH_SECONDS_OPTIONS as readonly unknown[]).includes(seconds)) fail("invalid-argument", "Pick a time per round.");
   if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
   return { rounds, seconds: seconds as RushSettings["seconds"], maxPlayers };
+}
+
+/** The Author options from the lobby form. Every field is required. */
+export function authorSettings(value: unknown): AuthorSettings {
+  const { rounds, category, writeSeconds, guessSeconds, maxPlayers } = asObject(value);
+  const L = AUTHOR_LIMITS;
+  if (!isWholeIn(rounds, L.rounds.min, L.rounds.max)) fail("invalid-argument", `Rounds must be between ${L.rounds.min} and ${L.rounds.max}.`);
+  if (!(AUTHOR_CATEGORY_OPTIONS as readonly unknown[]).includes(category)) fail("invalid-argument", "Pick a category.");
+  if (!(AUTHOR_WRITE_SECONDS_OPTIONS as readonly unknown[]).includes(writeSeconds)) fail("invalid-argument", "Pick a writing time.");
+  if (!(AUTHOR_GUESS_SECONDS_OPTIONS as readonly unknown[]).includes(guessSeconds)) fail("invalid-argument", "Pick a guessing time.");
+  if (!isWholeIn(maxPlayers, L.maxPlayers.min, L.maxPlayers.max)) fail("invalid-argument", `Max players must be between ${L.maxPlayers.min} and ${L.maxPlayers.max}.`);
+  return {
+    rounds,
+    category: category as AuthorSettings["category"],
+    writeSeconds: writeSeconds as AuthorSettings["writeSeconds"],
+    guessSeconds: guessSeconds as AuthorSettings["guessSeconds"],
+    maxPlayers,
+  };
 }

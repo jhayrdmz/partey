@@ -10,6 +10,7 @@ export const GAME_IDS = [
   "perfectly-hold",
   "cup-shuffle",
   "number-rush",
+  "the-author",
   // Coming soon: keep last in the library.
   "picture-reveal",
   "survey-showdown",
@@ -171,6 +172,17 @@ export const GAMES: Record<GameId, GameMeta> = {
     maxPlayers: 8,
     durationMin: 5,
     playable: false,
+  },
+  "the-author": {
+    id: "the-author",
+    name: "The Author",
+    tagline: "A mystery to uncover: who's the secret author?",
+    description: "Everyone answers the same question in secret. The answers show up one by one with no names: guess who wrote each one.",
+    category: "social",
+    minPlayers: 3,
+    maxPlayers: 16,
+    durationMin: 10,
+    playable: true,
   },
 };
 

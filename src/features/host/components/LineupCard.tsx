@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, ListOrdered, Pencil, PlayCircle, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router";
 import { DRAW_CATEGORIES } from "@shared/engine";
-import { HOLD_RANGES, HOLD_RANGE_LABELS, cupSettings, holdSettings, rushSettings, DRAW_CATEGORY_LABELS, SCRAMBLE_CATEGORY_LABELS, SCRAMBLE_DIFFICULTY_LABELS, categoryLabel, drawingSettings, impostorSettings, scrambleSettings, speedQuizSettings } from "@shared/gameSettings";
+import { HOLD_RANGES, HOLD_RANGE_LABELS, authorSettings, AUTHOR_CATEGORY_LABELS, cupSettings, holdSettings, rushSettings, DRAW_CATEGORY_LABELS, SCRAMBLE_CATEGORY_LABELS, SCRAMBLE_DIFFICULTY_LABELS, categoryLabel, drawingSettings, impostorSettings, scrambleSettings, speedQuizSettings } from "@shared/gameSettings";
 import type { RoomDoc } from "@shared/types";
 import { GameThumb } from "@/features/games/GameArt";
 import { getGame } from "@/features/games/registry";
@@ -14,12 +14,13 @@ import { ScrambleOptionsDialog } from "./ScrambleOptionsDialog";
 import { HoldOptionsDialog } from "./HoldOptionsDialog";
 import { CupOptionsDialog } from "./CupOptionsDialog";
 import { RushOptionsDialog } from "./RushOptionsDialog";
+import { AuthorOptionsDialog } from "./AuthorOptionsDialog";
 import { ImpostorOptionsDialog } from "./ImpostorOptionsDialog";
 import { SpeedQuizOptionsDialog } from "./SpeedQuizOptionsDialog";
 
 /** Games with host options in the lobby. */
-const HAS_OPTIONS = new Set(["speed-quiz", "impostor", "drawing", "word-scramble", "perfectly-hold", "cup-shuffle", "number-rush"]);
-type OptionsGame = "speed-quiz" | "impostor" | "drawing" | "word-scramble" | "perfectly-hold" | "cup-shuffle" | "number-rush";
+const HAS_OPTIONS = new Set(["speed-quiz", "impostor", "drawing", "word-scramble", "perfectly-hold", "cup-shuffle", "number-rush", "the-author"]);
+type OptionsGame = "speed-quiz" | "impostor" | "drawing" | "word-scramble" | "perfectly-hold" | "cup-shuffle" | "number-rush" | "the-author";
 
 export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) {
   const isTournament = room.gameMode === "tournament";
@@ -34,6 +35,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
   const hold = holdSettings(room.gameSettings?.["perfectly-hold"]);
   const cups = cupSettings(room.gameSettings?.["cup-shuffle"]);
   const rush = rushSettings(room.gameSettings?.["number-rush"]);
+  const author = authorSettings(room.gameSettings?.["the-author"]);
   const summaries: Partial<Record<string, string>> = {
     "speed-quiz": `${quiz.questionSeconds === 0 ? "No time limit" : `${quiz.questionSeconds}s`} · ${quiz.rounds} questions · max ${quiz.maxPlayers} players`,
     impostor: `${imp.customWord ? `Custom word (${categoryLabel(imp.category)})` : categoryLabel(imp.category)} · ${imp.impostors} impostor${imp.impostors === 1 ? "" : "s"} · ${imp.clueRounds} clue round${imp.clueRounds === 1 ? "" : "s"} · max ${imp.maxPlayers} players`,
@@ -42,6 +44,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
     "perfectly-hold": `${hold.rounds} rounds · ${HOLD_RANGE_LABELS[hold.range]} targets (${HOLD_RANGES[hold.range].min}–${HOLD_RANGES[hold.range].max}s) · max ${hold.maxPlayers} players`,
     "cup-shuffle": `${cups.rounds} rounds · max ${cups.maxPlayers} players`,
     "number-rush": `${rush.rounds} rounds · ${rush.seconds}s to predict · max ${rush.maxPlayers} players`,
+    "the-author": `${author.rounds} ${author.rounds === 1 ? "round" : "rounds"} · ${AUTHOR_CATEGORY_LABELS[author.category]} · ${author.writeSeconds}s to write · ${author.guessSeconds}s to guess · max ${author.maxPlayers} players`,
   };
   return (
     <Card className="gap-3">
@@ -105,6 +108,7 @@ export function LineupCard({ room, roomId }: { room: RoomDoc; roomId: string }) 
       <HoldOptionsDialog room={room} roomId={roomId} open={optionsFor === "perfectly-hold"} onOpenChange={(o) => setOptionsFor(o ? "perfectly-hold" : null)} />
       <CupOptionsDialog room={room} roomId={roomId} open={optionsFor === "cup-shuffle"} onOpenChange={(o) => setOptionsFor(o ? "cup-shuffle" : null)} />
       <RushOptionsDialog room={room} roomId={roomId} open={optionsFor === "number-rush"} onOpenChange={(o) => setOptionsFor(o ? "number-rush" : null)} />
+      <AuthorOptionsDialog room={room} roomId={roomId} open={optionsFor === "the-author"} onOpenChange={(o) => setOptionsFor(o ? "the-author" : null)} />
     </Card>
   );
 }

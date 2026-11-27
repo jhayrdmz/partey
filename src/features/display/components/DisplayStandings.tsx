@@ -65,7 +65,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
       {standings.length === 0 ? (
         <div className="grid flex-1 place-items-center text-3xl font-bold text-muted-foreground">No scores yet.</div>
       ) : (
-        <div className={cn("grid flex-1 content-center items-end gap-6 sm:content-normal sm:gap-10", rest.length > 0 && "lg:grid-cols-[3fr_2fr] short:grid-cols-[3fr_2fr]")}>
+        <div className={cn("grid flex-1 content-center items-end gap-6 sm:content-normal sm:gap-10", rest.length > 0 && "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] short:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]")}>
           <div className="flex items-end justify-center gap-3 lg:gap-6">
             {podium.map(({ s, place, rank }) =>
               s ? (
@@ -79,7 +79,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                   {rank === 1 && <Crown className="size-9 text-mango sm:size-12" />}
                   <AvatarBubble avatar={s.avatar} size={rank === 1 ? "xl" : "lg"} className={rank === 1 ? "max-sm:size-20 max-sm:text-4xl" : "max-sm:size-14 max-sm:text-3xl"} />
                   <p className="max-w-full truncate text-base font-extrabold sm:text-xl lg:text-3xl">{s.nickname}</p>
-                  {s.detail && <p className="max-w-full truncate text-xs font-semibold text-muted-foreground sm:text-base lg:text-lg">{s.detail}</p>}
+                  {s.detail && <p className="line-clamp-2 max-w-full text-center text-xs font-semibold text-muted-foreground sm:text-base lg:text-lg">{s.detail}</p>}
                   <div className={cn("flex w-full flex-col items-center justify-start rounded-t-3xl pt-4 text-background", podiumStyle[rank - 1].height, podiumStyle[rank - 1].color)} data-place={rank}>
                     <span className="text-2xl font-black sm:text-3xl lg:text-5xl">{ORDINAL[rank - 1]}</span>
                     <span className="text-sm font-extrabold tabular-nums sm:text-xl lg:text-2xl">{s.score} pts</span>
@@ -92,7 +92,7 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
             )}
           </div>
           {rest.length > 0 && (
-            <ol className="space-y-3 self-center" start={4}>
+            <ol className="min-w-0 space-y-3 self-center" start={4}>
               {rest.map((s, i) => (
                 <motion.li
                   key={s.playerId}
@@ -103,9 +103,10 @@ export function DisplayStandings({ state, roomCode }: { state: DisplayStateDoc; 
                 >
                   <span className="w-8 font-extrabold text-muted-foreground">{places[i + 3]}</span>
                   <AvatarBubble avatar={s.avatar} size="sm" />
-                  <span className="min-w-0 flex-1 truncate font-bold">
-                    {s.nickname}
-                    {s.detail && <span className="ml-2 text-base font-semibold text-muted-foreground">{s.detail}</span>}
+                  {/* Name, with the game's stat on its own line under it (long stats don't push the score out). */}
+                  <span className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate font-bold">{s.nickname}</span>
+                    {s.detail && <span className="block truncate text-sm font-semibold text-muted-foreground sm:text-base">{s.detail}</span>}
                   </span>
                   {s.delta !== undefined && <span className="text-lg font-bold text-calamansi tabular-nums">+{s.delta}</span>}
                   <span className="font-extrabold tabular-nums">{s.score}</span>

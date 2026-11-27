@@ -24,6 +24,7 @@ const SCORING: Partial<Record<GameId, string>> = {
   "reflex-battle": "The fastest three taps score 500, 350 and 250; everyone else who taps in time scores 150. Tap before GO and you score 0.",
   impostor: "If the crew votes out the impostor, every crew member scores 500 (plus 250 if you voted for them). If the impostor survives, they score 1,000.",
   "word-scramble": "The first correct answer scores 100, then 75 and 50, and 25 for everyone after. Wrong guesses cost nothing; you can guess again every 5 seconds. The host can add a speed bonus (up to +50).",
+  "the-author": "A right guess scores 100, plus a streak bonus of 50 for each right guess in a row before it (150, 200, 250…). Streaks carry across answers and questions; a wrong or missed guess resets it. You can't guess your own answer.",
   "number-rush": "A right call scores 10 points, multiplied by your streak: 1.25x for 2–3 in a row (13), 1.5x for 4–5 (15) and 2x from 6 (20). A wrong call or no call scores 0 and resets the streak.",
   "cup-shuffle": "Pick the cup with the ball for 100 points, plus a streak bonus for right picks in a row: +25 for the 2nd, +50 for the 3rd, up to +100. A wrong cup or no pick scores 0 and ends the streak.",
   "perfectly-hold": "Closest hold to the target scores 100, then 75 and 50, and 25 for everyone else who held. Ties share the same points. No hold scores 0.",
